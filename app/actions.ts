@@ -1,6 +1,6 @@
 'use server';
 
-import { redis } from '@/lib/redis';
+import { redis, isRedisAvailable } from '@/lib/redis';
 import { isValidIcon } from '@/lib/subdomains';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -38,6 +38,15 @@ export async function createSubdomainAction(
     };
   }
 
+  if (!isRedisAvailable() || !redis) {
+    return {
+      subdomain,
+      icon,
+      success: false,
+      error: 'Redis is not configured. Please configure Redis credentials to create subdomains.'
+    };
+  }
+
   const subdomainAlreadyExists = await redis.get(
     `subdomain:${sanitizedSubdomain}`
   );
@@ -63,6 +72,11 @@ export async function deleteSubdomainAction(
   formData: FormData
 ) {
   const subdomain = formData.get('subdomain');
+
+  if (!isRedisAvailable() || !redis) {
+    return { error: 'Redis is not configured. Cannot delete subdomains.' };
+  }
+
   await redis.del(`subdomain:${subdomain}`);
   revalidatePath('/admin');
   return { success: 'Domain deleted successfully' };

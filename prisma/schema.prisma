@@ -1,0 +1,226 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Core tenant management
+model Tenant {
+  id          String   @id @default(cuid())
+  slug        String   @unique // URL slug for path-based routing
+  name        String
+  description String?
+  logoUrl     String?
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  memberships TenantMembership[]
+  players     Player[]
+  requests    Request[]
+  trials      Trial[]
+  events      CalendarEvent[]
+
+  @@map("tenants")
+}
+
+// User management with multi-tenant membership
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  memberships TenantMembership[]
+
+  @@map("users")
+}
+
+model TenantMembership {
+  id       String     @id @default(cuid())
+  tenantId String
+  userId   String
+  role     TenantRole @default(VIEWER)
+  joinedAt DateTime   @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("tenant_memberships")
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  MANAGER
+  SCOUT
+  VIEWER
+}
+
+// Player management
+model Player {
+  id             String    @id @default(uuid())
+  tenantId       String
+  firstName      String
+  lastName       String
+  dateOfBirth    DateTime?
+  position       String?
+  club           String?
+  contractExpiry DateTime? // Contract expiry date
+  nationality    String?
+  height         Int? // cm
+  notes          String?
+  tags           String[] // Array of tags
+  rating         Float? // Overall rating 1-10
+  avatarUrl      String? // Legacy: Player avatar/photo URL (deprecated)
+  avatarPath     String? // New: Storage path for avatar in Supabase Storage
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trials Trial[]
+
+  @@index([tenantId])
+  @@index([tenantId, lastName])
+  @@map("players")
+}
+
+// Scout requests from clubs - MATCHES DATABASE STRUCTURE
+model Request {
+  id                   String    @id
+  tenantId             String
+  title                String?
+  description          String?
+  club                 String
+  position             String?
+  ageRange             String?
+  priority             String    @default("MEDIUM")
+  status               String    @default("OPEN")
+  budget               Float?
+  deadline             DateTime?
+
+  // Additional database fields (available but not required for MVP)
+  addOns               String?
+  amountEur            Float?
+  autoClosedReason     String?
+  country              String    @default("")
+  dealType             String    @default("BUY")
+  domesticOnlyOk       Boolean   @default(false)
+  expiredAt            DateTime?
+  feeCurrency          String    @default("EUR")
+  feeMax               Float?
+  feeMin               Float?
+  freeAgent            Boolean   @default(false)
+  graceDays            Int       @default(3)
+  league               String?
+  loanCutoffOverride   DateTime?
+  ownerId              String    @default("")
+  positions            String[]  @default([])
+  preContract          Boolean   @default(false)
+  rawSource            String?
+  salaryCap            Float?
+  salaryCurrency       String    @default("EUR")
+  salaryEur            Float?
+  source               String    @default("MANUAL")
+  visibility           String    @default("TEAM")
+  windowCloseAt        DateTime?
+  windowOpenAt         DateTime?
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  // Relations
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trials Trial[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("requests")
+}
+
+
+// Trial sessions and evaluations
+model Trial {
+  id          String      @id @default(cuid())
+  tenantId    String
+  playerId    String
+  requestId   String?
+  scheduledAt DateTime
+  location    String?
+  status      TrialStatus @default(SCHEDULED)
+  notes       String?
+  rating      Float? // Trial-specific rating 1-10
+  feedback    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  player        Player         @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  request       Request?       @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  calendarEvent CalendarEvent? // Optional - one trial can have one auto-created calendar event
+
+  @@index([tenantId])
+  @@index([tenantId, scheduledAt])
+  @@index([playerId])
+  @@map("trials")
+}
+
+enum TrialStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Calendar events
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  tenantId    String
+  trialId     String?   @unique // Optional - links to auto-created trial events
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  location    String?
+  type        EventType @default(OTHER)
+  isAllDay    Boolean   @default(false)
+  recurrence  String? // RRULE format
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  trial  Trial? @relation(fields: [trialId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, startTime])
+  @@map("calendar_events")
+}
+
+enum EventType {
+  TRIAL
+  MEETING
+  MATCH
+  TRAINING
+  SCOUTING
+  OTHER
+}

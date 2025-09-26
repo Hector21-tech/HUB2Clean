@@ -33,7 +33,9 @@ type CreateState = {
 function SubdomainInput({ defaultValue }: { defaultValue?: string }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="subdomain">Subdomain</Label>
+      <Label htmlFor="subdomain" className="text-sm font-medium">
+        Subdomain
+      </Label>
       <div className="flex items-center">
         <div className="relative flex-1">
           <Input

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir)",
+      "Bash(git clone:*)",
+      "Read(//c/Users/bga23/Desktop/Projekt/Fotbollsapp/**)",
+      "Bash(xcopy:*)",
+      "Bash(robocopy:*)",
+      "Bash(pnpm install:*)",
+      "Bash(tree:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm update:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)",
+      "Bash(pnpm db:generate:*)",
+      "Bash(pnpm typecheck:*)",
+      "Bash(pnpm build:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

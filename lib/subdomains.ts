@@ -1,4 +1,4 @@
-import { redis } from '@/lib/redis';
+import { redis, isRedisAvailable } from '@/lib/redis';
 
 export function isValidIcon(str: string) {
   if (str.length > 10) {
@@ -32,6 +32,14 @@ type SubdomainData = {
 };
 
 export async function getSubdomainData(subdomain: string) {
+  if (!isRedisAvailable() || !redis) {
+    // Fallback when Redis is not available - return mock data for development
+    return {
+      emoji: '🏠',
+      createdAt: Date.now()
+    };
+  }
+
   const sanitizedSubdomain = subdomain.toLowerCase().replace(/[^a-z0-9-]/g, '');
   const data = await redis.get<SubdomainData>(
     `subdomain:${sanitizedSubdomain}`
@@ -40,6 +48,11 @@ export async function getSubdomainData(subdomain: string) {
 }
 
 export async function getAllSubdomains() {
+  if (!isRedisAvailable() || !redis) {
+    // Fallback when Redis is not available - return empty array for development
+    return [];
+  }
+
   const keys = await redis.keys('subdomain:*');
 
   if (!keys.length) {
