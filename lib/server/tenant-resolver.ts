@@ -73,13 +73,12 @@ export async function validateTenantMembership(
     tenantId
   })
 
-  // For now, we'll implement a simple check
-  // In a real app, you'd check a user_tenants or memberships table
+  // Check tenant_memberships table using proper Prisma schema mapping
   const { data, error } = await supabase
-    .from('user_tenants')
-    .select('user_id, tenant_id, role')
-    .eq('user_id', userId)
-    .eq('tenant_id', tenantId)
+    .from('tenant_memberships')
+    .select('userId, tenantId, role')
+    .eq('userId', userId)
+    .eq('tenantId', tenantId)
     .single()
 
   if (error) {
