@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session with timeout
     const getInitialSession = async () => {
       console.log('🔐 AuthContext: Starting session initialization...')
 
@@ -46,8 +46,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      // Add timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.warn('⏰ AuthContext: Session timeout after 10 seconds, setting loading to false')
+        setLoading(false)
+      }, 10000) // 10 second timeout
+
       try {
+        console.log('🔐 AuthContext: Getting session from Supabase...')
+
+        const sessionStart = Date.now()
         const { data: { session }, error } = await supabase.auth.getSession()
+        const sessionDuration = Date.now() - sessionStart
+
+        clearTimeout(timeoutId) // Clear timeout if we get a response
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔐 AuthContext: Session result:', {
+            hasSession: !!session,
+            hasUser: !!session?.user,
+            error: error?.message,
+            duration: `${sessionDuration}ms`
+          })
+        }
 
         if (error) {
           console.error('❌ AuthContext: Error getting session:', error)
@@ -100,9 +121,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
 
+        // Development mode: Set tenant immediately (ONLY in development)
+        if (session?.user &&
+            process.env.NODE_ENV === 'development' &&
+            process.env.VERCEL_ENV !== 'production' &&
+            process.env.DEV_AUTH_ENABLED === 'true') {
+          console.log('🚧 AuthContext: Setting development tenant immediately')
+          setCurrentTenant('test-tenant-demo')
+          const mockTenants: TenantMembership[] = [{
+            tenantId: 'test-tenant-demo',
+            role: 'OWNER',
+            tenant: {
+              id: 'test-tenant-demo',
+              name: 'Test Scout Hub',
+              slug: 'test-scout-hub'
+            }
+          }]
+          setUserTenants(mockTenants)
+        }
+
         if (session?.user) {
+          console.log('🔐 AuthContext: User found in initial session')
           await fetchUserTenants(session.user.id)
         } else {
+          console.log('🔐 AuthContext: No session found')
           setUserTenants([])
           setCurrentTenant(null)
         }
