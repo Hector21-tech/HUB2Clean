@@ -40,6 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getInitialSession = async () => {
       console.log('🔐 AuthContext: Starting session initialization...')
 
+      if (!supabase) {
+        console.warn('⚠️ AuthContext: Supabase client not available')
+        setLoading(false)
+        return
+      }
+
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
 
@@ -83,7 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     getInitialSession()
 
-    // Listen for auth changes
+    // Listen for auth changes only if supabase is available
+    if (!supabase) {
+      return () => {} // Return empty cleanup function
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔐 AuthContext: Auth state change:', event)
@@ -120,6 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!currentTenant) {
         setCurrentTenant('test-tenant-demo')
       }
+      return
+    }
+
+    if (!supabase) {
+      console.warn('⚠️ AuthContext: Supabase client not available for fetching tenants')
+      setUserTenants([])
       return
     }
 
@@ -173,6 +189,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Sign out function
   const signOut = async () => {
+    if (!supabase) {
+      console.warn('⚠️ AuthContext: Supabase client not available for sign out')
+      setUser(null)
+      setSession(null)
+      setUserTenants([])
+      setCurrentTenant(null)
+      return
+    }
+
     const { error } = await supabase.auth.signOut()
     if (error) {
       console.error('Error signing out:', error)
