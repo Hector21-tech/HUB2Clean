@@ -97,7 +97,7 @@ export default function LoginPage() {
         setError(error.message)
         setLoading(false)
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to authenticate with Google')
       setLoading(false)
     }

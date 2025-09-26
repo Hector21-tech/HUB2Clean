@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trash2, Loader2, Users, Database, BarChart3, Activity, Shield } from 'lucide-react';
@@ -20,7 +20,7 @@ type DeleteState = {
 };
 
 function SystemOverview() {
-  const [metrics, setMetrics] = useState([
+  const [metrics] = useState([
     { label: 'Total Tenants', value: '--', description: 'Scout Hub organizations', icon: Users },
     { label: 'Active Users', value: '--', description: 'Users active in last 30 days', icon: Activity },
     { label: 'Total Players', value: '--', description: 'Player profiles across all tenants', icon: BarChart3 },
