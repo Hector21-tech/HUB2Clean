@@ -17,6 +17,9 @@ interface AddPlayerModalProps {
 }
 
 export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlayer }: AddPlayerModalProps) {
+  // Early return MUST be before all hooks
+  if (!isOpen) return null
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -249,8 +252,6 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
       setIsSubmitting(false)
     }
   }
-
-  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

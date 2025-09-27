@@ -311,7 +311,7 @@ export function PlayersHeader({
           <div className="flex flex-wrap gap-2 mt-3 sm:mt-4">
             {filters.search && (
               <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full border border-blue-500/30">
-                Search: "{filters.search}"
+                Search: &quot;{filters.search}&quot;
                 <button
                   onClick={() => handleFilterChange('search', undefined)}
                   className="text-blue-400/70 hover:text-blue-400 transition-colors duration-200 touch-none"
