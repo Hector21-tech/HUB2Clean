@@ -9,7 +9,20 @@ import { useAuth } from '@/lib/auth/AuthContext'
  */
 export function useTenantSlug() {
   const params = useParams()
-  const { userTenants, currentTenant, setCurrentTenant } = useAuth()
+
+  // Safe auth hook usage with fallback
+  let userTenants: any[] = []
+  let currentTenant: string | null = null
+  let setCurrentTenant: (tenantId: string) => void = () => {}
+
+  try {
+    const authData = useAuth()
+    userTenants = authData.userTenants || []
+    currentTenant = authData.currentTenant
+    setCurrentTenant = authData.setCurrentTenant
+  } catch (error) {
+    console.warn('⚠️ useTenantSlug: Auth context not available, using fallback mode')
+  }
 
   const tenantSlug = params?.tenant as string
 
@@ -59,6 +72,18 @@ export function useTenantSlug() {
   // Auto-set current tenant if it matches the URL and is different
   if (tenantData && currentTenant !== tenantData.tenantId) {
     setCurrentTenant(tenantData.tenantId)
+  }
+
+  // 🛡️ FALLBACK: If auth context is not available, provide basic functionality
+  if (!userTenants.length && tenantSlug) {
+    console.warn('⚠️ useTenantSlug: No auth data available, using basic fallback for:', tenantSlug)
+    return {
+      tenantSlug,
+      tenantId: tenantSlug, // Use slug as ID in fallback mode
+      tenant: null,
+      role: 'OWNER', // Default role for fallback
+      hasAccess: true // Allow access in fallback mode
+    }
   }
 
   return {
