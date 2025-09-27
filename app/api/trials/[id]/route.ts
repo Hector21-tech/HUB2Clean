@@ -168,8 +168,17 @@ export async function DELETE(
       )
     }
 
-    await prisma.trial.delete({
-      where: { id }
+    // Delete trial and associated calendar event in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Delete associated calendar event first (if exists)
+      await tx.calendarEvent.deleteMany({
+        where: { trialId: id }
+      })
+
+      // Then delete the trial
+      await tx.trial.delete({
+        where: { id }
+      })
     })
 
     return NextResponse.json({

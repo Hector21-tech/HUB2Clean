@@ -84,35 +84,64 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create trial
-    const trial = await prisma.trial.create({
-      data: {
-        ...body,
-        tenantId: tenant,
-        scheduledAt: new Date(body.scheduledAt),
-        status: body.status || 'SCHEDULED'
-      },
-      include: {
-        player: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            position: true,
-            club: true,
-            avatarPath: true,
-            avatarUrl: true
-          }
+    // Create trial and calendar event in a transaction
+    const trial = await prisma.$transaction(async (tx) => {
+      // Create the trial first
+      const newTrial = await tx.trial.create({
+        data: {
+          ...body,
+          tenantId: tenant,
+          scheduledAt: new Date(body.scheduledAt),
+          status: body.status || 'SCHEDULED'
         },
-        request: {
-          select: {
-            id: true,
-            title: true,
-            club: true,
-            position: true
+        include: {
+          player: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              position: true,
+              club: true,
+              avatarPath: true,
+              avatarUrl: true
+            }
+          },
+          request: {
+            select: {
+              id: true,
+              title: true,
+              club: true,
+              position: true
+            }
           }
         }
-      }
+      })
+
+      // Create calendar event for the trial
+      const playerName = newTrial.player
+        ? `${newTrial.player.firstName} ${newTrial.player.lastName}`
+        : 'Unknown Player'
+
+      const eventTitle = `Trial: ${playerName}`
+      const eventDescription = newTrial.request
+        ? `Trial for ${newTrial.request.title || 'player request'} from ${newTrial.request.club}`
+        : `Trial for ${playerName}`
+
+      await tx.calendarEvent.create({
+        data: {
+          tenantId: tenant,
+          trialId: newTrial.id,
+          title: eventTitle,
+          description: eventDescription,
+          startTime: new Date(body.scheduledAt),
+          endTime: new Date(new Date(body.scheduledAt).getTime() + 2 * 60 * 60 * 1000), // 2 hours duration
+          type: 'TRIAL',
+          location: body.location || 'Training Ground',
+          isAllDay: false
+        }
+      })
+
+      return newTrial
     })
 
     return NextResponse.json({
