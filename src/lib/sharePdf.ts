@@ -9,6 +9,7 @@ interface SharePDFOptions {
     name?: string
     description?: string
   }
+  tenantId?: string
 }
 
 export async function generateAndSharePDF({
@@ -18,13 +19,15 @@ export async function generateAndSharePDF({
   title = 'PDF Document',
   playerData,
   aiImprovedNotes,
-  tenantData
+  tenantData,
+  tenantId
 }: SharePDFOptions): Promise<void> {
   const ac = new AbortController()
   const timeout = setTimeout(() => ac.abort(), 25000)
 
   try {
-    const response = await fetch('/api/generate-player-pdf', {
+    const apiUrl = tenantId ? `/api/generate-player-pdf?tenant=${tenantId}` : '/api/generate-player-pdf'
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html, url, fileName, playerData, aiImprovedNotes, tenantData }),
@@ -104,6 +107,7 @@ export async function generateAndSharePDFWithGesture({
   playerData,
   aiImprovedNotes,
   tenantData,
+  tenantId,
   onProgress
 }: SharePDFOptions & { onProgress?: (stage: string) => void }): Promise<void> {
   const safeFileName = fileName.toLowerCase().endsWith('.pdf') ? fileName : `${fileName}.pdf`
@@ -125,7 +129,8 @@ export async function generateAndSharePDFWithGesture({
   const timeout = setTimeout(() => ac.abort(), 25000)
 
   try {
-    const response = await fetch('/api/generate-player-pdf', {
+    const apiUrl = tenantId ? `/api/generate-player-pdf?tenant=${tenantId}` : '/api/generate-player-pdf'
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html, url, fileName, playerData, aiImprovedNotes, tenantData }),

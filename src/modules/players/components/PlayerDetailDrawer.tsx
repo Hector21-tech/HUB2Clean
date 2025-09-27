@@ -164,6 +164,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
         aiImprovedNotes,
         fileName: `${player.firstName}_${player.lastName}_Scout_Report.pdf`,
         title: `Scout Report - ${player.firstName} ${player.lastName}`,
+        tenantId: player.tenantId,
         onProgress: setPdfProgress
       })
 
