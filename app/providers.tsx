@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactNode, useState } from 'react'
-import { AuthProvider } from '@/lib/auth/AuthContext'
+import { AuthProvider } from '../src/lib/auth/AuthContext'
 import { ThemeProvider } from '@/lib/theme-provider'
 
 interface ProvidersProps {

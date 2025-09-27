@@ -16,13 +16,17 @@ export function useTenantSlug() {
   // Development mode: Return current tenant directly
   if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_ENABLED === 'true') {
     console.log('🚧 useTenantSlug: Development mode - using currentTenant:', currentTenant)
-    const devTenant = userTenants.find(t => t.tenantId === currentTenant)
+
+    // FALLBACK: If currentTenant is null, use the tenant from URL
+    const fallbackTenantId = currentTenant || tenantSlug || 'test-tenant-demo'
+
+    const devTenant = userTenants.find(t => t.tenantId === fallbackTenantId)
     return {
       tenantSlug,
-      tenantId: currentTenant,
+      tenantId: fallbackTenantId,
       tenant: devTenant?.tenant || null,
       role: devTenant?.role || 'OWNER',
-      hasAccess: !!currentTenant
+      hasAccess: true // Always allow access in development
     }
   }
 
