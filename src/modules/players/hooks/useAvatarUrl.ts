@@ -5,6 +5,7 @@ interface UseAvatarUrlProps {
   avatarPath?: string
   avatarUrl?: string  // Legacy fallback
   tenantId: string
+  playerName?: string // Optional: for better fallback avatars
 }
 
 interface AvatarUrlData {
@@ -14,7 +15,7 @@ interface AvatarUrlData {
 }
 
 // Hook to get signed avatar URL from either new path or legacy URL
-export function useAvatarUrl({ avatarPath, avatarUrl, tenantId }: UseAvatarUrlProps): AvatarUrlData {
+export function useAvatarUrl({ avatarPath, avatarUrl, tenantId, playerName }: UseAvatarUrlProps): AvatarUrlData {
   const [data, setData] = useState<AvatarUrlData>({
     url: null,
     isLoading: false,
@@ -59,7 +60,7 @@ export function useAvatarUrl({ avatarPath, avatarUrl, tenantId }: UseAvatarUrlPr
       setData(prev => ({ ...prev, isLoading: true, error: null }))
 
       try {
-        const url = await getCachedAvatarUrl(avatarPath, tenantId)
+        const url = await getCachedAvatarUrl(avatarPath, tenantId, playerName)
 
         setData({
           url,
@@ -97,7 +98,7 @@ export function getBestAvatarUrl(player: { avatarPath?: string; avatarUrl?: stri
 const urlCache = new Map<string, { url: string; expiresAt: number }>()
 
 
-export async function getCachedAvatarUrl(avatarPath: string, tenantId: string): Promise<string | null> {
+export async function getCachedAvatarUrl(avatarPath: string, tenantId: string, playerName?: string): Promise<string | null> {
   const cacheKey = `${tenantId}:${avatarPath}`
   const cached = urlCache.get(cacheKey)
 
@@ -149,7 +150,15 @@ export async function getCachedAvatarUrl(avatarPath: string, tenantId: string): 
       console.error('Legacy avatar URL fallback also failed:', fallbackError)
     }
 
-    return null
+    // 🎭 FINAL FALLBACK: Return a default avatar URL
+    console.warn(`Avatar file not found for path: ${avatarPath}, using default avatar`)
+
+    // Use player name or default to "Player" for personalized avatar
+    const displayName = playerName || 'Player'
+    const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase()
+
+    // Use a default avatar from a reliable CDN with player's initials
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1e40af&color=fff&size=150&bold=true`
   }
 }
 
