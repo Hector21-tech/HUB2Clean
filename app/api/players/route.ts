@@ -77,3 +77,63 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const playerId = searchParams.get('id')
+
+    if (!playerId) {
+      return NextResponse.json(
+        { success: false, error: 'Player ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+
+    // Use PlayerService to update player in database
+    const updatedPlayer = await playerService.updatePlayer(playerId, body)
+
+    return NextResponse.json({
+      success: true,
+      data: updatedPlayer
+    })
+  } catch (error) {
+    console.error('Player update error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update player' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const playerId = searchParams.get('id')
+
+    if (!playerId) {
+      return NextResponse.json(
+        { success: false, error: 'Player ID is required' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+
+    // Use PlayerService to update player in database
+    const updatedPlayer = await playerService.updatePlayer(playerId, body)
+
+    return NextResponse.json({
+      success: true,
+      data: updatedPlayer
+    })
+  } catch (error) {
+    console.error('Player update error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to update player' },
+      { status: 500 }
+    )
+  }
+}
