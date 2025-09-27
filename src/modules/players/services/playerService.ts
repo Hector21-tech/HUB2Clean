@@ -138,10 +138,30 @@ export class PlayerService {
 
   async updatePlayer(id: string, playerData: Partial<Player>): Promise<Player> {
     try {
+      console.log('🔄 PlayerService.updatePlayer called with:', { id, dataKeys: Object.keys(playerData) })
+
+      // Filter data to only include fields that exist in Prisma schema
+      const validFields = [
+        'firstName', 'lastName', 'dateOfBirth', 'position', 'club',
+        'contractExpiry', 'nationality', 'height', 'notes', 'tags',
+        'rating', 'avatarUrl', 'avatarPath'
+      ]
+
+      const filteredData: Record<string, any> = {}
+      for (const [key, value] of Object.entries(playerData)) {
+        if (validFields.includes(key) && value !== undefined) {
+          filteredData[key] = value
+        } else if (!validFields.includes(key)) {
+          console.warn(`⚠️ Skipping invalid field for Prisma: ${key}`)
+        }
+      }
+
+      console.log('✅ Filtered data for Prisma:', { filteredKeys: Object.keys(filteredData) })
+
       const player = await prisma.player.update({
         where: { id },
         data: {
-          ...playerData,
+          ...filteredData,
           updatedAt: new Date()
         },
         include: {
@@ -150,9 +170,11 @@ export class PlayerService {
         }
       })
 
+      console.log('✅ Player updated successfully:', { id: player.id, name: `${player.firstName} ${player.lastName}` })
       return player as Player
     } catch (error) {
-      console.error('Error updating player:', error)
+      console.error('❌ Error updating player:', error)
+      console.error('❌ Update details:', { id, playerData })
       throw new Error('Failed to update player')
     }
   }
