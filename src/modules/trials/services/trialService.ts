@@ -1,7 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { Trial, TrialFilters, CreateTrialInput, UpdateTrialInput, TrialEvaluationInput, TrialStats } from '../types/trial'
-// TODO: Re-enable calendar integration when calendar module is migrated
-// import { calendarService } from '../../calendar/services/calendarService'
+import { calendarService } from '../../calendar/services/calendarService'
 
 const prisma = new PrismaClient()
 
@@ -144,8 +143,6 @@ export class TrialService {
     })
 
     // 🗓️ AUTO-CREATE CALENDAR EVENT: Create corresponding calendar event for the trial
-    // TODO: Re-enable calendar integration when calendar module is migrated
-    /*
     try {
       const eventData = calendarService.createTrialEvent(tenantId, {
         id: trial.id,
@@ -159,7 +156,6 @@ export class TrialService {
       // Log error but don't fail trial creation if calendar event fails
       console.warn(`Failed to create calendar event for trial ${trial.id}:`, error)
     }
-    */
 
     return trial as Trial
   }
@@ -195,8 +191,6 @@ export class TrialService {
     })
 
     // 🔄 SYNC CALENDAR EVENT: Update corresponding calendar event if trial details changed
-    // TODO: Re-enable calendar integration when calendar module is migrated
-    /*
     try {
       const existingEvent = await calendarService.getEventByTrialId(trial.id, tenantId)
 
@@ -226,7 +220,6 @@ export class TrialService {
       // Log error but don't fail trial update if calendar sync fails
       console.warn(`Failed to sync calendar event for trial ${trial.id}:`, error)
     }
-    */
 
     return trial as Trial
   }
@@ -278,15 +271,12 @@ export class TrialService {
     }
 
     // 🗑️ DELETE CALENDAR EVENT: Remove associated calendar event first
-    // TODO: Re-enable calendar integration when calendar module is migrated
-    /*
     try {
       await calendarService.deleteEventByTrialId(id, tenantId)
     } catch (error) {
       // Log error but continue with trial deletion
       console.warn(`Failed to delete calendar event for trial ${id}:`, error)
     }
-    */
 
     await prisma.trial.delete({
       where: { id }
