@@ -30,7 +30,8 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   const { url: avatarUrl, isLoading: avatarLoading } = useAvatarUrl({
     avatarPath: player?.avatarPath,
     avatarUrl: player?.avatarUrl,
-    tenantId: player?.tenantId || ''
+    tenantId: player?.tenantId || '',
+    playerName: player ? `${player.firstName} ${player.lastName}` : undefined
   })
 
   const calculateAge = (dateOfBirth?: Date) => {

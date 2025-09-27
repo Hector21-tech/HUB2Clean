@@ -19,7 +19,8 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
   const { url: avatarUrl, isLoading: avatarLoading } = useAvatarUrl({
     avatarPath: player.avatarPath,
     avatarUrl: player.avatarUrl,
-    tenantId: player.tenantId
+    tenantId: player.tenantId,
+    playerName: `${player.firstName} ${player.lastName}`
   })
 
   return (

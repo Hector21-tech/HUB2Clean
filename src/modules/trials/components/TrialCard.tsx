@@ -45,7 +45,8 @@ export function TrialCard({ trial, onEdit, onDelete, onEvaluate, onClick }: Tria
   const { url: avatarUrl, isLoading: avatarLoading } = useAvatarUrl({
     avatarPath: trial.player?.avatarPath || undefined,
     avatarUrl: trial.player?.avatarUrl || undefined,
-    tenantId: trial.tenantId
+    tenantId: trial.tenantId,
+    playerName: trial.player ? `${trial.player.firstName} ${trial.player.lastName}` : undefined
   })
 
   const trialDate = new Date(trial.scheduledAt)
