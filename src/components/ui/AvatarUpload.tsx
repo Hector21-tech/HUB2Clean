@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { Upload, X, Loader2, Camera, User } from 'lucide-react'
 import { apiFetch } from '@/lib/api-config'
+import { invalidateAvatarCache, triggerAvatarCacheInvalidation } from '@/modules/players/hooks/useAvatarUrl'
 
 interface AvatarUploadProps {
   currentAvatarUrl?: string | null
@@ -135,7 +136,18 @@ export function AvatarUpload({
 
       const result = await response.json()
       if (result.success) {
-        onUploadComplete(result.path)
+        // 🚀 CACHE INVALIDATION: Clear old avatar cache and trigger refresh
+        if (playerId) {
+          // Invalidate cache for the specific avatar path
+          invalidateAvatarCache(result.data.avatarPath, tenantId)
+          console.log('🗑️ Avatar cache invalidated for:', result.data.avatarPath)
+        }
+
+        // Trigger global cache invalidation to refresh all components
+        triggerAvatarCacheInvalidation()
+        console.log('🔄 Global avatar cache invalidation triggered')
+
+        onUploadComplete(result.data.avatarPath)
         setUploadProgress(100)
         setIsUploading(false)
       } else {

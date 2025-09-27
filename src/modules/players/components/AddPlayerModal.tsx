@@ -223,7 +223,11 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         rating: formData.rating ? Number(formData.rating) : undefined,
         tags: [], // Default empty tags
         // Clear club if Free Agent is selected (use null for consistency)
-        club: formData.club === 'Free Agent' ? null : formData.club
+        club: formData.club === 'Free Agent' ? null : formData.club,
+        // Convert positions array to single position string for Prisma compatibility
+        position: formData.positions && formData.positions.length > 0 ? formData.positions[0] : undefined,
+        // Remove positions array to avoid sending invalid field to backend
+        positions: undefined
       }
 
       await onSave(playerData)
