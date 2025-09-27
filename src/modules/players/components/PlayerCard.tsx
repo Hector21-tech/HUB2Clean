@@ -77,7 +77,7 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
                 }
               }
 
-              // Final fallback: hide image
+              // Final fallback: show placeholder avatar
               console.warn(`Failed to load player image: ${target.src}`)
               setImageError(true)
             }}
@@ -89,6 +89,22 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
               delete target.dataset.cleaned
             }}
           />
+        )}
+
+        {/* Placeholder Avatar when no image available */}
+        {(!avatarUrl || imageError || avatarLoading) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+              <span className="text-2xl font-bold text-white">
+                {getPlayerInitials(player.firstName, player.lastName)}
+              </span>
+            </div>
+            {avatarLoading && (
+              <div className="absolute bottom-2 right-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Enhanced Gradient Overlay for better text readability */}

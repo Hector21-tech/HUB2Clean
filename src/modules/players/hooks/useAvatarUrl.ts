@@ -102,9 +102,10 @@ export async function getCachedAvatarUrl(avatarPath: string, tenantId: string, p
   const cacheKey = `${tenantId}:${avatarPath}`
   const cached = urlCache.get(cacheKey)
 
-  // Return cached proxy URL if still valid (with 5 min buffer)
+  // Return cached result if still valid (with 5 min buffer)
   if (cached && cached.expiresAt > Date.now() + 5 * 60 * 1000) {
-    return cached.url
+    // Empty string indicates "not found" result
+    return cached.url || null
   }
 
   try {
@@ -117,7 +118,12 @@ export async function getCachedAvatarUrl(avatarPath: string, tenantId: string, p
     const headResponse = await apiFetch(proxyUrl, { method: 'HEAD' })
 
     if (headResponse.status === 404) {
-      console.log(`Avatar file not found for path: ${avatarPath}`)
+      console.log(`🖼️ Avatar file not found for path: ${avatarPath} - will show placeholder`)
+      // Cache the negative result to avoid repeated requests
+      urlCache.set(cacheKey, {
+        url: '', // Empty string indicates "not found"
+        expiresAt: Date.now() + 10 * 60 * 1000 // Cache for 10 minutes
+      })
       return null
     }
 
