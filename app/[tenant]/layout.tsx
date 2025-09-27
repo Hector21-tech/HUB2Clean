@@ -1,8 +1,8 @@
 import { ReactNode } from 'react'
 import { TenantProvider } from '@/lib/tenant-context'
 import { ThemeProvider } from '@/lib/theme-provider'
-import { MainNav } from '@/src/components/main-nav'
-import { UserNav } from '@/src/components/user-nav'
+import { MainNav } from '@/components/main-nav'
+import { UserNav } from '@/components/user-nav'
 import '../globals.css'
 
 interface TenantLayoutProps {

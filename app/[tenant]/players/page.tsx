@@ -1,4 +1,4 @@
-import { PlayersPage } from '@/src/modules/players/components/PlayersPage'
+import { PlayersPage } from '@/modules/players/components/PlayersPage'
 
 export default function TenantPlayersPage() {
   return <PlayersPage />
