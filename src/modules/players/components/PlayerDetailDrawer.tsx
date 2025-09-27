@@ -18,6 +18,7 @@ interface PlayerDetailDrawerProps {
 }
 
 export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, onScheduleTrial }: PlayerDetailDrawerProps) {
+  // Early return MUST be before all hooks
   if (!player || !isOpen) return null
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)

@@ -21,7 +21,9 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$(cat <<''EOF''\nSTEG 2: Implementera Tenant Routing Foundation ✅\n\n- Skapad [tenant] routing struktur med Next.js 15 kompatibilitet\n- Implementerad TenantProvider för tenant context management  \n- Uppdaterad middleware med CSRF-protection från HUB2-Innankaos\n- Testad och verifierad tenant routing fungerar lokalt\n- Uppdaterad CLAUDE.md med komplett migrationsplan\n\n🧪 TESTED: Tenant routing fungerar för /test1, /demo-tenant routes\n📦 DEPLOY & TEST: Redo för produktionsdeploy\n\n🤖 Generated with [Claude Code](https://claude.ai/code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push:*)",
-      "Bash(pnpm dev:*)"
+      "Bash(pnpm dev:*)",
+      "Bash(pnpm run:*)",
+      "Bash(rd:*)"
     ],
     "deny": [],
     "ask": []

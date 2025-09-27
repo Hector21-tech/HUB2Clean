@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { Menu, X, User, Settings, LogOut, Sun, Moon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/AuthContext'
-import { useTheme } from '@/lib/theme-provider'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,

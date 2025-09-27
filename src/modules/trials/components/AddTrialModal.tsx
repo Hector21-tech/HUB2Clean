@@ -11,12 +11,12 @@ interface AddTrialModalProps {
 }
 
 export function AddTrialModal({
-  isOpen,
-  onClose,
-  onTrialAdded,
-  tenantId,
-  playerId,
-  preSelectedPlayerId
+  isOpen: _isOpen,
+  onClose: _onClose,
+  onTrialAdded: _onTrialAdded,
+  tenantId: _tenantId,
+  playerId: _playerId,
+  preSelectedPlayerId: _preSelectedPlayerId
 }: AddTrialModalProps) {
   // Placeholder implementation - returns null
   // This component will be properly implemented when we migrate the trials module

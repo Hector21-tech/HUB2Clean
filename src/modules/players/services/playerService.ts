@@ -5,7 +5,7 @@ const prisma = new PrismaClient()
 
 export class PlayerService {
   async getPlayers(tenantId: string, filters?: PlayerFilters): Promise<Player[]> {
-    const where: any = {
+    const where: Record<string, unknown> = {
       tenantId
     }
 
@@ -39,7 +39,7 @@ export class PlayerService {
       if (filters.ageMin) {
         const maxBirthYear = currentYear - filters.ageMin
         where.dateOfBirth = {
-          ...where.dateOfBirth,
+          ...(where.dateOfBirth || {}),
           lte: new Date(`${maxBirthYear}-12-31`)
         }
       }
@@ -47,7 +47,7 @@ export class PlayerService {
       if (filters.ageMax) {
         const minBirthYear = currentYear - filters.ageMax
         where.dateOfBirth = {
-          ...where.dateOfBirth,
+          ...(where.dateOfBirth || {}),
           gte: new Date(`${minBirthYear}-01-01`)
         }
       }
@@ -55,14 +55,14 @@ export class PlayerService {
 
     if (filters?.ratingMin) {
       where.rating = {
-        ...where.rating,
+        ...(where.rating || {}),
         gte: filters.ratingMin
       }
     }
 
     if (filters?.ratingMax) {
       where.rating = {
-        ...where.rating,
+        ...(where.rating || {}),
         lte: filters.ratingMax
       }
     }

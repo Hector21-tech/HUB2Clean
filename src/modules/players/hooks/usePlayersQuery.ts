@@ -2,10 +2,6 @@ import { useQuery } from '@tanstack/react-query'
 import { Player } from '../types/player'
 import { apiFetch } from '@/lib/api-config'
 
-interface PlayersResponse {
-  success: boolean
-  data: Player[]
-}
 
 // Mock players for demo/fallback - moved from PlayersPage
 const getMockPlayers = (): Player[] => [
@@ -67,7 +63,7 @@ const fetchPlayers = async (tenantId: string): Promise<Player[]> => {
     }
 
     return result.data
-  } catch (err) {
+  } catch {
     return getMockPlayers()
   }
 }
