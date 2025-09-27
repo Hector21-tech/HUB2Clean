@@ -150,15 +150,9 @@ export async function getCachedAvatarUrl(avatarPath: string, tenantId: string, p
       console.error('Legacy avatar URL fallback also failed:', fallbackError)
     }
 
-    // 🎭 FINAL FALLBACK: Return a default avatar URL
-    console.warn(`Avatar file not found for path: ${avatarPath}, using default avatar`)
-
-    // Use player name or default to "Player" for personalized avatar
-    const displayName = playerName || 'Player'
-    const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase()
-
-    // Use a default avatar from a reliable CDN with player's initials
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=1e40af&color=fff&size=150&bold=true`
+    // 🚫 NO FALLBACK: Return null when avatar file doesn't exist
+    console.warn(`Avatar file not found for path: ${avatarPath}, no fallback avatar will be shown`)
+    return null
   }
 }
 

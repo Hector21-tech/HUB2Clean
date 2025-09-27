@@ -5,7 +5,7 @@ import { Calendar, MapPin, User, Edit, Trash2, CheckCircle } from 'lucide-react'
 import { Trial } from '../types/trial'
 import { TrialStatusBadge } from './TrialStatusBadge'
 import { useAvatarUrl } from '../../players/hooks/useAvatarUrl'
-import { getPlayerInitials } from '@/lib/formatters'
+// import { getPlayerInitials } from '@/lib/formatters' // Removed - no longer using initials
 import { getFullPositionName } from '@/lib/positions'
 import { useUpdateTrialStatus } from '../hooks/useTrialMutations'
 
@@ -107,16 +107,10 @@ export function TrialListItem({ trial, onEdit, onDelete, onClick }: TrialListIte
       )
     }
 
-    // Fallback to initials or User icon
+    // Fallback to User icon only
     return (
       <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center">
-        {trial.player ? (
-          <div className="text-white text-sm font-bold">
-            {getPlayerInitials(trial.player.firstName, trial.player.lastName)}
-          </div>
-        ) : (
-          <User className="w-5 h-5 text-white" />
-        )}
+        <User className="w-5 h-5 text-white" />
       </div>
     )
   }

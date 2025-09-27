@@ -5,7 +5,7 @@ import { X, Calendar, MapPin, User, Star, Clock, Edit, Trash2, Target } from 'lu
 import { Trial } from '../types/trial'
 import { TrialStatusBadge } from './TrialStatusBadge'
 import { useAvatarUrl } from '../../players/hooks/useAvatarUrl'
-import { getPlayerInitials } from '@/lib/formatters'
+// import { getPlayerInitials } from '@/lib/formatters' // Removed - no longer using initials
 
 interface TrialDetailDrawerProps {
   trial: Trial | null
@@ -126,13 +126,7 @@ export function TrialDetailDrawer({
                 />
               ) : (
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-full flex items-center justify-center">
-                  {trial.player ? (
-                    <div className="text-white text-lg font-bold">
-                      {getPlayerInitials(trial.player.firstName, trial.player.lastName)}
-                    </div>
-                  ) : (
-                    <User className="w-8 h-8 text-white" />
-                  )}
+                  <User className="w-8 h-8 text-white" />
                 </div>
               )}
 

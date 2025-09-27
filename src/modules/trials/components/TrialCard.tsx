@@ -5,7 +5,7 @@ import { Calendar, MapPin, User, Star, Clock, Edit, Trash2, CheckCircle } from '
 import { Trial } from '../types/trial'
 import { TrialStatusBadge } from './TrialStatusBadge'
 import { useAvatarUrl } from '../../players/hooks/useAvatarUrl'
-import { getPlayerInitials } from '@/lib/formatters'
+// import { getPlayerInitials } from '@/lib/formatters' // Removed - no longer using initials
 import { getFullPositionName } from '@/lib/positions'
 import { useUpdateTrialStatus } from '../hooks/useTrialMutations'
 
@@ -145,15 +145,9 @@ export function TrialCard({ trial, onEdit, onDelete, onEvaluate, onClick }: Tria
                 }}
               />
             ) : (
-              // Fallback Avatar - Show initials or generic icon
+              // Fallback Avatar - Show generic icon only
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-full flex items-center justify-center">
-                {trial.player ? (
-                  <div className="text-white text-sm font-bold">
-                    {getPlayerInitials(trial.player.firstName, trial.player.lastName)}
-                  </div>
-                ) : (
-                  <User className="w-5 h-5 text-white" />
-                )}
+                <User className="w-5 h-5 text-white" />
               </div>
             )}
             <div>

@@ -5,7 +5,7 @@ import { X, Calendar, MapPin, User, Star, Clock, Target, ExternalLink, Edit3, Tr
 import { CalendarEvent, EVENT_TYPE_CONFIG } from '../types/calendar'
 import { TrialStatusBadge } from '../../trials/components/TrialStatusBadge'
 import { useAvatarUrl } from '../../players/hooks/useAvatarUrl'
-import { getPlayerInitials } from '@/lib/formatters'
+// import { getPlayerInitials } from '@/lib/formatters' // Removed - no longer using initials
 
 interface EventDetailModalProps {
   event: CalendarEvent
@@ -160,9 +160,7 @@ export function EventDetailModal({
                     />
                   ) : (
                     <div className="w-14 h-14 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-full flex items-center justify-center">
-                      <div className="text-white text-lg font-bold">
-                        {getPlayerInitials(event.trial.player.firstName, event.trial.player.lastName)}
-                      </div>
+                      <User className="w-7 h-7 text-white" />
                     </div>
                   )}
 

@@ -49,7 +49,7 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
       {/* Hero Header */}
       <div className="relative h-32 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
         {/* Player Avatar/Background */}
-        {avatarUrl && !imageError && !avatarLoading ? (
+        {avatarUrl && !imageError && !avatarLoading && (
           <img
             src={avatarUrl}
             alt={`Profile photo of ${player.firstName} ${player.lastName}`}
@@ -77,7 +77,7 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
                 }
               }
 
-              // Final fallback: show initials
+              // Final fallback: hide image
               console.warn(`Failed to load player image: ${target.src}`)
               setImageError(true)
             }}
@@ -89,13 +89,6 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
               delete target.dataset.cleaned
             }}
           />
-        ) : (
-          // Fallback Avatar - Show initials
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 flex items-center justify-center">
-            <div className="text-white text-3xl font-bold">
-              {getPlayerInitials(player.firstName, player.lastName)}
-            </div>
-          </div>
         )}
 
         {/* Enhanced Gradient Overlay for better text readability */}
