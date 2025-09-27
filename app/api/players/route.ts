@@ -1,45 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { playerService } from '../../../src/modules/players/services/playerService'
+import { PlayerFilters } from '../../../src/modules/players/types/player'
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const tenant = searchParams.get('tenant')
 
-    // Mock players data for development
-    const mockPlayers = [
-      {
-        id: 'player-1',
-        firstName: 'Marcus',
-        lastName: 'Lindberg',
-        dateOfBirth: '1995-03-15',
-        nationality: 'Sweden',
-        positions: ['CAM', 'LW'],
-        club: 'IFK Göteborg',
-        height: 178,
-        rating: 8.2,
-        notes: 'Mycket teknisk spelare med exceptionella avslut.',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-        tenantId: tenant || 'test-tenant'
-      },
-      {
-        id: 'player-2',
-        firstName: 'Erik',
-        lastName: 'Johansson',
-        dateOfBirth: '1998-08-22',
-        nationality: 'Sweden',
-        positions: ['CB', 'DMF'],
-        club: 'Free Agent',
-        height: 185,
-        rating: 7.8,
-        notes: 'Stark i luften och bra med bollen vid fötterna.',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        tenantId: tenant || 'test-tenant'
-      }
-    ]
+    if (!tenant) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant is required' },
+        { status: 400 }
+      )
+    }
+
+    // Parse filters from query params
+    const filters: PlayerFilters = {}
+    const search = searchParams.get('search')
+    const position = searchParams.get('position')
+    const nationality = searchParams.get('nationality')
+    const club = searchParams.get('club')
+    const ageMin = searchParams.get('ageMin')
+    const ageMax = searchParams.get('ageMax')
+    const ratingMin = searchParams.get('ratingMin')
+    const ratingMax = searchParams.get('ratingMax')
+
+    if (search) filters.search = search
+    if (position) filters.position = position
+    if (nationality) filters.nationality = nationality
+    if (club) filters.club = club
+    if (ageMin) filters.ageMin = parseInt(ageMin)
+    if (ageMax) filters.ageMax = parseInt(ageMax)
+    if (ratingMin) filters.ratingMin = parseFloat(ratingMin)
+    if (ratingMax) filters.ratingMax = parseFloat(ratingMax)
+
+    // Use PlayerService to get real data from database
+    const players = await playerService.getPlayers(tenant, filters)
 
     return NextResponse.json({
       success: true,
-      data: mockPlayers
+      data: players
     })
   } catch (error) {
     console.error('Players API error:', error)
@@ -54,13 +54,16 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    // Mock player creation
-    const newPlayer = {
-      id: `player-${Date.now()}`,
-      ...body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // Validate required fields
+    if (!body.firstName || !body.lastName || !body.tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields: firstName, lastName, tenantId' },
+        { status: 400 }
+      )
     }
+
+    // Use PlayerService to create real player in database
+    const newPlayer = await playerService.createPlayer(body)
 
     return NextResponse.json({
       success: true,
