@@ -63,7 +63,7 @@ export function getApiBaseUrl(): string {
 
   if (isDev) {
     // Development: use localhost with correct port
-    return 'http://localhost:3005'
+    return 'http://localhost:3002'
   }
 
   // Production/Preview: use current origin (same-origin requests)
