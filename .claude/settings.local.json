@@ -30,7 +30,9 @@
       "Bash(git commit:*)",
       "Bash(taskkill:*)",
       "Bash(pkill:*)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(pnpm prisma studio:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []

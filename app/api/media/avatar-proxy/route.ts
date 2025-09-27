@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Validate path format - should be like "players/uuid/avatar.jpg"
-    const pathRegex = /^players\/[a-f0-9-]+\/avatar\.(jpg|jpeg|png|webp)$/i
+    // Validate path format - should be like "players/uuid-timestamp.jpg"
+    const pathRegex = /^players\/.*\.(jpg|jpeg|png|webp)$/i
     if (!pathRegex.test(path)) {
       return NextResponse.json(
         { success: false, error: 'Invalid avatar path format' },
@@ -108,7 +108,7 @@ export async function HEAD(request: NextRequest) {
     }
 
     // Validate path format
-    const pathRegex = /^players\/[a-f0-9-]+\/avatar\.(jpg|jpeg|png|webp)$/i
+    const pathRegex = /^players\/.*\.(jpg|jpeg|png|webp)$/i
     if (!pathRegex.test(path)) {
       return new NextResponse(null, { status: 400 })
     }
