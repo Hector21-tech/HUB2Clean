@@ -431,7 +431,7 @@ export function RequestsPage() {
       <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
       <div className="relative">
         {/* Three-Panel Layout */}
-        <div className="flex h-[calc(100vh-80px)]">
+        <div className="flex min-h-screen">
           {/* Left Sidebar */}
           <SavedViewsSidebar
             activeView={activeView}
@@ -439,7 +439,7 @@ export function RequestsPage() {
             requestCounts={requestCounts}
             isCollapsed={sidebarCollapsed}
             onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 lg:relative absolute z-50 h-full ${
+            className={`${sidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 lg:relative absolute z-50 ${
               sidebarCollapsed ? 'lg:block hidden' : 'lg:block'
             }`}
           />
