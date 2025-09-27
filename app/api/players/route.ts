@@ -137,3 +137,48 @@ export async function PATCH(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const playerId = searchParams.get('id')
+    const tenantId = searchParams.get('tenantId')
+
+    if (!playerId) {
+      return NextResponse.json(
+        { success: false, error: 'Player ID is required' },
+        { status: 400 }
+      )
+    }
+
+    if (!tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Tenant ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Verify player belongs to tenant before deleting for security
+    const player = await playerService.getPlayerById(playerId)
+    if (!player || player.tenantId !== tenantId) {
+      return NextResponse.json(
+        { success: false, error: 'Player not found or access denied' },
+        { status: 404 }
+      )
+    }
+
+    // Use PlayerService to delete player from database
+    await playerService.deletePlayer(playerId)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Player deleted successfully'
+    })
+  } catch (error) {
+    console.error('Player deletion error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete player' },
+      { status: 500 }
+    )
+  }
+}
