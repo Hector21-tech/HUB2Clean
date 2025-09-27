@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { X, User, MapPin, Calendar, Users } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { AvatarUpload } from '@/components/ui/AvatarUpload'
@@ -47,6 +47,29 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
     tenantId: tenantId || ''
   })
 
+  // Smart club options that include current player's club when editing
+  const clubOptions = useMemo(() => {
+    const baseOptions = [
+      { value: 'Free Agent', label: '🟡 Free Agent' },
+      ...getAllClubNames().map(name => ({
+        value: name,
+        label: name
+      }))
+    ]
+
+    // If editing and current club is not already in the list, add it at the top
+    if (editingPlayer?.club &&
+        editingPlayer.club !== 'Free Agent' &&
+        !baseOptions.find(opt => opt.value === editingPlayer.club)) {
+      baseOptions.splice(1, 0, {
+        value: editingPlayer.club,
+        label: `${editingPlayer.club} (Current)`
+      })
+    }
+
+    return baseOptions
+  }, [editingPlayer?.club])
+
   const POSITION_OPTIONS = [
     { value: 'GK', label: 'GK (Goalkeeper)' },
     { value: 'LB', label: 'LB (Left Back)' },
@@ -63,6 +86,14 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
   // Populate form when editing a player
   useEffect(() => {
     if (editingPlayer) {
+      console.log('🔄 Populating edit form with player data:', {
+        id: editingPlayer.id,
+        club: editingPlayer.club,
+        positions: editingPlayer.positions,
+        firstName: editingPlayer.firstName,
+        lastName: editingPlayer.lastName
+      })
+
       setFormData({
         firstName: editingPlayer.firstName || '',
         lastName: editingPlayer.lastName || '',
@@ -485,13 +516,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                   ) : (
                     <div className="space-y-2">
                       <SearchableSelect
-                        options={[
-                          { value: 'Free Agent', label: '🟡 Free Agent' },
-                          ...getAllClubNames().map(name => ({
-                            value: name,
-                            label: name
-                          }))
-                        ]}
+                        options={clubOptions}
                         value={formData.club}
                         onChange={(value) => handleInputChange('club', value || '')}
                         placeholder="Search for a club or select Free Agent..."
