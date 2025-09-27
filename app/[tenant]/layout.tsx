@@ -1,40 +1,36 @@
-import { ReactNode } from 'react'
-import { ThemeProvider } from '../../src/lib/theme-provider'
-import { MainNav } from '../../src/components/main-nav'
-import { UserNav } from '../../src/components/user-nav'
-import '../globals.css'
+import { MainNav } from '@/components/main-nav'
+import { UserNav } from '@/components/user-nav'
 
 interface TenantLayoutProps {
-  children: ReactNode
-  params: Promise<{ tenant: string }>
+  children: React.ReactNode
+  params: Promise<{
+    tenant: string
+  }>
 }
 
-export default async function TenantLayout({ children, params }: TenantLayoutProps) {
+export default async function TenantLayout({
+  children,
+  params
+}: TenantLayoutProps) {
+  // Handle Next.js 15 async params
   const { tenant } = await params
 
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <div className="min-h-screen bg-background">
-        {/* Navigation Header */}
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 h-14 flex items-center">
-            <MainNav tenant={tenant} />
-            <div className="ml-auto">
-              <UserNav />
-            </div>
+    <div className="flex min-h-screen flex-col">
+      {/* Centralized Navigation */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex h-16 items-center px-4">
+          <MainNav tenant={tenant} />
+          <div className="ml-auto flex items-center space-x-4">
+            <UserNav />
           </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1">
-          {children}
-        </main>
+        </div>
       </div>
-    </ThemeProvider>
+
+      {/* Page Content */}
+      <main className="flex-1">
+        {children}
+      </main>
+    </div>
   )
 }
