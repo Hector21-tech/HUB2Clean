@@ -2,7 +2,9 @@
 
 import { Player } from '../types/player'
 import { PlayerCard } from './PlayerCard'
-import { Loader2 } from 'lucide-react'
+import { Loader2, User } from 'lucide-react'
+import { useAvatarUrl } from '../hooks/useAvatarUrl'
+import { useTenantSlug } from '@/lib/hooks/useTenantSlug'
 
 interface PlayerGridProps {
   players: Player[]
@@ -54,181 +56,11 @@ export function PlayerGrid({ players, loading, onPlayerSelect, viewMode }: Playe
         {/* List Items */}
         <div className="divide-y divide-white/20">
           {players.map((player) => (
-            <div
+            <PlayerListItem
               key={player.id}
-              onClick={() => onPlayerSelect(player)}
-              className="cursor-pointer transition-colors duration-200 hover:bg-white/5 min-h-[80px]"
-            >
-              {/* Desktop Layout */}
-              <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 items-center">
-                <div className="col-span-2 flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center overflow-hidden">
-                    {player.avatarUrl ? (
-                      <img
-                        src={player.avatarUrl}
-                        alt={`${player.firstName} ${player.lastName}`}
-                        className="w-full h-full object-cover object-top"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                        }}
-                      />
-                    ) : null}
-                  </div>
-                  <div>
-                    <p className="font-medium text-white/90" translate="no" lang="en">
-                      {player.firstName} {player.lastName}
-                    </p>
-                    <p className="text-xs text-white/60">{player.nationality}</p>
-                  </div>
-                </div>
-                <div className="col-span-2 flex items-center">
-                  <span className="text-sm text-white/90">{player.positions?.join(', ') || 'N/A'}</span>
-                </div>
-                <div className="col-span-1 flex items-center">
-                  <span className="text-sm text-white/90 truncate">{player.club || 'Free Agent'}</span>
-                </div>
-                <div className="col-span-2 flex items-center">
-                  {(() => {
-                    const isFreeAgent = !player.club || player.club === ''
-                    if (isFreeAgent) {
-                      return (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-                          🟡 Free Agent
-                        </span>
-                      )
-                    }
-
-                    if (player.contractExpiry) {
-                      const today = new Date()
-                      const expiry = new Date(player.contractExpiry)
-                      const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-                      const isExpiring = daysUntilExpiry > 0 && daysUntilExpiry <= 180 // 6 months = ~180 days
-
-                      if (isExpiring) {
-                        const urgencyColor = daysUntilExpiry <= 30 ? 'bg-red-500/20 text-red-400' : 'bg-orange-500/20 text-orange-400'
-
-                        return (
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${urgencyColor}`}>
-                            ⚠️ {daysUntilExpiry}d left
-                          </span>
-                        )
-                      }
-
-                      return (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-                          ✅ Active
-                        </span>
-                      )
-                    }
-
-                    return (
-                      <span className="text-sm text-white/50">No contract data</span>
-                    )
-                  })()}
-                </div>
-                <div className="col-span-1 flex items-center">
-                  <span className="text-sm text-white/90">
-                    {player.dateOfBirth ?
-                      Math.floor((new Date().getTime() - new Date(player.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365))
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
-                <div className="col-span-1 flex items-center">
-                  {player.rating ? (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/10 text-blue-400">
-                      {player.rating.toFixed(1)}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-white/50">N/A</span>
-                  )}
-                </div>
-                <div className="col-span-1 flex items-center">
-                  <span className="text-sm font-medium text-white/90">
-                    {player.goalsThisSeason || 0}
-                  </span>
-                </div>
-                <div className="col-span-1 flex items-center">
-                  <span className="text-sm font-medium text-white/90">
-                    {player.assistsThisSeason || 0}
-                  </span>
-                </div>
-                <div className="col-span-1 flex items-center">
-                  <span className="text-sm font-medium text-blue-400">
-                    {player.marketValue ?
-                      player.marketValue >= 1000000 ?
-                        `€${(player.marketValue / 1000000).toFixed(1)}M` :
-                        player.marketValue >= 1000 ?
-                          `€${(player.marketValue / 1000).toFixed(0)}K` :
-                          `€${player.marketValue}`
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
-              </div>
-
-              {/* Mobile Layout - Card style */}
-              <div className="lg:hidden p-4">
-                <div className="flex items-center gap-4">
-                  {/* Avatar */}
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {player.avatarUrl ? (
-                      <img
-                        src={player.avatarUrl}
-                        alt={`${player.firstName} ${player.lastName}`}
-                        className="w-full h-full object-cover object-top"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                        }}
-                      />
-                    ) : (
-                      <span className="text-lg font-semibold text-white">
-                        {player.firstName?.[0]}{player.lastName?.[0]}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Player Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white/90 text-lg leading-tight mb-1" translate="no" lang="en">
-                      {player.firstName} {player.lastName}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-white/70 mb-2">
-                      <span>{player.club || 'Free Agent'}</span>
-                      <span>•</span>
-                      <span>{player.positions?.join(', ') || 'Player'}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-sm">
-                        <span className="text-white/60">
-                          Age {player.dateOfBirth ?
-                            Math.floor((new Date().getTime() - new Date(player.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365))
-                            : 'N/A'
-                          }
-                        </span>
-                        {player.rating && (
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/10 text-blue-400">
-                            {player.rating.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-sm font-medium text-blue-400">
-                        {player.marketValue ?
-                          player.marketValue >= 1000000 ?
-                            `€${(player.marketValue / 1000000).toFixed(1)}M` :
-                            player.marketValue >= 1000 ?
-                              `€${(player.marketValue / 1000).toFixed(0)}K` :
-                              `€${player.marketValue}`
-                          : ''
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+              player={player}
+              onPlayerSelect={onPlayerSelect}
+            />
           ))}
         </div>
       </div>
@@ -251,6 +83,222 @@ export function PlayerGrid({ players, loading, onPlayerSelect, viewMode }: Playe
           onCardClick={onPlayerSelect}
         />
       ))}
+    </div>
+  )
+}
+
+// Helper component for individual list items with proper avatar handling
+interface PlayerListItemProps {
+  player: Player
+  onPlayerSelect: (player: Player) => void
+}
+
+function PlayerListItem({ player, onPlayerSelect }: PlayerListItemProps) {
+  const { tenantSlug } = useTenantSlug()
+  const { url: avatarUrl, isLoading: avatarLoading, error: imageError } = useAvatarUrl({
+    avatarPath: player.avatarPath,
+    avatarUrl: player.avatarUrl,
+    tenantId: tenantSlug || 'default',
+    playerName: `${player.firstName} ${player.lastName}`
+  })
+
+  const getPlayerInitials = (firstName?: string, lastName?: string) => {
+    const first = firstName?.charAt(0)?.toUpperCase() || ''
+    const last = lastName?.charAt(0)?.toUpperCase() || ''
+    return first + last
+  }
+
+  return (
+    <div
+      onClick={() => onPlayerSelect(player)}
+      className="cursor-pointer transition-colors duration-200 hover:bg-white/5 min-h-[80px]"
+    >
+      {/* Desktop Layout */}
+      <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 items-center">
+        <div className="col-span-2 flex items-center gap-3">
+          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center overflow-hidden">
+            {/* Avatar Image */}
+            {avatarUrl && !imageError && !avatarLoading && (
+              <img
+                src={avatarUrl}
+                alt={`${player.firstName} ${player.lastName}`}
+                className="w-full h-full object-cover object-top"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
+              />
+            )}
+
+            {/* Placeholder Avatar when no image available */}
+            {(!avatarUrl || imageError || avatarLoading) && (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800">
+                <span className="text-sm font-bold text-white">
+                  {getPlayerInitials(player.firstName, player.lastName)}
+                </span>
+              </div>
+            )}
+          </div>
+          <div>
+            <p className="font-medium text-white/90" translate="no" lang="en">
+              {player.firstName} {player.lastName}
+            </p>
+            <p className="text-xs text-white/60">{player.nationality}</p>
+          </div>
+        </div>
+        <div className="col-span-2 flex items-center">
+          <span className="text-sm text-white/90">{player.positions?.join(', ') || 'N/A'}</span>
+        </div>
+        <div className="col-span-1 flex items-center">
+          <span className="text-sm text-white/90 truncate">{player.club || 'Free Agent'}</span>
+        </div>
+        <div className="col-span-2 flex items-center">
+          {(() => {
+            const isFreeAgent = !player.club || player.club === ''
+            if (isFreeAgent) {
+              return (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
+                  🟡 Free Agent
+                </span>
+              )
+            }
+
+            if (player.contractExpiry) {
+              const today = new Date()
+              const expiry = new Date(player.contractExpiry)
+              const diffTime = expiry.getTime() - today.getTime()
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+              if (diffDays < 0) {
+                return (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+                    🔴 Expired
+                  </span>
+                )
+              } else if (diffDays <= 180) {
+                return (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
+                    🟠 {diffDays}d left
+                  </span>
+                )
+              } else {
+                return (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+                    🟢 {Math.round(diffDays / 30)}m left
+                  </span>
+                )
+              }
+            }
+
+            return (
+              <span className="text-sm text-white/60">
+                No contract data
+              </span>
+            )
+          })()}
+        </div>
+        <div className="col-span-1 flex items-center">
+          <span className="text-sm text-white/90">
+            {player.dateOfBirth ?
+              Math.floor((new Date().getTime() - new Date(player.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365))
+              : 'N/A'
+            }
+          </span>
+        </div>
+        <div className="col-span-1 flex items-center">
+          {player.rating ? (
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/10 text-blue-400">
+              {player.rating.toFixed(1)}
+            </span>
+          ) : (
+            <span className="text-sm text-white/60">-</span>
+          )}
+        </div>
+        <div className="col-span-1 flex items-center">
+          <span className="text-sm text-white/90">{player.goalsThisSeason || 0}</span>
+        </div>
+        <div className="col-span-1 flex items-center">
+          <span className="text-sm text-white/90">{player.assistsThisSeason || 0}</span>
+        </div>
+        <div className="col-span-1 flex items-center">
+          <span className="text-sm font-medium text-blue-400">
+            {player.marketValue ?
+              player.marketValue >= 1000000 ?
+                `€${(player.marketValue / 1000000).toFixed(1)}M` :
+                player.marketValue >= 1000 ?
+                  `€${(player.marketValue / 1000).toFixed(0)}K` :
+                  `€${player.marketValue}`
+              : '-'
+            }
+          </span>
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden p-4">
+        <div className="flex items-center gap-3">
+          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center overflow-hidden">
+            {/* Avatar Image */}
+            {avatarUrl && !imageError && !avatarLoading && (
+              <img
+                src={avatarUrl}
+                alt={`${player.firstName} ${player.lastName}`}
+                className="w-full h-full object-cover object-top"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
+              />
+            )}
+
+            {/* Placeholder Avatar when no image available */}
+            {(!avatarUrl || imageError || avatarLoading) && (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800">
+                <span className="text-sm font-bold text-white">
+                  {getPlayerInitials(player.firstName, player.lastName)}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Player Info */}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-white/90 text-lg leading-tight mb-1" translate="no" lang="en">
+              {player.firstName} {player.lastName}
+            </h3>
+            <div className="flex items-center gap-2 text-sm text-white/70 mb-2">
+              <span>{player.club || 'Free Agent'}</span>
+              <span>•</span>
+              <span>{player.positions?.join(', ') || 'Player'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-white/60">
+                  Age {player.dateOfBirth ?
+                    Math.floor((new Date().getTime() - new Date(player.dateOfBirth).getTime()) / (1000 * 60 * 60 * 24 * 365))
+                    : 'N/A'
+                  }
+                </span>
+                {player.rating && (
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/10 text-blue-400">
+                    {player.rating.toFixed(1)}
+                  </span>
+                )}
+              </div>
+              <div className="text-sm font-medium text-blue-400">
+                {player.marketValue ?
+                  player.marketValue >= 1000000 ?
+                    `€${(player.marketValue / 1000000).toFixed(1)}M` :
+                    player.marketValue >= 1000 ?
+                      `€${(player.marketValue / 1000).toFixed(0)}K` :
+                      `€${player.marketValue}`
+                  : ''
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
