@@ -4,6 +4,16 @@ import { Player, PlayerFilters } from '../types/player'
 const prisma = new PrismaClient()
 
 export class PlayerService {
+  // Helper function to convert database position (string) to frontend positions (array)
+  private convertPositionData(player: any): Player {
+    // Convert single position string to positions array for frontend compatibility
+    if (player.position && !player.positions) {
+      player.positions = [player.position]
+    } else if (!player.positions) {
+      player.positions = []
+    }
+    return player as Player
+  }
   async getPlayers(tenantId: string, filters?: PlayerFilters): Promise<Player[]> {
     const where: Record<string, unknown> = {
       tenantId
@@ -86,7 +96,8 @@ export class PlayerService {
         ]
       })
 
-      return players as Player[]
+      // Convert position data for frontend compatibility
+      return players.map(player => this.convertPositionData(player))
     } catch (error) {
       console.error('Error fetching players:', error)
       throw new Error('Failed to fetch players')
@@ -108,7 +119,7 @@ export class PlayerService {
         }
       })
 
-      return player as Player | null
+      return player ? this.convertPositionData(player) : null
     } catch (error) {
       console.error('Error fetching player:', error)
       throw new Error('Failed to fetch player')
@@ -129,7 +140,7 @@ export class PlayerService {
         }
       })
 
-      return player as Player
+      return this.convertPositionData(player)
     } catch (error) {
       console.error('Error creating player:', error)
       throw new Error('Failed to create player')
@@ -207,7 +218,7 @@ export class PlayerService {
         ]
       })
 
-      return players as Player[]
+      return players.map(player => this.convertPositionData(player))
     } catch (error) {
       console.error('Error fetching players by club:', error)
       throw new Error('Failed to fetch players by club')
@@ -231,7 +242,7 @@ export class PlayerService {
         ]
       })
 
-      return players as Player[]
+      return players.map(player => this.convertPositionData(player))
     } catch (error) {
       console.error('Error fetching players by position:', error)
       throw new Error('Failed to fetch players by position')
@@ -255,7 +266,7 @@ export class PlayerService {
         take: limit
       })
 
-      return players as Player[]
+      return players.map(player => this.convertPositionData(player))
     } catch (error) {
       console.error('Error fetching top rated players:', error)
       throw new Error('Failed to fetch top rated players')
@@ -291,7 +302,7 @@ export class PlayerService {
         ]
       })
 
-      return players as Player[]
+      return players.map(player => this.convertPositionData(player))
     } catch (error) {
       console.error('Error searching players:', error)
       throw new Error('Failed to search players')
