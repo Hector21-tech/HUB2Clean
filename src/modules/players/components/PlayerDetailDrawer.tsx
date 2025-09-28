@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Edit, Star, TrendingUp, Calendar, MapPin, Mail, Phone, Globe, Trash2, FileText, Loader2, Share } from 'lucide-react'
+import { X, Edit, Star, TrendingUp, Calendar, MapPin, Mail, Phone, Globe, Trash2, FileText, Loader2, Share, Bot, Save, RefreshCw } from 'lucide-react'
 import { Player } from '../types/player'
 import { formatPositionsDisplay } from '@/lib/positions'
 import { generateAndSharePDFWithGesture, isMobileDevice, isShareSupported } from '@/lib/sharePdf'
@@ -25,6 +25,12 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   const [isDeleting, setIsDeleting] = useState(false)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [pdfProgress, setPdfProgress] = useState('')
+
+  // AI Description states
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
+  const [aiDescription, setAiDescription] = useState(player?.aiDescription || '')
+  const [isEditingAI, setIsEditingAI] = useState(false)
+  const [isSavingAI, setIsSavingAI] = useState(false)
 
   // Get the best avatar URL (new system with fallback to legacy)
   const { url: avatarUrl, isLoading: avatarLoading } = useAvatarUrl({
@@ -115,48 +121,88 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   }
 
 
+  // Generate AI description function
+  const handleGenerateAI = async () => {
+    if (!player) return
+
+    setIsGeneratingAI(true)
+
+    try {
+      const { apiFetch } = await import('@/lib/api-config')
+      const response = await apiFetch('/api/generate-player-description', {
+        method: 'POST',
+        body: JSON.stringify({
+          playerData: {
+            firstName: player.firstName,
+            lastName: player.lastName,
+            positions: player.positions,
+            club: player.club,
+            nationality: player.nationality,
+            dateOfBirth: player.dateOfBirth,
+            notes: player.notes,
+            rating: player.rating,
+            goalsThisSeason: player.goalsThisSeason,
+            assistsThisSeason: player.assistsThisSeason,
+            marketValue: player.marketValue
+          }
+        })
+      })
+
+      if (response.ok) {
+        const { description } = await response.json()
+        const formattedDescription = formatAIText(description)
+        setAiDescription(formattedDescription)
+        setIsEditingAI(true) // Automatically enter edit mode to review
+      } else {
+        alert('AI-generering misslyckades. Försök igen.')
+      }
+    } catch (error) {
+      console.error('AI generation failed:', error)
+      alert('AI-generering misslyckades. Försök igen.')
+    } finally {
+      setIsGeneratingAI(false)
+    }
+  }
+
+  // Save AI description to database
+  const handleSaveAI = async () => {
+    if (!player) return
+
+    setIsSavingAI(true)
+
+    try {
+      const { apiFetch } = await import('@/lib/api-config')
+      const response = await apiFetch(`/api/players/${player.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          aiDescription: aiDescription.trim() || null
+        })
+      })
+
+      if (response.ok) {
+        // Update the local player object
+        player.aiDescription = aiDescription.trim() || undefined
+        setIsEditingAI(false)
+        alert('AI-beskrivning sparad!')
+      } else {
+        alert('Kunde inte spara AI-beskrivning. Försök igen.')
+      }
+    } catch (error) {
+      console.error('Save AI description failed:', error)
+      alert('Kunde inte spara AI-beskrivning. Försök igen.')
+    } finally {
+      setIsSavingAI(false)
+    }
+  }
+
   const handleExportPDF = async () => {
     if (!player) return
 
     setIsGeneratingPDF(true)
 
     try {
-      // Check if user wants AI improvement
-      const useAI = window.confirm('Vill du att AI ska förbättra anteckningarna innan PDF-genereringen?')
-
-      let aiImprovedNotes = null
-
-      // If AI improvement is requested and player has notes
-      if (useAI && player.notes) {
-        try {
-          const { apiFetch } = await import('@/lib/api-config')
-          const response = await apiFetch('/api/generate-player-description', {
-            method: 'POST',
-            body: JSON.stringify({
-              playerData: {
-                firstName: player.firstName,
-                lastName: player.lastName,
-                positions: player.positions,
-                club: player.club,
-                nationality: player.nationality,
-                dateOfBirth: player.dateOfBirth,
-                notes: player.notes,
-                rating: player.rating,
-                goalsThisSeason: player.goalsThisSeason,
-                assistsThisSeason: player.assistsThisSeason,
-                marketValue: player.marketValue
-              }
-            })
-          })
-
-          if (response.ok) {
-            const { description } = await response.json()
-            aiImprovedNotes = formatAIText(description)
-          }
-        } catch (error) {
-          console.error('AI improvement failed:', error)
-        }
-      }
+      // Use saved AI description if available, otherwise use basic notes
+      const aiImprovedNotes = player.aiDescription || null
 
       // Use new gesture-preserving PDF helper
       await generateAndSharePDFWithGesture({
@@ -657,6 +703,129 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                   </div>
                 ))}
               </div>
+            </div>
+          </section>
+
+          {/* AI Scout Description */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">🤖 AI Scout-beskrivning</h3>
+              <div className="flex gap-2">
+                {!aiDescription && (
+                  <button
+                    onClick={handleGenerateAI}
+                    disabled={isGeneratingAI || !player.notes}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
+                    title={!player.notes ? "Lägg till scoutanteckningar först för bästa AI-resultat" : "Generera AI-beskrivning"}
+                  >
+                    {isGeneratingAI ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Genererar...
+                      </>
+                    ) : (
+                      <>
+                        <Bot className="w-4 h-4" />
+                        Generera AI-beskrivning
+                      </>
+                    )}
+                  </button>
+                )}
+                {aiDescription && (
+                  <>
+                    <button
+                      onClick={() => setIsEditingAI(!isEditingAI)}
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors duration-200"
+                    >
+                      <Edit className="w-4 h-4" />
+                      {isEditingAI ? 'Avbryt' : 'Redigera'}
+                    </button>
+                    <button
+                      onClick={handleGenerateAI}
+                      disabled={isGeneratingAI}
+                      className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
+                    >
+                      {isGeneratingAI ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Regenererar...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4" />
+                          Regenerera
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
+              {!aiDescription && !isGeneratingAI && (
+                <div className="text-center py-8 text-white/60">
+                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg mb-2">Ingen AI-beskrivning genererad ännu</p>
+                  <p className="text-sm">
+                    {!player.notes
+                      ? "Lägg till scoutanteckningar först, sedan kan AI skapa en professionell beskrivning"
+                      : "Klicka på 'Generera AI-beskrivning' för att få en professionell scout-rapport"
+                    }
+                  </p>
+                </div>
+              )}
+
+              {isEditingAI ? (
+                <div className="space-y-4">
+                  <label className="text-sm font-medium text-white/60 block">Redigera AI-beskrivning:</label>
+                  <textarea
+                    value={aiDescription}
+                    onChange={(e) => setAiDescription(e.target.value)}
+                    rows={6}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-vertical"
+                    placeholder="Skriv eller redigera AI-beskrivningen..."
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleSaveAI}
+                      disabled={isSavingAI}
+                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors duration-200"
+                    >
+                      {isSavingAI ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Sparar...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Spara beskrivning
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAiDescription(player?.aiDescription || '')
+                        setIsEditingAI(false)
+                      }}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
+                    >
+                      Avbryt
+                    </button>
+                  </div>
+                </div>
+              ) : aiDescription && (
+                <div>
+                  <label className="text-sm font-medium text-white/60 block mb-3">AI-genererad beskrivning:</label>
+                  <div className="text-white leading-relaxed whitespace-pre-wrap bg-white/5 rounded-lg p-4 border border-white/10">
+                    {aiDescription}
+                  </div>
+                  <p className="text-xs text-white/40 mt-3">
+                    ✨ Denna beskrivning används automatiskt i PDF-rapporter
+                  </p>
+                </div>
+              )}
             </div>
           </section>
 

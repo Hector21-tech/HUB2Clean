@@ -32,7 +32,8 @@
       "Bash(pkill:*)",
       "Bash(netstat:*)",
       "Bash(pnpm prisma studio:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npx prisma db push:*)"
     ],
     "deny": [],
     "ask": []

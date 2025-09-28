@@ -85,6 +85,7 @@ model Player {
   nationality    String?
   height         Int? // cm
   notes          String?
+  aiDescription  String? // AI-generated scout description (cached)
   tags           String[] // Array of tags
   rating         Float? // Overall rating 1-10
   avatarUrl      String? // Legacy: Player avatar/photo URL (deprecated)
