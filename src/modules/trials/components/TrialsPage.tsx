@@ -117,10 +117,7 @@ export function TrialsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative p-6">
-        {/* Ultra-deep ocean effect with radial gradients */}
-        <div className="absolute inset-0 bg-radial-gradient from-[#1e40af]/10 via-transparent to-[#0c1532]/20 pointer-events-none"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+      <div className="min-h-screen relative p-6">
 
         <div className="max-w-7xl mx-auto relative">
           <div className="bg-red-500/20 border border-red-400/30 rounded-lg p-4 backdrop-blur-sm">
@@ -135,10 +132,7 @@ export function TrialsPage() {
   }
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-      {/* Ultra-deep ocean effect with radial gradients */}
-      <div className="absolute inset-0 bg-radial-gradient from-[#1e40af]/10 via-transparent to-[#0c1532]/20 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+    <div className="flex-1 relative">
 
       <div className="relative p-6">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -346,7 +340,7 @@ export function TrialsPage() {
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] rounded-lg max-w-md w-full p-6 border border-white/20 backdrop-blur-sm">
+          <div className="bg-slate-800 rounded-lg max-w-md w-full p-6 border border-white/20 backdrop-blur-sm">
             <h3 className="text-lg font-medium text-white mb-2">
               Delete Trial
             </h3>

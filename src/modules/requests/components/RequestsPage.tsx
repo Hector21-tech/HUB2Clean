@@ -70,9 +70,7 @@ export function RequestsPage() {
   // Show loading if tenantId is not yet available - AFTER all hooks
   if (!tenantId) {
     return (
-      <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-        {/* Ultra-deep ocean effect with radial gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+      <div className="flex-1 relative">
         <div className="relative p-8">
           <div className="animate-pulse space-y-4">
             <div className="h-8 bg-white/10 rounded w-1/4"></div>
@@ -415,9 +413,7 @@ export function RequestsPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-        {/* Ultra-deep ocean effect with radial gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+      <div className="flex-1 relative">
         <div className="relative flex items-center justify-center h-64">
           <div className="text-white text-lg">Loading requests...</div>
         </div>
@@ -426,9 +422,7 @@ export function RequestsPage() {
   }
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-      {/* Ultra-deep ocean effect with radial gradients */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+    <div className="flex-1 relative">
       <div className="relative">
         {/* Three-Panel Layout */}
         <div className="flex min-h-screen">

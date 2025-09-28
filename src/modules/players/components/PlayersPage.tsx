@@ -423,10 +423,7 @@ export function PlayersPage() {
   // }
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-      {/* Ultra-deep ocean effect with radial gradients */}
-      <div className="absolute inset-0 bg-radial-gradient from-[#1e40af]/10 via-transparent to-[#0c1532]/20 pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+    <div className="flex-1 relative">
       {/* Debug Info - Remove in production */}
       {process.env.NODE_ENV === 'development' && (
         <div className="relative bg-blue-600/20 border border-blue-400/30 text-white p-3 text-sm">

@@ -166,8 +166,7 @@ export function CalendarPage() {
   // Handle loading and error states AFTER all hooks
   if (!tenantId) {
     return (
-      <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+      <div className="flex-1 relative">
         <div className="relative p-8">
           <div className="max-w-7xl mx-auto">
             <div className="animate-pulse space-y-4">
@@ -195,9 +194,7 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="flex-1 bg-gradient-to-br from-[#020617] via-[#0c1532] via-[#1e3a8a] via-[#0f1b3e] to-[#020510] relative">
-      {/* Ultra-deep ocean effect with radial gradients */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/50 to-transparent pointer-events-none"></div>
+    <div className="flex-1 relative">
       <div className="relative p-6 space-y-6">
       {/* Calendar Header */}
       <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6">
