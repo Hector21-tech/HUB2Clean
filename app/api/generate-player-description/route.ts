@@ -1,12 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+// Initialize OpenAI only if API key is available
+let openai: OpenAI | null = null
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+} catch (error) {
+  console.warn('OpenAI initialization failed:', error)
+}
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if OpenAI is available
+    if (!openai) {
+      console.warn('OpenAI API not available - missing OPENAI_API_KEY')
+      return NextResponse.json(
+        { error: 'AI service not available. Please contact administrator.' },
+        { status: 503 }
+      )
+    }
+
     const { playerData } = await request.json()
 
     if (!playerData) {
