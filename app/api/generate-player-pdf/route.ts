@@ -33,6 +33,16 @@ const ALLOWED_HOSTS = new Set([
   '127.0.0.1:3003'
 ])
 
+// Avatar proxy paths that are always allowed (internal API)
+function isAvatarProxyUrl(url: string): boolean {
+  try {
+    const parsedUrl = new URL(url)
+    return parsedUrl.pathname.startsWith('/api/media/avatar-proxy') && ALLOWED_HOSTS.has(parsedUrl.host)
+  } catch {
+    return false
+  }
+}
+
 // Additional security: Block all private/internal IP ranges and dangerous protocols
 const BLOCKED_IP_PATTERNS = [
   /^10\./,          // Private Class A
@@ -54,6 +64,11 @@ function isUrlSafe(url: string): boolean {
     // Only allow HTTP/HTTPS
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       return false
+    }
+
+    // Avatar proxy URLs are always safe (internal API)
+    if (isAvatarProxyUrl(url)) {
+      return true
     }
 
     // Check if hostname is in whitelist
@@ -80,21 +95,48 @@ function sanitizeFileName(name: string) {
   return withExt.slice(0, 120)
 }
 
-// Resolve avatar URL from path for PDF generation (adapted for HUB2Clean local storage)
+// Resolve avatar URL from path for PDF generation using avatar-proxy API
 async function resolveAvatarUrl(avatarPath: string, tenantId: string): Promise<string | null> {
   try {
-    // Validate that the path belongs to the requested tenant
-    if (!avatarPath.startsWith(`${tenantId}/`)) {
-      console.warn('Avatar path does not belong to tenant:', { avatarPath, tenantId })
-      return null
+    // Generate cache-busting hash for avatar changes
+    const versionHash = Buffer.from(`${avatarPath}:${Date.now()}`).toString('base64').substring(0, 8)
+
+    // Use the same avatar-proxy endpoint as frontend
+    const baseUrl = process.env.NODE_ENV === 'production'
+      ? 'https://hub2-clean.vercel.app'
+      : 'http://localhost:3000'
+
+    const proxyUrl = `${baseUrl}/api/media/avatar-proxy?path=${encodeURIComponent(avatarPath)}&tenantId=${tenantId}&v=${versionHash}`
+
+    // Test if the avatar exists by making a HEAD request to the proxy
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const headResponse = await fetch(proxyUrl, {
+        method: 'HEAD',
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (headResponse.status === 404) {
+        console.log(`🖼️ Avatar file not found for path: ${avatarPath} - will show placeholder`)
+        return null
+      }
+
+      if (!headResponse.ok && headResponse.status !== 304) {
+        console.warn(`Avatar proxy error: ${headResponse.status} for path: ${avatarPath}`)
+        return null
+      }
+
+      console.log(`✅ Avatar resolved for PDF: ${avatarPath}`)
+      return proxyUrl
+    } catch (fetchError) {
+      console.warn('Avatar HEAD request failed:', fetchError)
+      // Return the URL anyway - let Puppeteer handle the failure
+      return proxyUrl
     }
-
-    // For local development, construct direct file path
-    // In production, this would be adapted to your storage solution
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002'
-    const avatarUrl = `${baseUrl}/uploads/avatars/${avatarPath}`
-
-    return avatarUrl
   } catch (error) {
     console.error('Error resolving avatar URL for PDF:', error)
     return null
