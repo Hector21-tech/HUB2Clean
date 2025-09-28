@@ -61,6 +61,7 @@ export interface Player {
 
   // Scout Notes
   notes?: string
+  aiDescription?: string // AI-generated scout description (cached)
   tags: string[]
   rating?: number // Overall rating 1-10
 
