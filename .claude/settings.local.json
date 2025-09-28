@@ -33,7 +33,9 @@
       "Bash(netstat:*)",
       "Bash(pnpm prisma studio:*)",
       "Bash(node:*)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(npx vercel env add:*)",
+      "Bash(npx vercel:*)"
     ],
     "deny": [],
     "ask": []
