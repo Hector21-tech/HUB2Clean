@@ -181,13 +181,34 @@ export async function exportEventsToIcs(
 }
 
 /**
+ * Smart URL detection for different environments
+ */
+function getBaseUrl(): string {
+  // Production: Use Vercel URL or fallback to known production URL
+  if (process.env.VERCEL_ENV === 'production') {
+    return process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'https://hub2clean.vercel.app'
+  }
+
+  // Preview: Use Vercel preview URL if available
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`
+  }
+
+  // Development: Use NEXTAUTH_URL or localhost fallback
+  return process.env.NEXTAUTH_URL || 'http://localhost:3007'
+}
+
+/**
  * Generate calendar subscription URL for tenant
  */
 export function generateCalendarSubscriptionUrl(
   tenantId: string,
-  baseUrl: string = process.env.NEXTAUTH_URL || 'http://localhost:3007'
+  baseUrl?: string
 ): string {
-  return `${baseUrl}/api/calendar/export/${tenantId}.ics`
+  const url = baseUrl || getBaseUrl()
+  return `${url}/api/calendar/export/${tenantId}.ics`
 }
 
 /**
