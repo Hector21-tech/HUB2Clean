@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { playerService } from '../../../src/modules/players/services/playerService'
 import { PlayerFilters } from '../../../src/modules/players/types/player'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🔍 Players API called:', request.url)
+
     const { searchParams } = new URL(request.url)
     const tenant = searchParams.get('tenant')
 
+    console.log('🎯 Tenant parameter received:', tenant)
+
     if (!tenant) {
+      console.log('❌ No tenant parameter provided')
       return NextResponse.json(
         { success: false, error: 'Tenant is required' },
         { status: 400 }
@@ -34,15 +42,47 @@ export async function GET(request: NextRequest) {
     if (ratingMin) filters.ratingMin = parseFloat(ratingMin)
     if (ratingMax) filters.ratingMax = parseFloat(ratingMax)
 
-    // Use PlayerService to get real data from database
-    const players = await playerService.getPlayers(tenant, filters)
+    console.log('📋 Filters applied:', filters)
+
+    // Convert tenant slug to tenant ID
+    console.log('🔄 Looking up tenant by slug:', tenant)
+    const tenantRecord = await prisma.tenant.findUnique({
+      where: { slug: tenant }
+    })
+
+    if (!tenantRecord) {
+      console.log('❌ Tenant not found for slug:', tenant)
+      return NextResponse.json(
+        { success: false, error: `Tenant '${tenant}' not found` },
+        { status: 404 }
+      )
+    }
+
+    console.log('✅ Tenant found:', {
+      id: tenantRecord.id,
+      name: tenantRecord.name,
+      slug: tenantRecord.slug
+    })
+
+    // Use PlayerService to get real data from database with tenant ID
+    console.log('🔄 Calling playerService.getPlayers with tenantId:', tenantRecord.id)
+    const players = await playerService.getPlayers(tenantRecord.id, filters)
+
+    console.log('✅ Players fetched successfully:', {
+      count: players.length,
+      firstPlayer: players[0] ? `${players[0].firstName} ${players[0].lastName}` : 'None'
+    })
 
     return NextResponse.json({
       success: true,
       data: players
     })
   } catch (error) {
-    console.error('Players API error:', error)
+    console.error('❌ Players API error:', error)
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
       { success: false, error: 'Failed to fetch players' },
       { status: 500 }
