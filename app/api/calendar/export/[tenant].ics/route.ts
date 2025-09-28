@@ -31,7 +31,24 @@ export async function GET(
 
     if (!tenantRecord) {
       console.log(`[Calendar Export] Tenant not found: ${tenantSlug}`)
-      return new NextResponse('Tenant not found', { status: 404 })
+      // Return empty calendar instead of 404 to help with debugging
+      const emptyCalendar = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Scout Hub//Calendar Export//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Scout Hub - ${tenantSlug}
+X-WR-CALDESC:No tenant found for slug: ${tenantSlug}
+END:VCALENDAR`
+
+      return new NextResponse(emptyCalendar, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/calendar; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${tenantSlug}-not-found.ics"`,
+          'X-Debug-Error': 'Tenant not found'
+        }
+      })
     }
 
     // Get date range for events (default: 30 days back, 365 days forward)
@@ -62,6 +79,29 @@ export async function GET(
     })
 
     console.log(`[Calendar Export] Found ${events.length} events for tenant ${tenantSlug}`)
+
+    // If no events, return empty calendar
+    if (events.length === 0) {
+      const emptyCalendar = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Scout Hub//Calendar Export//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Scout Hub - ${tenantRecord.name}
+X-WR-CALDESC:Scout Hub calendar for ${tenantRecord.name} (No events yet)
+END:VCALENDAR`
+
+      return new NextResponse(emptyCalendar, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/calendar; charset=utf-8',
+          'Content-Disposition': `attachment; filename="${tenantSlug}-empty.ics"`,
+          'Cache-Control': 'public, max-age=300, s-maxage=300',
+          'X-Event-Count': '0',
+          'X-Debug-Info': 'No events found'
+        }
+      })
+    }
 
     // Convert Prisma events to CalendarEvent format
     const calendarEvents: CalendarEvent[] = events.map(event => ({

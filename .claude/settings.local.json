@@ -38,7 +38,9 @@
       "Bash(npx vercel:*)",
       "Bash(npx prisma:*)",
       "Bash(cmd /c:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:hub2clean-6v62qbert-hector-bataks-projects.vercel.app)",
+      "WebFetch(domain:hub2clean.vercel.app)"
     ],
     "deny": [],
     "ask": []
