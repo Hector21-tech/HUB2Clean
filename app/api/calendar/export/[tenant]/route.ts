@@ -47,6 +47,9 @@ END:VCALENDAR`
         headers: {
           'Content-Type': 'text/calendar; charset=utf-8',
           'Content-Disposition': `attachment; filename="${tenantSlug}-not-found.ics"`,
+          'Access-Control-Allow-Origin': '*',
+          'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+          'X-Content-Type-Options': 'nosniff',
           'X-Debug-Error': 'Tenant not found'
         }
       })
@@ -98,6 +101,9 @@ END:VCALENDAR`
           'Content-Type': 'text/calendar; charset=utf-8',
           'Content-Disposition': `attachment; filename="${tenantSlug}-empty.ics"`,
           'Cache-Control': 'public, max-age=300, s-maxage=300',
+          'Access-Control-Allow-Origin': '*',
+          'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+          'X-Content-Type-Options': 'nosniff',
           'X-Event-Count': '0',
           'X-Debug-Info': 'No events found'
         }
@@ -161,7 +167,7 @@ END:VCALENDAR`
 
     console.log(`[Calendar Export] Successfully generated iCalendar for ${tenantSlug}`)
 
-    // Return iCalendar with proper headers
+    // Return iCalendar with proper headers (enhanced for mobile compatibility)
     return new NextResponse(exportResult.value, {
       status: 200,
       headers: {
@@ -170,8 +176,14 @@ END:VCALENDAR`
         'Cache-Control': 'public, max-age=300, s-maxage=300', // Cache for 5 minutes
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'X-Calendar-Name': `Scout Hub - ${tenantRecord.name}`,
-        'X-Event-Count': events.length.toString()
+        'X-Event-Count': events.length.toString(),
+        // Enhanced headers for mobile calendar compatibility
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
       }
     })
 
