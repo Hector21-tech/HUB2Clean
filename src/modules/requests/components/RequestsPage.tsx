@@ -483,18 +483,21 @@ export function RequestsPage() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2">
-                    <button
-                      onClick={createTestData}
-                      disabled={creatingTestData}
-                      className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-3 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm"
-                    >
-                      {creatingTestData ? (
-                        <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <span>🧪</span>
-                      )}
-                      Test Data
-                    </button>
+                    {/* Test Data Button - Hidden in production */}
+                    {process.env.NEXT_PUBLIC_FEATURE_TEST_DATA === "1" && (
+                      <button
+                        onClick={createTestData}
+                        disabled={creatingTestData}
+                        className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-3 py-2 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm"
+                      >
+                        {creatingTestData ? (
+                          <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <span>🧪</span>
+                        )}
+                        Test Data
+                      </button>
+                    )}
 
                     <div className="relative group">
                       <button className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-3 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm">
