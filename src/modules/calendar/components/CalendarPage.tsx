@@ -329,6 +329,7 @@ export function CalendarPage() {
             onEventClick={handleEventClick}
             onDateClick={handleDateClick}
             onCreateEvent={handleCreateEvent}
+            selectedDate={selectedDate}
           />
         )}
 
