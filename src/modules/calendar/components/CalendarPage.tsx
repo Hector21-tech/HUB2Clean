@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Calendar, ChevronLeft, ChevronRight, Plus, List, Grid, Clock } from 'lucide-react'
 import { CalendarView, CalendarEvent, EventType } from '../types/calendar'
 import { dateUtils } from '../utils/calendar-utils'
-import { useCalendarEventsInRange, useDeleteEvent } from '../hooks/useCalendarEvents'
+import { useCalendarEvents, useCalendarEventsInRange, useDeleteEvent } from '../hooks/useCalendarEvents'
 import { CalendarMonthView } from './CalendarMonthView'
 import { CalendarWeekView } from './CalendarWeekView'
 import { CalendarDayView } from './CalendarDayView'
@@ -48,12 +48,20 @@ export function CalendarPage() {
     }
   }
 
+  // Use different hooks based on view
+  // For list view, get ALL events. For other views, get events in range
   const { start: rangeStart, end: rangeEnd } = getDateRange()
-  const { data: events = [], isLoading, error } = useCalendarEventsInRange(
+  const rangeQuery = useCalendarEventsInRange(
     tenantId || '',
     rangeStart,
     rangeEnd
   )
+  const allEventsQuery = useCalendarEvents({
+    tenantId: tenantId || ''
+  })
+
+  // Use the appropriate query based on view
+  const { data: events = [], isLoading, error } = view === 'list' ? allEventsQuery : rangeQuery
   const deleteEvent = useDeleteEvent(tenantId || '')
 
   // Navigation functions
