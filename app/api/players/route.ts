@@ -3,9 +3,10 @@ import { playerService } from '../../../src/modules/players/services/playerServi
 import { PlayerFilters } from '../../../src/modules/players/types/player'
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const tenant = searchParams.get('tenant')
+
   try {
-    const { searchParams } = new URL(request.url)
-    const tenant = searchParams.get('tenant')
 
     if (!tenant) {
       return NextResponse.json(
@@ -42,9 +43,20 @@ export async function GET(request: NextRequest) {
       data: players
     })
   } catch (error) {
-    console.error('Players API error:', error)
+    console.error('❌ Players API error:', error)
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      tenant: tenant,
+      timestamp: new Date().toISOString()
+    })
+
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch players' },
+      {
+        success: false,
+        error: 'Failed to fetch players',
+        debug: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
