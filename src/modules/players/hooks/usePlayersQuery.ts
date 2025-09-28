@@ -54,16 +54,34 @@ const getMockPlayers = (): Player[] => [
 
 const fetchPlayers = async (tenantId: string): Promise<Player[]> => {
   try {
+    console.log('🔄 fetchPlayers called with tenantId:', tenantId)
+
     // Use centralized API configuration for environment-specific URLs
     const response = await apiFetch(`/api/players?tenant=${tenantId}`)
-    const result = await response.json()
+    console.log('📡 API Response status:', response.status)
 
-    if (!result.success || !result.data || result.data.length === 0) {
+    const result = await response.json()
+    console.log('📋 API Result:', { success: result.success, dataLength: result.data?.length, error: result.error })
+
+    if (!result.success) {
+      console.error('❌ API returned error:', result.error)
       return getMockPlayers()
     }
 
+    if (!result.data) {
+      console.warn('⚠️ API returned no data field')
+      return getMockPlayers()
+    }
+
+    if (result.data.length === 0) {
+      console.warn('⚠️ API returned empty data array')
+      return getMockPlayers()
+    }
+
+    console.log('✅ Returning real players:', result.data.length)
     return result.data
-  } catch {
+  } catch (error) {
+    console.error('❌ fetchPlayers error:', error)
     return getMockPlayers()
   }
 }

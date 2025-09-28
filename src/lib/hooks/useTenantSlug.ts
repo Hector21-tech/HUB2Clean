@@ -28,15 +28,20 @@ export function useTenantSlug() {
 
   // Development mode: Return current tenant directly
   if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTH_ENABLED === 'true') {
-    console.log('🚧 useTenantSlug: Development mode - using currentTenant:', currentTenant)
+    console.log('🚧 useTenantSlug: Development mode - tenantSlug:', tenantSlug, 'currentTenant:', currentTenant)
 
-    // FALLBACK: If currentTenant is null, use the tenant from URL
-    const fallbackTenantId = currentTenant || tenantSlug || 'test-tenant-demo'
+    // Map specific tenant slugs to their correct IDs
+    let mappedTenantId = currentTenant || tenantSlug || 'test-tenant-demo'
 
-    const devTenant = userTenants.find(t => t.tenantId === fallbackTenantId)
+    if (tenantSlug === 'elite-sports-group') {
+      mappedTenantId = 'cmfsiuhqx0000cjc7aztz3oin'
+      console.log('🎯 Mapped elite-sports-group to:', mappedTenantId)
+    }
+
+    const devTenant = userTenants.find(t => t.tenantId === mappedTenantId)
     return {
       tenantSlug,
-      tenantId: fallbackTenantId,
+      tenantId: mappedTenantId,
       tenant: devTenant?.tenant || null,
       role: devTenant?.role || 'OWNER',
       hasAccess: true // Always allow access in development
@@ -77,9 +82,17 @@ export function useTenantSlug() {
   // 🛡️ FALLBACK: If auth context is not available, provide basic functionality
   if (!userTenants.length && tenantSlug) {
     console.warn('⚠️ useTenantSlug: No auth data available, using basic fallback for:', tenantSlug)
+
+    // Map specific tenant slugs to their correct IDs even in fallback mode
+    let fallbackTenantId = tenantSlug
+    if (tenantSlug === 'elite-sports-group') {
+      fallbackTenantId = 'cmfsiuhqx0000cjc7aztz3oin'
+      console.log('🎯 Fallback: Mapped elite-sports-group to:', fallbackTenantId)
+    }
+
     return {
       tenantSlug,
-      tenantId: tenantSlug, // Use slug as ID in fallback mode
+      tenantId: fallbackTenantId,
       tenant: null,
       role: 'OWNER', // Default role for fallback
       hasAccess: true // Allow access in fallback mode

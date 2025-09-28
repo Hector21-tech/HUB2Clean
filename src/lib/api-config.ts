@@ -62,8 +62,8 @@ export function getApiBaseUrl(): string {
   const isDev = process.env.NODE_ENV === 'development'
 
   if (isDev) {
-    // Development: use localhost with correct port
-    return 'http://localhost:3002'
+    // Development: use localhost with correct port (Next.js currently on 3006)
+    return 'http://localhost:3006'
   }
 
   // Production/Preview: use current origin (same-origin requests)

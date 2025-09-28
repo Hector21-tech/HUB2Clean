@@ -83,13 +83,6 @@ export class PlayerService {
     try {
       const players = await prisma.player.findMany({
         where,
-        include: {
-          tenant: true,
-          trials: {
-            orderBy: { scheduledAt: 'desc' },
-            take: 5
-          }
-        },
         orderBy: [
           { rating: 'desc' },
           { lastName: 'asc' }
