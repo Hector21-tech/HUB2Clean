@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, ChevronLeft, ChevronRight, Plus, List, Grid, Clock } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Plus, List, Grid, Clock, Search, X } from 'lucide-react'
 import { CalendarView, CalendarEvent, EventType } from '../types/calendar'
 import { dateUtils } from '../utils/calendar-utils'
 import { useCalendarEvents, useCalendarEventsInRange, useDeleteEvent } from '../hooks/useCalendarEvents'
@@ -26,6 +26,7 @@ export function CalendarPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
 
   // Get date range based on current view (moved up before hooks)
@@ -61,8 +62,39 @@ export function CalendarPage() {
   })
 
   // Use the appropriate query based on view
-  const { data: events = [], isLoading, error } = view === 'list' ? allEventsQuery : rangeQuery
+  const { data: rawEvents = [], isLoading, error } = view === 'list' ? allEventsQuery : rangeQuery
   const deleteEvent = useDeleteEvent(tenantId || '')
+
+  // Filter events based on search term
+  const events = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return rawEvents
+    }
+
+    const searchLower = searchTerm.toLowerCase()
+    return rawEvents.filter(event => {
+      // Search in event title
+      const titleMatch = event.title?.toLowerCase().includes(searchLower)
+
+      // Search in event description
+      const descriptionMatch = event.description?.toLowerCase().includes(searchLower)
+
+      // Search in event location
+      const locationMatch = event.location?.toLowerCase().includes(searchLower)
+
+      // Search in event type
+      const typeMatch = event.type?.toLowerCase().includes(searchLower)
+
+      // Search in trial player names (if it's a trial event)
+      const playerMatch = event.trial?.player ?
+        `${event.trial.player.firstName} ${event.trial.player.lastName}`.toLowerCase().includes(searchLower) : false
+
+      // Search in trial club (if it's a trial event)
+      const clubMatch = event.trial?.request?.club?.toLowerCase().includes(searchLower)
+
+      return titleMatch || descriptionMatch || locationMatch || typeMatch || playerMatch || clubMatch
+    })
+  }, [rawEvents, searchTerm])
 
   // Navigation functions
   const navigateToPrevious = () => {
@@ -304,6 +336,54 @@ export function CalendarPage() {
               New Event
             </button>
           </div>
+        </div>
+
+        {/* Search Section */}
+        <div className="mt-4 pt-4 border-t border-white/10">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-white/40" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search events by title, location, player name, or event type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="
+                w-full pl-10 pr-10 py-2.5
+                bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg
+                text-white placeholder-white/40
+                focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/30
+                transition-all duration-200
+                text-sm
+              "
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white/60 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Results Summary */}
+          {searchTerm && (
+            <div className="mt-3 flex items-center justify-between text-sm">
+              <span className="text-white/60">
+                Found {events.length} event{events.length !== 1 ? 's' : ''} matching &quot;{searchTerm}&quot;
+              </span>
+              {events.length > 0 && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
