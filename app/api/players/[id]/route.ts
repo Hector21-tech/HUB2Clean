@@ -14,7 +14,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Filter to only allow specific fields that are safe to update
-    const allowedFields = ['aiDescription']
+    const allowedFields: string[] = ['notes'] // Allow notes updates for scout functionality
     const updateData: Record<string, any> = {}
 
     for (const [key, value] of Object.entries(body)) {

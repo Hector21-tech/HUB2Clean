@@ -26,11 +26,12 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [pdfProgress, setPdfProgress] = useState('')
 
-  // AI Description states
-  const [isGeneratingAI, setIsGeneratingAI] = useState(false)
-  const [aiDescription, setAiDescription] = useState(player?.aiDescription || '')
-  const [isEditingAI, setIsEditingAI] = useState(false)
-  const [isSavingAI, setIsSavingAI] = useState(false)
+  // Notes editing states
+  const [isEditingNotes, setIsEditingNotes] = useState(false)
+  const [editedNotes, setEditedNotes] = useState(player?.notes || '')
+  const [isEnhancingNotes, setIsEnhancingNotes] = useState(false)
+  const [isSavingNotes, setIsSavingNotes] = useState(false)
+
 
   // Get the best avatar URL (new system with fallback to legacy)
   const { url: avatarUrl, isLoading: avatarLoading } = useAvatarUrl({
@@ -121,79 +122,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   }
 
 
-  // Generate AI description function
-  const handleGenerateAI = async () => {
-    if (!player) return
-
-    setIsGeneratingAI(true)
-
-    try {
-      const { apiFetch } = await import('@/lib/api-config')
-      const response = await apiFetch('/api/generate-player-description', {
-        method: 'POST',
-        body: JSON.stringify({
-          playerData: {
-            firstName: player.firstName,
-            lastName: player.lastName,
-            positions: player.positions,
-            club: player.club,
-            nationality: player.nationality,
-            dateOfBirth: player.dateOfBirth,
-            notes: player.notes,
-            rating: player.rating,
-            goalsThisSeason: player.goalsThisSeason,
-            assistsThisSeason: player.assistsThisSeason,
-            marketValue: player.marketValue
-          }
-        })
-      })
-
-      if (response.ok) {
-        const { description } = await response.json()
-        const formattedDescription = formatAIText(description)
-        setAiDescription(formattedDescription)
-        setIsEditingAI(true) // Automatically enter edit mode to review
-      } else {
-        alert('AI-generering misslyckades. Försök igen.')
-      }
-    } catch (error) {
-      console.error('AI generation failed:', error)
-      alert('AI-generering misslyckades. Försök igen.')
-    } finally {
-      setIsGeneratingAI(false)
-    }
-  }
-
-  // Save AI description to database
-  const handleSaveAI = async () => {
-    if (!player) return
-
-    setIsSavingAI(true)
-
-    try {
-      const { apiFetch } = await import('@/lib/api-config')
-      const response = await apiFetch(`/api/players/${player.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          aiDescription: aiDescription.trim() || null
-        })
-      })
-
-      if (response.ok) {
-        // Update the local player object
-        player.aiDescription = aiDescription.trim() || undefined
-        setIsEditingAI(false)
-        alert('AI-beskrivning sparad!')
-      } else {
-        alert('Kunde inte spara AI-beskrivning. Försök igen.')
-      }
-    } catch (error) {
-      console.error('Save AI description failed:', error)
-      alert('Kunde inte spara AI-beskrivning. Försök igen.')
-    } finally {
-      setIsSavingAI(false)
-    }
-  }
 
   const handleExportPDF = async () => {
     if (!player) return
@@ -201,13 +129,24 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
     setIsGeneratingPDF(true)
 
     try {
-      // Use saved AI description if available, otherwise use basic notes
-      const aiImprovedNotes = player.aiDescription || null
+      // Use Notes as primary source for PDF content
+      const notesForPDF = player.notes || 'Ingen information finns tillgänglig'
+
+      // Get absolute avatar URL for PDF generation
+      let absoluteAvatarUrl = null
+      if (avatarUrl && avatarUrl.startsWith('/api/')) {
+        // Convert relative proxy URL to absolute URL
+        const baseUrl = window.location.origin
+        absoluteAvatarUrl = `${baseUrl}${avatarUrl}`
+      } else if (avatarUrl) {
+        // Use avatarUrl as-is if it's already absolute
+        absoluteAvatarUrl = avatarUrl
+      }
 
       // Use new gesture-preserving PDF helper
       await generateAndSharePDFWithGesture({
-        playerData: player,
-        aiImprovedNotes,
+        playerData: { ...player, avatarUrl: absoluteAvatarUrl },
+        aiImprovedNotes: notesForPDF,
         fileName: `${player.firstName}_${player.lastName}_Scout_Report.pdf`,
         title: `Scout Report - ${player.firstName} ${player.lastName}`,
         tenantId: player.tenantId,
@@ -227,7 +166,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
     }
   }
 
-  const generatePDFContent = (player: Player, aiImprovedNotes: string | null) => {
+  const generatePDFContent = (player: Player, notesContent: string | null) => {
     const currentDate = new Date().toLocaleDateString('sv-SE')
     const age = calculateAge(player.dateOfBirth)
     const positions = formatPositionsDisplay(player.positions || []) || 'Player'
@@ -435,10 +374,10 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
         </div>
     </div>
 
-    ${(player.notes || aiImprovedNotes) ? `
+    ${notesContent ? `
         <div class="notes-section">
             <h3>Scoutanteckningar</h3>
-            <div class="notes-content">${aiImprovedNotes || player.notes}</div>
+            <div class="notes-content">${notesContent}</div>
         </div>
     ` : ''}
 
@@ -451,6 +390,77 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
     </div>
 </body>
 </html>`
+  }
+
+  // Notes editing functions
+  const handleSaveNotes = async () => {
+    if (!player) return
+
+    setIsSavingNotes(true)
+
+    try {
+      const { apiFetch } = await import('@/lib/api-config')
+      const response = await apiFetch(`/api/players/${player.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          notes: editedNotes.trim() || null
+        })
+      })
+
+      if (response.ok) {
+        // Update local player object
+        player.notes = editedNotes.trim() || undefined
+        setIsEditingNotes(false)
+        alert('Anteckningar sparade!')
+      } else {
+        alert('Kunde inte spara anteckningar.')
+      }
+    } catch (error) {
+      console.error('Error saving notes:', error)
+      alert('Ett fel uppstod vid sparning av anteckningar.')
+    } finally {
+      setIsSavingNotes(false)
+    }
+  }
+
+  const handleEnhanceNotes = async () => {
+    if (!editedNotes.trim()) return
+
+    setIsEnhancingNotes(true)
+
+    try {
+      const { apiFetch } = await import('@/lib/api-config')
+      const response = await apiFetch('/api/enhance-player-notes', {
+        method: 'POST',
+        body: JSON.stringify({
+          notes: editedNotes.trim(),
+          playerInfo: {
+            firstName: player.firstName,
+            lastName: player.lastName,
+            position: player.positions?.[0] || 'Spelare',
+            club: player.club || 'Okänd klubb',
+            nationality: player.nationality || 'Okänd nationalitet',
+            age: calculateAge(player.dateOfBirth) || 'Okänd ålder'
+          }
+        })
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.enhancedNotes) {
+          setEditedNotes(result.enhancedNotes)
+        } else {
+          alert('AI-förbättring misslyckades. Försök igen.')
+        }
+      } else {
+        alert('AI-förbättring misslyckades. Försök igen.')
+      }
+    } catch (error) {
+      console.error('Error enhancing notes:', error)
+      alert('Ett fel uppstod vid AI-förbättring.')
+    } finally {
+      setIsEnhancingNotes(false)
+    }
   }
 
   return (
@@ -706,93 +716,49 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
             </div>
           </section>
 
-          {/* AI Scout Description */}
+
+          {/* Notes & Tags - Editable */}
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">🤖 AI Scout-beskrivning</h3>
+              <h3 className="text-lg font-semibold text-white">📝 Scout Anteckningar</h3>
               <div className="flex gap-2">
-                {!aiDescription && (
+                {!isEditingNotes ? (
                   <button
-                    onClick={handleGenerateAI}
-                    disabled={isGeneratingAI || !player.notes}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
-                    title={!player.notes ? "Lägg till scoutanteckningar först för bästa AI-resultat" : "Generera AI-beskrivning"}
+                    onClick={() => {
+                      setIsEditingNotes(true)
+                      setEditedNotes(player.notes || '')
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors duration-200"
                   >
-                    {isGeneratingAI ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Genererar...
-                      </>
-                    ) : (
-                      <>
-                        <Bot className="w-4 h-4" />
-                        Generera AI-beskrivning
-                      </>
-                    )}
+                    <Edit className="w-4 h-4" />
+                    Redigera
                   </button>
-                )}
-                {aiDescription && (
+                ) : (
                   <>
                     <button
-                      onClick={() => setIsEditingAI(!isEditingAI)}
-                      className="flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors duration-200"
+                      onClick={handleEnhanceNotes}
+                      disabled={isEnhancingNotes || !editedNotes.trim()}
+                      className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
+                      title="Förbättra texten med AI - rättar grammatik och struktur utan att lägga till ny information"
                     >
-                      <Edit className="w-4 h-4" />
-                      {isEditingAI ? 'Avbryt' : 'Redigera'}
-                    </button>
-                    <button
-                      onClick={handleGenerateAI}
-                      disabled={isGeneratingAI}
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
-                    >
-                      {isGeneratingAI ? (
+                      {isEnhancingNotes ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Regenererar...
+                          AI arbetar...
                         </>
                       ) : (
                         <>
-                          <RefreshCw className="w-4 h-4" />
-                          Regenerera
+                          <Bot className="w-4 h-4" />
+                          Skriv om med AI
                         </>
                       )}
                     </button>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
-              {!aiDescription && !isGeneratingAI && (
-                <div className="text-center py-8 text-white/60">
-                  <Bot className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg mb-2">Ingen AI-beskrivning genererad ännu</p>
-                  <p className="text-sm">
-                    {!player.notes
-                      ? "Lägg till scoutanteckningar först, sedan kan AI skapa en professionell beskrivning"
-                      : "Klicka på 'Generera AI-beskrivning' för att få en professionell scout-rapport"
-                    }
-                  </p>
-                </div>
-              )}
-
-              {isEditingAI ? (
-                <div className="space-y-4">
-                  <label className="text-sm font-medium text-white/60 block">Redigera AI-beskrivning:</label>
-                  <textarea
-                    value={aiDescription}
-                    onChange={(e) => setAiDescription(e.target.value)}
-                    rows={6}
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-vertical"
-                    placeholder="Skriv eller redigera AI-beskrivningen..."
-                  />
-                  <div className="flex gap-3">
                     <button
-                      onClick={handleSaveAI}
-                      disabled={isSavingAI}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors duration-200"
+                      onClick={handleSaveNotes}
+                      disabled={isSavingNotes}
+                      className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
                     >
-                      {isSavingAI ? (
+                      {isSavingNotes ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           Sparar...
@@ -800,64 +766,74 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                       ) : (
                         <>
                           <Save className="w-4 h-4" />
-                          Spara beskrivning
+                          Spara
                         </>
                       )}
                     </button>
                     <button
                       onClick={() => {
-                        setAiDescription(player?.aiDescription || '')
-                        setIsEditingAI(false)
+                        setIsEditingNotes(false)
+                        setEditedNotes(player.notes || '')
                       }}
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors duration-200"
+                      className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors duration-200"
                     >
                       Avbryt
                     </button>
-                  </div>
-                </div>
-              ) : aiDescription && (
-                <div>
-                  <label className="text-sm font-medium text-white/60 block mb-3">AI-genererad beskrivning:</label>
-                  <div className="text-white leading-relaxed whitespace-pre-wrap bg-white/5 rounded-lg p-4 border border-white/10">
-                    {aiDescription}
-                  </div>
-                  <p className="text-xs text-white/40 mt-3">
-                    ✨ Denna beskrivning används automatiskt i PDF-rapporter
-                  </p>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Notes & Tags */}
-          {(player.notes || player.tags?.length > 0) && (
-            <section>
-              <h3 className="text-lg font-semibold text-white mb-4">Notes & Tags</h3>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 space-y-4">
-                {player.notes && (
-                  <div>
-                    <label className="text-sm font-medium text-white/60 block mb-2">Notes</label>
-                    <p className="text-white leading-relaxed">{player.notes}</p>
-                  </div>
+                  </>
                 )}
-                {player.tags?.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-white/60 block mb-2">Tags</label>
-                    <div className="flex flex-wrap gap-2">
-                      {player.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full border border-blue-500/30"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
+              </div>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20 space-y-4">
+              {/* Notes Section */}
+              <div>
+                <label className="text-sm font-medium text-white/60 block mb-2">
+                  Scout Anteckningar {isEditingNotes && <span className="text-purple-400">(AI kan förbättra din text)</span>}
+                </label>
+                {isEditingNotes ? (
+                  <textarea
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                    rows={6}
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-vertical"
+                    placeholder="Skriv dina scout-anteckningar här... (t.ex. snabb spelare, bra teknik, behöver förbättra avslut)"
+                  />
+                ) : (
+                  <div className="min-h-[100px] p-4 bg-white/5 rounded-lg border border-white/10">
+                    {player.notes ? (
+                      <p className="text-white leading-relaxed whitespace-pre-wrap">{player.notes}</p>
+                    ) : (
+                      <p className="text-white/40 italic">Inga anteckningar ännu. Klicka på "Redigera" för att lägga till.</p>
+                    )}
                   </div>
                 )}
               </div>
-            </section>
-          )}
+
+              {/* Tags Section */}
+              {player.tags?.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-white/60 block mb-2">Tags</label>
+                  <div className="flex flex-wrap gap-2">
+                    {player.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm font-medium rounded-full border border-blue-500/30"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Info Text */}
+              <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <p className="text-blue-400 text-xs">
+                  💡 Tips: Skriv stödord och tryck "Skriv om med AI" för professionella anteckningar. AI använder ENDAST din information - inget påhitt.
+                </p>
+              </div>
+            </div>
+          </section>
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 border-t border-white/20">

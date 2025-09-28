@@ -104,7 +104,7 @@ async function resolveAvatarUrl(avatarPath: string, tenantId: string): Promise<s
     // Use the same avatar-proxy endpoint as frontend
     const baseUrl = process.env.NODE_ENV === 'production'
       ? 'https://hub2-clean.vercel.app'
-      : 'http://localhost:3000'
+      : 'http://localhost:3007'
 
     const proxyUrl = `${baseUrl}/api/media/avatar-proxy?path=${encodeURIComponent(avatarPath)}&tenantId=${tenantId}&v=${versionHash}`
 
@@ -246,12 +246,19 @@ async function generatePDF(request: NextRequest, tenantId: string, user: any, te
     }
 
     // Legacy support - generate HTML from playerData
-    // First resolve avatar URL if player has avatarPath
+    // Handle avatar URL - prioritize absolute URLs from frontend
     let resolvedAvatarUrl = playerData.avatarUrl // Keep legacy avatarUrl as fallback
-    if (playerData.avatarPath && tenantId) {
+
+    // If avatarUrl is already absolute (from frontend conversion), use it directly
+    if (playerData.avatarUrl && (playerData.avatarUrl.startsWith('http://') || playerData.avatarUrl.startsWith('https://'))) {
+      resolvedAvatarUrl = playerData.avatarUrl
+      console.log(`✅ Using absolute avatar URL for PDF: ${resolvedAvatarUrl}`)
+    } else if (playerData.avatarPath && tenantId) {
+      // Only resolve avatarPath if we don't have an absolute URL
       const signedUrl = await resolveAvatarUrl(playerData.avatarPath, tenantId)
       if (signedUrl) {
         resolvedAvatarUrl = signedUrl
+        console.log(`✅ Resolved avatar from path for PDF: ${resolvedAvatarUrl}`)
       }
     }
 

@@ -15,9 +15,18 @@ export class PlayerService {
     return player as Player
   }
   async getPlayers(tenantId: string, filters?: PlayerFilters): Promise<Player[]> {
+    console.log('🔄 PlayerService.getPlayers called:', {
+      tenantId,
+      filters,
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV
+    })
+
     const where: Record<string, unknown> = {
       tenantId
     }
+
+    console.log('🏗️ Building where clause - initial:', { where })
 
     // Apply filters
     if (filters?.search) {
@@ -27,18 +36,22 @@ export class PlayerService {
         { club: { contains: filters.search, mode: 'insensitive' } },
         { position: { contains: filters.search, mode: 'insensitive' } }
       ]
+      console.log('🔍 Added search filter:', where.OR)
     }
 
     if (filters?.position) {
       where.position = filters.position
+      console.log('⚽ Added position filter:', where.position)
     }
 
     if (filters?.nationality) {
       where.nationality = filters.nationality
+      console.log('🌍 Added nationality filter:', where.nationality)
     }
 
     if (filters?.club) {
       where.club = { contains: filters.club, mode: 'insensitive' }
+      console.log('🏟️ Added club filter:', where.club)
     }
 
     // Age filter (calculate from dateOfBirth)
@@ -61,6 +74,7 @@ export class PlayerService {
           gte: new Date(`${minBirthYear}-01-01`)
         }
       }
+      console.log('📅 Added age filter:', where.dateOfBirth)
     }
 
     if (filters?.ratingMin) {
@@ -68,6 +82,7 @@ export class PlayerService {
         ...(where.rating || {}),
         gte: filters.ratingMin
       }
+      console.log('⭐ Added rating min filter:', where.rating)
     }
 
     if (filters?.ratingMax) {
@@ -75,12 +90,19 @@ export class PlayerService {
         ...(where.rating || {}),
         lte: filters.ratingMax
       }
+      console.log('⭐ Added rating max filter:', where.rating)
     }
 
-    // Market value filters - not available in current schema
-    // TODO: Add marketValue column to Player schema when implementing extended attributes
+    console.log('🏗️ Final where clause:', JSON.stringify(where, null, 2))
 
     try {
+      console.log('🔗 Testing Prisma connection...')
+
+      // Test basic connection first
+      const connectionTest = await prisma.$queryRaw`SELECT 1 as test`
+      console.log('✅ Prisma connection test successful:', connectionTest)
+
+      console.log('📊 Executing findMany query...')
       const players = await prisma.player.findMany({
         where,
         orderBy: [
@@ -89,11 +111,30 @@ export class PlayerService {
         ]
       })
 
+      console.log('✅ Query successful:', {
+        playerCount: players.length,
+        sampleIds: players.slice(0, 3).map(p => p.id),
+        tenantId
+      })
+
       // Convert position data for frontend compatibility
-      return players.map(player => this.convertPositionData(player))
+      const convertedPlayers = players.map(player => this.convertPositionData(player))
+
+      console.log('✅ Players converted successfully')
+      return convertedPlayers
     } catch (error) {
-      console.error('Error fetching players:', error)
-      throw new Error('Failed to fetch players')
+      console.error('❌ PlayerService.getPlayers CRITICAL ERROR:', error)
+      console.error('❌ Error context:', {
+        tenantId,
+        filters,
+        where: JSON.stringify(where, null, 2),
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        timestamp: new Date().toISOString()
+      })
+
+      throw new Error(`Failed to fetch players: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

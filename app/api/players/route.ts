@@ -6,14 +6,29 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const tenant = searchParams.get('tenant')
 
-  try {
+  console.log('🚀 Players API GET called:', {
+    tenant,
+    environment: process.env.NODE_ENV,
+    url: request.url,
+    timestamp: new Date().toISOString()
+  })
 
+  try {
     if (!tenant) {
+      console.error('❌ No tenant provided in request')
       return NextResponse.json(
         { success: false, error: 'Tenant is required' },
         { status: 400 }
       )
     }
+
+    console.log('🔧 Environment check:', {
+      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+      DIRECT_URL: process.env.DIRECT_URL ? 'SET' : 'NOT SET',
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL: process.env.VERCEL,
+      VERCEL_ENV: process.env.VERCEL_ENV
+    })
 
     // Parse filters from query params
     const filters: PlayerFilters = {}
@@ -35,27 +50,51 @@ export async function GET(request: NextRequest) {
     if (ratingMin) filters.ratingMin = parseFloat(ratingMin)
     if (ratingMax) filters.ratingMax = parseFloat(ratingMax)
 
+    console.log('📋 Filters parsed:', { filters, tenant })
+
+    console.log('🔄 Calling playerService.getPlayers...')
     // Use PlayerService to get real data from database
     const players = await playerService.getPlayers(tenant, filters)
+
+    console.log('✅ Players fetched successfully:', {
+      count: players.length,
+      tenant,
+      samplePlayerIds: players.slice(0, 3).map(p => p.id)
+    })
 
     return NextResponse.json({
       success: true,
       data: players
     })
   } catch (error) {
-    console.error('❌ Players API error:', error)
-    console.error('❌ Error details:', {
+    console.error('❌ Players API CRITICAL ERROR:', error)
+    console.error('❌ Complete error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown',
+      cause: error instanceof Error ? error.cause : undefined,
       tenant: tenant,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      vercel: process.env.VERCEL,
+      vercelEnv: process.env.VERCEL_ENV
+    })
+
+    // Log additional context that might help identify the issue
+    console.error('❌ Additional context:', {
+      url: request.url,
+      method: request.method,
+      headers: Object.fromEntries(request.headers.entries()),
+      searchParams: Object.fromEntries(searchParams.entries())
     })
 
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to fetch players',
-        debug: error instanceof Error ? error.message : 'Unknown error'
+        debug: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString(),
+        tenant: tenant
       },
       { status: 500 }
     )
