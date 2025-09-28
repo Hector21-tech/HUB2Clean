@@ -37,7 +37,8 @@
       "Bash(npx vercel env add:*)",
       "Bash(npx vercel:*)",
       "Bash(npx prisma:*)",
-      "Bash(cmd /c:*)"
+      "Bash(cmd /c:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

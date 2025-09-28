@@ -184,6 +184,16 @@ export async function exportEventsToIcs(
  * Smart URL detection for different environments
  */
 function getBaseUrl(): string {
+  // Check if we're in a browser environment and get current origin
+  if (typeof window !== 'undefined') {
+    const currentOrigin = window.location.origin
+    // If we're on vercel.app domain, use that
+    if (currentOrigin.includes('vercel.app')) {
+      return currentOrigin
+    }
+  }
+
+  // Server-side logic
   // Production: Use Vercel URL or fallback to known production URL
   if (process.env.VERCEL_ENV === 'production') {
     return process.env.VERCEL_URL

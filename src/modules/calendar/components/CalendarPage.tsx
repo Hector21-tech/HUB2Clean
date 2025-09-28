@@ -545,6 +545,11 @@ function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) 
   const webcalUrl = generateWebcalUrl(tenantSlug)
   const instructions = getSubscriptionInstructions()
 
+  // Development mode - show both development and production URLs for testing
+  const isDevelopment = subscriptionUrl.includes('localhost')
+  const productionSubscriptionUrl = generateCalendarSubscriptionUrl(tenantSlug, 'https://hub2clean.vercel.app')
+  const productionWebcalUrl = generateWebcalUrl(tenantSlug, 'https://hub2clean.vercel.app')
+
   const copyToClipboard = async (url: string, label: string) => {
     try {
       await navigator.clipboard.writeText(url)
@@ -616,6 +621,21 @@ function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) 
             </ol>
           </div>
 
+          {/* Development Debug - Show both dev and production URLs */}
+          {isDevelopment && (
+            <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-yellow-400 text-sm font-medium">🔧 Development Mode</span>
+              </div>
+              <div className="text-xs text-yellow-300/80">
+                You're testing locally. In production at <strong>hub2clean.vercel.app</strong>, URLs will be:
+              </div>
+              <div className="mt-2 text-xs font-mono text-yellow-200">
+                Production webcal: {productionWebcalUrl}
+              </div>
+            </div>
+          )}
+
           {/* URLs */}
           <div className="space-y-4">
             {/* Webcal URL for iPhone/Desktop */}
@@ -623,6 +643,7 @@ function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) 
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
                   Calendar Subscription URL (webcal://)
+                  {isDevelopment && <span className="text-yellow-400 ml-2 text-xs">(Local Dev)</span>}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -638,6 +659,27 @@ function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) 
                     {copiedUrl === 'webcal' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
+                {isDevelopment && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-green-400 mb-1">
+                      Production URL (for iPhone testing):
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={productionWebcalUrl}
+                        readOnly
+                        className="flex-1 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-green-300 text-sm font-mono"
+                      />
+                      <button
+                        onClick={() => copyToClipboard(productionWebcalUrl, 'production-webcal')}
+                        className="px-3 py-2 bg-green-500/20 text-green-300 hover:bg-green-500/30 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        {copiedUrl === 'production-webcal' ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -646,6 +688,7 @@ function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) 
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
                   Calendar URL (for Google Calendar)
+                  {isDevelopment && <span className="text-yellow-400 ml-2 text-xs">(Local Dev)</span>}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -661,6 +704,27 @@ function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) 
                     {copiedUrl === 'http' ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
+                {isDevelopment && (
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium text-green-400 mb-1">
+                      Production URL (for Google Calendar testing):
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={productionSubscriptionUrl}
+                        readOnly
+                        className="flex-1 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded-lg text-green-300 text-sm font-mono"
+                      />
+                      <button
+                        onClick={() => copyToClipboard(productionSubscriptionUrl, 'production-http')}
+                        className="px-3 py-2 bg-green-500/20 text-green-300 hover:bg-green-500/30 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        {copiedUrl === 'production-http' ? 'Copied!' : 'Copy'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
