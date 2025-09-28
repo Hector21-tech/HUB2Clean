@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, ChevronLeft, ChevronRight, Plus, List, Grid, Clock, Search, X } from 'lucide-react'
+import { Calendar, ChevronLeft, ChevronRight, Plus, List, Grid, Clock, Search, X, Download, Share } from 'lucide-react'
 import { CalendarView, CalendarEvent, EventType } from '../types/calendar'
 import { dateUtils } from '../utils/calendar-utils'
 import { useCalendarEvents, useCalendarEventsInRange, useDeleteEvent } from '../hooks/useCalendarEvents'
@@ -14,6 +14,7 @@ import { CreateEventModal } from './CreateEventModal'
 import { EditEventModal } from './EditEventModal'
 import { EventDetailModal } from './EventDetailModal'
 import { useTenantSlug } from '@/lib/hooks/useTenantSlug'
+import { generateCalendarSubscriptionUrl, generateWebcalUrl, getSubscriptionInstructions } from '../utils/calendar-export'
 
 export function CalendarPage() {
   const { tenantId, tenantSlug } = useTenantSlug()
@@ -28,6 +29,7 @@ export function CalendarPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [showExportModal, setShowExportModal] = useState(false)
 
   // Search mode logic
   const isInSearchMode = searchTerm.trim().length > 0
@@ -377,6 +379,15 @@ export function CalendarPage() {
               <Plus className="w-4 h-4" />
               New Event
             </button>
+
+            {/* Export Calendar Button */}
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Export Calendar
+            </button>
           </div>
         </div>
 
@@ -507,6 +518,186 @@ export function CalendarPage() {
           }}
         />
       )}
+
+      {/* Export Calendar Modal */}
+      {showExportModal && tenantSlug && (
+        <ExportCalendarModal
+          tenantSlug={tenantSlug}
+          onClose={() => setShowExportModal(false)}
+        />
+      )}
+      </div>
+    </div>
+  )
+}
+
+{/* Export Calendar Modal Component */}
+interface ExportCalendarModalProps {
+  tenantSlug: string
+  onClose: () => void
+}
+
+function ExportCalendarModal({ tenantSlug, onClose }: ExportCalendarModalProps) {
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'iPhone' | 'Android' | 'Desktop'>('iPhone')
+
+  const subscriptionUrl = generateCalendarSubscriptionUrl(tenantSlug)
+  const webcalUrl = generateWebcalUrl(tenantSlug)
+  const instructions = getSubscriptionInstructions()
+
+  const copyToClipboard = async (url: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopiedUrl(label)
+      setTimeout(() => setCopiedUrl(null), 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+    }
+  }
+
+  const downloadIcs = () => {
+    window.open(subscriptionUrl, '_blank')
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20 backdrop-blur-sm">
+        <div className="p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <Share className="w-6 h-6 text-green-400" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Export Calendar</h2>
+                <p className="text-white/60 text-sm">Subscribe to get Scout Hub events in your calendar app</p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-white/70" />
+            </button>
+          </div>
+
+          {/* Platform Tabs */}
+          <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-lg">
+            {(Object.keys(instructions) as Array<keyof typeof instructions>).map((platform) => (
+              <button
+                key={platform}
+                onClick={() => setActiveTab(platform)}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === platform
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : 'text-white/60 hover:text-white/80 hover:bg-white/5'
+                }`}
+              >
+                {platform}
+              </button>
+            ))}
+          </div>
+
+          {/* Instructions */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white mb-3">
+              {instructions[activeTab].title}
+            </h3>
+            <ol className="space-y-2">
+              {instructions[activeTab].steps.map((step, index) => (
+                <li key={index} className="flex gap-3 text-white/70 text-sm">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-500/20 text-blue-300 rounded-full flex items-center justify-center text-xs font-medium">
+                    {index + 1}
+                  </span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* URLs */}
+          <div className="space-y-4">
+            {/* Webcal URL for iPhone/Desktop */}
+            {(activeTab === 'iPhone' || activeTab === 'Desktop') && (
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Calendar Subscription URL (webcal://)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={webcalUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm font-mono"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(webcalUrl, 'webcal')}
+                    className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    {copiedUrl === 'webcal' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* HTTP URL for Google Calendar */}
+            {activeTab === 'Android' && (
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Calendar URL (for Google Calendar)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={subscriptionUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm font-mono"
+                  />
+                  <button
+                    onClick={() => copyToClipboard(subscriptionUrl, 'http')}
+                    className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    {copiedUrl === 'http' ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Download Option */}
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-white font-medium mb-1">One-time Download</h4>
+                <p className="text-white/60 text-sm">Download .ics file to import manually</p>
+              </div>
+              <button
+                onClick={downloadIcs}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors font-medium"
+              >
+                <Download className="w-4 h-4" />
+                Download .ics
+              </button>
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="mt-6 p-4 bg-blue-500/10 border border-blue-400/20 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5">
+                ℹ️
+              </div>
+              <div className="text-sm">
+                <p className="text-blue-300 font-medium mb-1">Auto-Sync Calendar</p>
+                <p className="text-blue-200/80">
+                  Events will automatically update when changes are made in Scout Hub.
+                  You'll receive notifications for upcoming trials, meetings, and matches!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
