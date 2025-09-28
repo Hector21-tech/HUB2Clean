@@ -9,7 +9,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * GET /api/calendar/export/[tenant].ics
+ * GET /api/calendar/export/[tenant] or /api/calendar/export/[tenant].ics
  *
  * Export tenant calendar events as iCalendar (.ics) format
  * Supports subscription in iPhone, Google Calendar, Outlook, etc.
@@ -20,7 +20,8 @@ export async function GET(
 ) {
   try {
     const { tenant } = await params
-    const tenantSlug = tenant.replace('.ics', '') // Remove .ics extension
+    // Handle both /tenant and /tenant.ics formats
+    const tenantSlug = tenant.replace(/\.ics$/, '') // Remove .ics extension if present
 
     console.log(`[Calendar Export] Exporting calendar for tenant: ${tenantSlug}`)
 
