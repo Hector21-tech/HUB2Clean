@@ -7,6 +7,7 @@ const prisma = new PrismaClient()
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 30
+// PDF Generation API - Production Ready with Security
 
 interface PDFRequest {
   html?: string
