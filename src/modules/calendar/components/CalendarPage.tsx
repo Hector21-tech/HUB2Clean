@@ -262,61 +262,87 @@ export function CalendarPage() {
 
   return (
     <div className="flex-1 relative">
-      <div className="relative p-6 space-y-6">
+      <div className="relative p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Calendar Header */}
-      <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6">
+      <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4 sm:p-6">
+        {/* Top Row: Title + Action Buttons */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-400" />
-              </div>
-              <h1 className="text-2xl font-bold text-white">Calendar</h1>
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-blue-500/20 rounded-lg">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={navigateToPrevious}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                disabled={actualView === 'list'}
-              >
-                <ChevronLeft className="w-5 h-5 text-white/70" />
-              </button>
-
-              <div className="px-4 py-2 bg-white/5 rounded-lg border border-white/10 min-w-48 text-center">
-                <span className="text-white font-medium">{getViewTitle()}</span>
-              </div>
-
-              <button
-                onClick={navigateToNext}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                disabled={actualView === 'list'}
-              >
-                <ChevronRight className="w-5 h-5 text-white/70" />
-              </button>
-
-              <button
-                onClick={navigateToToday}
-                className="px-4 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium"
-                disabled={actualView === 'list'}
-              >
-                Today
-              </button>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Calendar</h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Mobile: Stack buttons vertically, Desktop: horizontal */}
+          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
+            <button
+              onClick={() => handleCreateEvent()}
+              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Event</span>
+              <span className="sm:hidden">New</span>
+            </button>
+
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-sm"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Calendar</span>
+              <span className="sm:hidden">Export</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Row */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+          {/* Date Navigation */}
+          <div className="flex items-center justify-center sm:justify-start gap-2">
+            <button
+              onClick={navigateToPrevious}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              disabled={actualView === 'list'}
+            >
+              <ChevronLeft className="w-5 h-5 text-white/70" />
+            </button>
+
+            <div className="px-3 py-2 bg-white/5 rounded-lg border border-white/10 flex-1 sm:flex-none sm:min-w-32 lg:min-w-48 text-center">
+              <span className="text-white font-medium text-sm sm:text-base">{getViewTitle()}</span>
+            </div>
+
+            <button
+              onClick={navigateToNext}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              disabled={actualView === 'list'}
+            >
+              <ChevronRight className="w-5 h-5 text-white/70" />
+            </button>
+
+            <button
+              onClick={navigateToToday}
+              className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-xs sm:text-sm font-medium"
+              disabled={actualView === 'list'}
+            >
+              Today
+            </button>
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex items-center justify-center sm:justify-end">
             {/* View Toggle */}
             <div className="flex items-center bg-white/5 rounded-lg border border-white/10 p-1">
               {isInSearchMode && (
-                <div className="text-xs text-blue-400 px-2 mr-2 bg-blue-500/20 rounded border border-blue-400/30">
-                  Search Mode
+                <div className="text-xs text-blue-400 px-1 sm:px-2 mr-1 sm:mr-2 bg-blue-500/20 rounded border border-blue-400/30">
+                  <span className="hidden sm:inline">Search Mode</span>
+                  <span className="sm:hidden">Search</span>
                 </div>
               )}
               <button
                 onClick={() => setView('month')}
                 disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
+                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
                   view === 'month' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : isInSearchMode
@@ -324,13 +350,13 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <Grid className="w-4 h-4" />
-                <span className="text-sm">Month</span>
+                <Grid className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm hidden sm:inline">Month</span>
               </button>
               <button
                 onClick={() => setView('week')}
                 disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
+                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
                   view === 'week' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : isInSearchMode
@@ -338,13 +364,13 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">Week</span>
+                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm hidden sm:inline">Week</span>
               </button>
               <button
                 onClick={() => setView('day')}
                 disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
+                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
                   view === 'day' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : isInSearchMode
@@ -352,13 +378,13 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Day</span>
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm hidden sm:inline">Day</span>
               </button>
               <button
                 onClick={() => setView('list')}
                 disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
+                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
                   isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : view === 'list'
@@ -366,28 +392,12 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <List className="w-4 h-4" />
-                <span className="text-sm">{isInSearchMode ? 'Search Results' : 'List'}</span>
+                <List className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm hidden sm:inline">
+                  {isInSearchMode ? 'Search Results' : 'List'}
+                </span>
               </button>
             </div>
-
-            {/* Create Event Button */}
-            <button
-              onClick={() => handleCreateEvent()}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              New Event
-            </button>
-
-            {/* Export Calendar Button */}
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium"
-            >
-              <Download className="w-4 h-4" />
-              Export Calendar
-            </button>
           </div>
         </div>
 
@@ -399,11 +409,11 @@ export function CalendarPage() {
             </div>
             <input
               type="text"
-              placeholder="Search events by title, location, player name, or event type..."
+              placeholder="Search events..."
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="
-                w-full pl-10 pr-10 py-2.5
+                w-full pl-8 sm:pl-10 pr-8 sm:pr-10 py-2 sm:py-2.5
                 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg
                 text-white placeholder-white/40
                 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-400/30
