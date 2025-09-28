@@ -22,16 +22,21 @@ export function CalendarPage() {
   // UI State - MUST be declared before any early returns to follow Rules of Hooks
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<CalendarView>('month')
+  const [previousView, setPreviousView] = useState<CalendarView>('month')
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Search mode logic
+  const isInSearchMode = searchTerm.trim().length > 0
+  const actualView = isInSearchMode ? 'list' : view
+
 
   // Get date range based on current view (moved up before hooks)
   const getDateRange = () => {
-    switch (view) {
+    switch (actualView) {
       case 'month':
         return dateUtils.getMonthViewRange(currentDate)
       case 'week':
@@ -61,8 +66,8 @@ export function CalendarPage() {
     tenantId: tenantId || ''
   })
 
-  // Use the appropriate query based on view
-  const { data: rawEvents = [], isLoading, error } = view === 'list' ? allEventsQuery : rangeQuery
+  // Use the appropriate query based on actual view (including search mode)
+  const { data: rawEvents = [], isLoading, error } = actualView === 'list' ? allEventsQuery : rangeQuery
   const deleteEvent = useDeleteEvent(tenantId || '')
 
   // Filter events based on search term
@@ -129,6 +134,22 @@ export function CalendarPage() {
     setCurrentDate(new Date())
   }
 
+  // Search handler with auto-switch logic
+  const handleSearchChange = (newSearchTerm: string) => {
+    const wasInSearchMode = isInSearchMode
+    const willBeInSearchMode = newSearchTerm.trim().length > 0
+
+    if (willBeInSearchMode && !wasInSearchMode) {
+      // Starting search - save current view and switch to list
+      setPreviousView(view)
+    } else if (!willBeInSearchMode && wasInSearchMode) {
+      // Clearing search - restore previous view
+      setView(previousView)
+    }
+
+    setSearchTerm(newSearchTerm)
+  }
+
   // Event handlers
   const handleEventClick = (event: CalendarEvent) => {
     setSelectedEvent(event)
@@ -187,6 +208,10 @@ export function CalendarPage() {
 
   // Get current view title
   const getViewTitle = () => {
+    if (isInSearchMode) {
+      return `Search Results (${events.length} found)`
+    }
+
     switch (view) {
       case 'month':
         return dateUtils.formatMonthYear(currentDate)
@@ -251,7 +276,7 @@ export function CalendarPage() {
               <button
                 onClick={navigateToPrevious}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                disabled={view === 'list'}
+                disabled={actualView === 'list'}
               >
                 <ChevronLeft className="w-5 h-5 text-white/70" />
               </button>
@@ -263,7 +288,7 @@ export function CalendarPage() {
               <button
                 onClick={navigateToNext}
                 className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                disabled={view === 'list'}
+                disabled={actualView === 'list'}
               >
                 <ChevronRight className="w-5 h-5 text-white/70" />
               </button>
@@ -271,7 +296,7 @@ export function CalendarPage() {
               <button
                 onClick={navigateToToday}
                 className="px-4 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium"
-                disabled={view === 'list'}
+                disabled={actualView === 'list'}
               >
                 Today
               </button>
@@ -281,11 +306,19 @@ export function CalendarPage() {
           <div className="flex items-center gap-3">
             {/* View Toggle */}
             <div className="flex items-center bg-white/5 rounded-lg border border-white/10 p-1">
+              {isInSearchMode && (
+                <div className="text-xs text-blue-400 px-2 mr-2 bg-blue-500/20 rounded border border-blue-400/30">
+                  Search Mode
+                </div>
+              )}
               <button
                 onClick={() => setView('month')}
+                disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
-                  view === 'month'
+                  view === 'month' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
+                    : isInSearchMode
+                    ? 'text-white/30 cursor-not-allowed'
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
@@ -294,9 +327,12 @@ export function CalendarPage() {
               </button>
               <button
                 onClick={() => setView('week')}
+                disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
-                  view === 'week'
+                  view === 'week' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
+                    : isInSearchMode
+                    ? 'text-white/30 cursor-not-allowed'
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
@@ -305,9 +341,12 @@ export function CalendarPage() {
               </button>
               <button
                 onClick={() => setView('day')}
+                disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
-                  view === 'day'
+                  view === 'day' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
+                    : isInSearchMode
+                    ? 'text-white/30 cursor-not-allowed'
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
@@ -316,14 +355,17 @@ export function CalendarPage() {
               </button>
               <button
                 onClick={() => setView('list')}
+                disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center gap-2 ${
-                  view === 'list'
+                  isInSearchMode
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : view === 'list'
                     ? 'bg-blue-500/20 text-blue-300'
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
                 <List className="w-4 h-4" />
-                <span className="text-sm">List</span>
+                <span className="text-sm">{isInSearchMode ? 'Search Results' : 'List'}</span>
               </button>
             </div>
 
@@ -348,7 +390,7 @@ export function CalendarPage() {
               type="text"
               placeholder="Search events by title, location, player name, or event type..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="
                 w-full pl-10 pr-10 py-2.5
                 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg
@@ -360,7 +402,7 @@ export function CalendarPage() {
             />
             {searchTerm && (
               <button
-                onClick={() => setSearchTerm('')}
+                onClick={() => handleSearchChange('')}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white/60 transition-colors"
               >
                 <X className="h-4 w-4" />
@@ -376,7 +418,7 @@ export function CalendarPage() {
               </span>
               {events.length > 0 && (
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => handleSearchChange('')}
                   className="text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   Clear search
@@ -389,7 +431,7 @@ export function CalendarPage() {
 
       {/* Calendar View */}
       <div className="bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-xl overflow-hidden">
-        {view === 'month' && (
+        {actualView === 'month' && (
           <CalendarMonthView
             currentDate={currentDate}
             events={events}
@@ -401,7 +443,7 @@ export function CalendarPage() {
           />
         )}
 
-        {view === 'week' && (
+        {actualView === 'week' && (
           <CalendarWeekView
             currentDate={currentDate}
             events={events}
@@ -413,7 +455,7 @@ export function CalendarPage() {
           />
         )}
 
-        {view === 'day' && (
+        {actualView === 'day' && (
           <CalendarDayView
             currentDate={currentDate}
             events={events}
@@ -423,7 +465,7 @@ export function CalendarPage() {
           />
         )}
 
-        {view === 'list' && (
+        {actualView === 'list' && (
           <CalendarListView
             events={events}
             isLoading={isLoading}
