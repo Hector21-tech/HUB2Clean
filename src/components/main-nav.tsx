@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Target } from 'lucide-react'
 import { cn } from '../lib/utils'
 
 interface MainNavProps {
@@ -67,9 +67,10 @@ export function MainNav({ tenant }: MainNavProps) {
       {/* Logo */}
       <Link
         href={`/${tenant}/dashboard`}
-        className="text-xl font-semibold text-gray-900 transition-all duration-200 hover:text-blue-600 mr-6"
+        className="flex items-center space-x-2 text-xl font-semibold text-gray-900 transition-all duration-200 hover:text-blue-600 mr-6"
       >
-        Scout Hub
+        <Target className="h-6 w-6 text-blue-600" />
+        <span>Scout Hub</span>
       </Link>
 
       {/* Desktop Navigation */}

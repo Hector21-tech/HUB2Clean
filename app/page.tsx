@@ -12,7 +12,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center space-x-2">
-              <Target className="h-8 w-8 text-primary" />
+              <Target className="h-8 w-8 text-blue-600" />
               <span className="text-2xl font-bold text-foreground">Scout Hub</span>
             </div>
             <div className="flex items-center space-x-4">
@@ -133,7 +133,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-2">
-              <Target className="h-6 w-6 text-primary" />
+              <Target className="h-6 w-6 text-blue-600" />
               <span className="text-lg font-semibold text-foreground">Scout Hub</span>
             </div>
             <p className="text-sm text-muted-foreground">
