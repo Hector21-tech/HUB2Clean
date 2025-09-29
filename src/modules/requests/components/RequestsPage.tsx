@@ -1,44 +1,73 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useTenantSlug } from '@/lib/hooks/useTenantSlug'
+import { useRequestsQuery, type Request } from '../hooks/useRequestsQuery'
 import { Plus, Building2, Target, Calendar, ChevronRight, Clock, AlertCircle, CheckCircle2, Search, Filter, Download, Grid, List, Menu, X, MapPin } from 'lucide-react'
 import { WindowBadge } from '@/components/ui/WindowBadge'
-import { AdvancedFilters } from '@/components/ui/AdvancedFilters'
-import { KanbanBoard } from '@/components/ui/KanbanBoard'
-import { SwimlaneBoardView } from '@/components/ui/SwimlaneBoardView'
-import { CompactListView } from '@/components/ui/CompactListView'
 import { SmartClubSelector } from '@/components/ui/SmartClubSelector'
 import { SavedViewsSidebar, type SavedView } from '@/components/ui/SavedViewsSidebar'
 import { FilterChipsBar, type FilterChip } from '@/components/ui/FilterChipsBar'
-import { RequestExporter } from '@/lib/export/request-export'
+import dynamic from 'next/dynamic'
 
-interface Request {
-  id: string
-  title: string
-  description: string
-  club: string
-  country?: string
-  league?: string
-  position: string | null
-  status: string
-  priority: string
-  createdAt: string
-  updatedAt: string
-  windowOpenAt?: string | null
-  windowCloseAt?: string | null
-  deadline?: string | null
-  graceDays?: number
-}
+// Lazy load heavy components for better performance
+const AdvancedFilters = dynamic(() => import('@/components/ui/AdvancedFilters').then(mod => ({ default: mod.AdvancedFilters })), {
+  loading: () => <div className="h-12 bg-white/10 rounded animate-pulse"></div>
+})
+
+const KanbanBoard = dynamic(() => import('@/components/ui/KanbanBoard').then(mod => ({ default: mod.KanbanBoard })), {
+  loading: () => (
+    <div className="grid gap-6 md:grid-cols-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="bg-white/5 rounded-xl p-4 animate-pulse">
+          <div className="h-6 bg-white/10 rounded mb-4"></div>
+          <div className="space-y-3">
+            {[...Array(4)].map((_, j) => (
+              <div key={j} className="h-24 bg-white/10 rounded"></div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+})
+
+const SwimlaneBoardView = dynamic(() => import('@/components/ui/SwimlaneBoardView').then(mod => ({ default: mod.SwimlaneBoardView })), {
+  loading: () => (
+    <div className="space-y-6 animate-pulse">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="bg-white/5 rounded-xl p-6">
+          <div className="h-6 bg-white/10 rounded mb-4 w-48"></div>
+          <div className="grid gap-4 md:grid-cols-4">
+            {[...Array(8)].map((_, j) => (
+              <div key={j} className="h-32 bg-white/10 rounded"></div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+})
+
+const CompactListView = dynamic(() => import('@/components/ui/CompactListView').then(mod => ({ default: mod.CompactListView })), {
+  loading: () => (
+    <div className="space-y-2 animate-pulse">
+      {[...Array(10)].map((_, i) => (
+        <div key={i} className="h-16 bg-white/5 rounded-xl"></div>
+      ))}
+    </div>
+  )
+})
+
 
 export function RequestsPage() {
   const params = useParams()
   const tenant = params.tenant as string
   const { tenantId } = useTenantSlug()
 
-  const [requests, setRequests] = useState<Request[]>([])
-  const [loading, setLoading] = useState(true)
+  // Use React Query instead of useState + useEffect
+  const { data: requests = [], isLoading: loading, error, refetch } = useRequestsQuery(tenantId || '')
   const [showForm, setShowForm] = useState(false)
   const [creatingTestData, setCreatingTestData] = useState(false)
   const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set())
@@ -92,10 +121,8 @@ export function RequestsPage() {
     archived: requests.filter(r => ['COMPLETED', 'CANCELLED'].includes(r.status)).length
   }
 
-  // Advanced filtering logic
+  // Advanced filtering logic - optimized for performance
   const filteredRequests = requests.filter(request => {
-    // Debug logging
-    console.log('Filtering request:', request.title, 'Status:', request.status, 'Priority:', request.priority, 'Active View:', activeView)
 
     // Search term filter
     if (searchTerm) {
@@ -107,7 +134,6 @@ export function RequestsPage() {
         (request.position && request.position.toLowerCase().includes(searchLower))
       )
       if (!matchesSearch) {
-        console.log('Filtered out by search:', request.title)
         return false
       }
     }
@@ -117,13 +143,11 @@ export function RequestsPage() {
       switch (chip.type) {
         case 'position':
           if (request.position !== chip.value) {
-            console.log('Filtered out by position chip:', request.title)
             return false
           }
           break
         case 'club':
           if (request.club.toLowerCase() !== chip.value.toLowerCase()) {
-            console.log('Filtered out by club chip:', request.title)
             return false
           }
           break
@@ -140,68 +164,33 @@ export function RequestsPage() {
     switch (activeView) {
       case 'board':
       case 'list':
-        console.log('Board/List view - showing all requests:', request.title)
         return true
       case 'inbox':
         const isInbox = ['OPEN', 'IN_PROGRESS'].includes(request.status)
-        if (!isInbox) console.log('Filtered out by inbox view:', request.title, request.status)
         return isInbox
       case 'archive':
         const isArchive = ['COMPLETED', 'CANCELLED'].includes(request.status)
-        if (!isArchive) console.log('Filtered out by archive view:', request.title, request.status)
         return isArchive
       case 'open-now':
         const isOpenNow = request.windowOpenAt && new Date(request.windowOpenAt) <= new Date()
-        if (!isOpenNow) console.log('Filtered out by open-now view:', request.title)
         return isOpenNow
       case 'closes-soon':
         const isClosesSoon = request.windowCloseAt && new Date(request.windowCloseAt) <= new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        if (!isClosesSoon) console.log('Filtered out by closes-soon view:', request.title)
         return isClosesSoon
       case 'opens-soon':
         const isOpensSoon = request.windowOpenAt && new Date(request.windowOpenAt) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) && new Date(request.windowOpenAt) > new Date()
-        if (!isOpensSoon) console.log('Filtered out by opens-soon view:', request.title)
         return isOpensSoon
       case 'expired':
         const isExpired = request.windowCloseAt && new Date(request.windowCloseAt) < new Date()
-        if (!isExpired) console.log('Filtered out by expired view:', request.title)
         return isExpired
       default:
-        console.log('Default view - showing request:', request.title)
         return true
     }
   })
 
   // Debug: Log final results
-  console.log('Total requests:', requests.length)
-  console.log('Filtered requests:', filteredRequests.length)
-  console.log('Active view:', activeView)
-  console.log('Search term:', searchTerm)
-  console.log('Filter chips:', filterChips)
 
-  // Fetch requests
-  useEffect(() => {
-    fetchRequests()
-  }, [])
-
-  const fetchRequests = async () => {
-    try {
-      setLoading(true)
-      const { apiFetch } = await import('@/lib/api-config')
-      const response = await apiFetch(`/api/requests?tenant=${tenantId}`)
-      const result = await response.json()
-
-      if (result.success) {
-        setRequests(result.data)
-      } else {
-        console.error('Failed to fetch requests')
-      }
-    } catch (error) {
-      console.error('Error fetching requests:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // React Query handles data fetching automatically - no useEffect needed!
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -222,7 +211,7 @@ export function RequestsPage() {
       const result = await response.json()
 
       if (result.success) {
-        setRequests([result.data, ...requests])
+        refetch() // Refresh data using React Query
         setFormData({ title: '', description: '', club: '', country: '', league: '', position: '' })
         setShowForm(false)
         alert('Request created successfully!')
@@ -230,7 +219,7 @@ export function RequestsPage() {
         alert('Failed to create request: ' + result.error)
       }
     } catch (error) {
-      console.error('Error creating request:', error)
+      // console.error('Error creating request:', error)
       alert('Error creating request')
     }
   }
@@ -248,12 +237,12 @@ export function RequestsPage() {
 
       if (result.success) {
         alert(`Test data created! ${result.data.requestsCreated} requests with different window scenarios added.`)
-        fetchRequests() // Refresh the list
+        refetch() // Refresh the list using React Query
       } else {
         alert('Failed to create test data: ' + result.error)
       }
     } catch (error) {
-      console.error('Error creating test data:', error)
+      // console.error('Error creating test data:', error)
       alert('Error creating test data')
     } finally {
       setCreatingTestData(false)
@@ -299,17 +288,13 @@ export function RequestsPage() {
 
       await Promise.all(updatePromises)
 
-      // Update local state
-      setRequests(requests.map(request =>
-        selectedRequests.has(request.id)
-          ? { ...request, status: newStatus }
-          : request
-      ))
+      // Refresh data using React Query after bulk update
+      refetch()
 
       clearSelection()
       alert(`Updated ${selectedRequests.size} requests to ${newStatus}`)
     } catch (error) {
-      console.error('Error updating requests:', error)
+      // console.error('Error updating requests:', error)
       alert('Failed to update requests')
     }
   }
@@ -330,20 +315,22 @@ export function RequestsPage() {
 
       await Promise.all(deletePromises)
 
-      // Update local state
-      setRequests(requests.filter(request => !selectedRequests.has(request.id)))
+      // Refresh data using React Query after bulk delete
+      refetch()
       clearSelection()
       alert(`Deleted ${selectedRequests.size} requests`)
     } catch (error) {
-      console.error('Error deleting requests:', error)
+      // console.error('Error deleting requests:', error)
       alert('Failed to delete requests')
     }
   }
 
-  // Export functions
-  const exportSelected = (format: 'csv' | 'json' | 'summary') => {
+  // Export functions - optimized with dynamic import
+  const exportSelected = async (format: 'csv' | 'json' | 'summary') => {
     const selectedRequestsData = requests.filter(r => selectedRequests.has(r.id))
     const timestamp = new Date().toISOString().split('T')[0]
+
+    const { RequestExporter } = await import('@/lib/export/request-export')
 
     switch (format) {
       case 'csv':
@@ -360,8 +347,10 @@ export function RequestsPage() {
     clearSelection()
   }
 
-  const exportAll = (format: 'csv' | 'json' | 'summary') => {
+  const exportAll = async (format: 'csv' | 'json' | 'summary') => {
     const timestamp = new Date().toISOString().split('T')[0]
+
+    const { RequestExporter } = await import('@/lib/export/request-export')
 
     switch (format) {
       case 'csv':
@@ -578,7 +567,6 @@ export function RequestsPage() {
                         <SmartClubSelector
                           value={formData.club}
                           onChange={(club, country, league) => {
-                            console.log('Club selected:', { club, country, league })
                             setFormData({
                               ...formData,
                               club,
@@ -672,7 +660,6 @@ export function RequestsPage() {
                 <SwimlaneBoardView
                   requests={filteredRequests}
                   onRequestUpdate={async (requestId, newStatus, newPriority) => {
-                    console.log('Main page - onRequestUpdate:', { requestId, newStatus, newPriority })
 
                     try {
                       // Prepare update data
@@ -681,7 +668,6 @@ export function RequestsPage() {
                         updateData.priority = newPriority
                       }
 
-                      console.log('Sending API update:', updateData)
 
                       const { apiFetch } = await import('@/lib/api-config')
                       const response = await apiFetch(`/api/requests/${requestId}`, {
@@ -691,21 +677,12 @@ export function RequestsPage() {
 
                       if (response.ok) {
                         // Update local state with new status and priority
-                        setRequests(requests.map(request =>
-                          request.id === requestId
-                            ? {
-                                ...request,
-                                status: newStatus,
-                                ...(newPriority && { priority: newPriority })
-                              }
-                            : request
-                        ))
-                        console.log('Local state updated successfully')
+                        refetch() // Refresh data using React Query after individual update
                       } else {
-                        console.error('API update failed:', response.status, response.statusText)
+                        // console.error('API update failed:', response.status, response.statusText)
                       }
                     } catch (error) {
-                      console.error('Error updating request:', error)
+                      // console.error('Error updating request:', error)
                     }
                   }}
                   onRequestSelect={toggleRequestSelection}

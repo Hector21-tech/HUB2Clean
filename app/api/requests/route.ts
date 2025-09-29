@@ -6,6 +6,10 @@ import { Logger, createLogContext } from '@/lib/logger'
 
 const prisma = new PrismaClient()
 
+// Aggressive caching for requests data
+const cache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes - same as dashboard
+
 // GET - List all requests for a tenant
 export async function GET(request: NextRequest) {
   const timer = Logger.timer()
@@ -57,6 +61,26 @@ export async function GET(request: NextRequest) {
 
     const tenantId = authz.tenantId
 
+    // Check cache first for performance boost
+    const cacheKey = `requests-${tenantId}`
+    const cached = cache.get(cacheKey)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      const duration = timer.end()
+      Logger.info('Requests fetched from cache', {
+        ...baseContext,
+        tenant: tenantSlug,
+        userId,
+        status: 200,
+        duration,
+        details: { cached: true, requestCount: cached.data.length }
+      })
+      return NextResponse.json({
+        success: true,
+        data: cached.data,
+        cached: true
+      })
+    }
+
     const requests = await prisma.request.findMany({
       where: { tenantId },
       select: {
@@ -79,6 +103,9 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
+    // Cache the result for future requests
+    cache.set(cacheKey, { data: requests, timestamp: Date.now() })
+
     const duration = timer.end()
     Logger.success('Requests fetched successfully', {
       ...baseContext,
@@ -86,7 +113,7 @@ export async function GET(request: NextRequest) {
       userId,
       status: 200,
       duration,
-      details: { requestCount: requests.length }
+      details: { requestCount: requests.length, cached: false }
     })
 
     return NextResponse.json({
