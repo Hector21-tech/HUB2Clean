@@ -22,7 +22,7 @@ export function UserNav() {
   const handleSignOut = async () => {
     try {
       await signOut()
-      router.push('/login')
+      router.push('/') // Redirect to landing page instead of login
     } catch (error) {
       console.error('Error signing out:', error)
     }
