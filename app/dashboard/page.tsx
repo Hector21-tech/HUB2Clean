@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Building2, Users, ArrowRight, Mail, Target } from 'lucide-react'
+import { Plus, Building2, Users, ArrowRight, Mail, Target, Shield } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthContext'
 import { UserNav } from '@/components/user-nav'
 
@@ -12,7 +12,6 @@ export default function RootDashboard() {
   const [creatingOrg, setCreatingOrg] = useState(false)
   const [orgName, setOrgName] = useState('')
   const [orgSlug, setOrgSlug] = useState('')
-  const [setupStatus, setSetupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [showRetryOption, setShowRetryOption] = useState(false)
 
   // Show retry option after 8 seconds of loading
@@ -38,29 +37,6 @@ export default function RootDashboard() {
     setOrgSlug(slug)
   }
 
-  const handleSetupUserData = async () => {
-    setSetupStatus('loading')
-    try {
-      const { apiFetch } = await import('@/lib/api-config')
-      const response = await apiFetch('/api/setup-user-data', {
-        method: 'POST'
-      })
-
-      const result = await response.json()
-      if (result.success) {
-        setSetupStatus('success')
-        // Refresh the page to load new tenant data
-        window.location.reload()
-      } else {
-        setSetupStatus('error')
-        alert('Error setting up user data: ' + result.error)
-      }
-    } catch (error) {
-      setSetupStatus('error')
-      console.error('Setup error:', error)
-      alert('Failed to setup user data')
-    }
-  }
 
   const handleCreateOrganization = async () => {
     if (!orgName.trim() || !orgSlug.trim()) return
@@ -196,27 +172,6 @@ export default function RootDashboard() {
           </div>
         )}
 
-        {/* Setup User Data (only show if no tenants) */}
-        {userTenants.length === 0 && (
-          <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-8 shadow-xl shadow-blue-100/50 mb-6">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-slate-800 mb-2">Setup Your Organizations</h3>
-              <p className="text-slate-600 mb-4 text-sm">
-                Click below to create your Test1 and Elite Sports Group organizations in the database.
-              </p>
-              <button
-                onClick={handleSetupUserData}
-                disabled={setupStatus === 'loading'}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white px-6 py-2 rounded-lg font-medium transition-colors text-sm shadow-lg shadow-green-200/50"
-              >
-                {setupStatus === 'loading' ? 'Setting up...' : 'Setup Organizations'}
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Create Organization */}
         <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-8 shadow-xl shadow-blue-100/50">
