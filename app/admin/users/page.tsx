@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { UserPlus, Mail, Shield, Users, Building2, Trash2 } from 'lucide-react'
+import { UserPlus, Mail, Shield, Users, Building2, Trash2, Eye, Edit, X } from 'lucide-react'
 
 interface User {
   id: string
@@ -38,12 +38,15 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showUserModal, setShowUserModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
   const [inviteForm, setInviteForm] = useState<InviteForm>({
     email: '',
     tenantId: '',
     role: 'SCOUT'
   })
   const [inviting, setInviting] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -122,6 +125,92 @@ export default function AdminUsers() {
       alert('❌ Network error during invitation')
     } finally {
       setInviting(false)
+    }
+  }
+
+  const handleViewUser = async (user: User) => {
+    try {
+      setActionLoading(`view-${user.id}`)
+
+      const response = await fetch(`/api/admin/users/${user.id}`)
+      const result = await response.json()
+
+      if (result.success) {
+        setSelectedUser(result.user)
+        setShowUserModal(true)
+      } else {
+        alert(`❌ Failed to load user details: ${result.error}`)
+      }
+    } catch (err) {
+      console.error('❌ View user error:', err)
+      alert('❌ Network error loading user details')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRemoveUser = async (user: User, membership: any) => {
+    const confirmed = window.confirm(
+      `Remove ${user.email} from ${membership.tenant.name}?\n\n` +
+      `Role: ${membership.role}\n` +
+      `This action cannot be undone!`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setActionLoading(`remove-${user.id}`)
+
+      const response = await fetch(
+        `/api/admin/users/membership?userId=${user.id}&tenantId=${membership.tenantId}`,
+        { method: 'DELETE' }
+      )
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`✅ ${result.message}`)
+        await fetchData() // Refresh data
+      } else {
+        alert(`❌ Failed to remove user: ${result.error}`)
+      }
+    } catch (err) {
+      console.error('❌ Remove user error:', err)
+      alert('❌ Network error during removal')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleChangeRole = async (user: User, membership: any, newRole: string) => {
+    if (newRole === membership.role) return // No change
+
+    try {
+      setActionLoading(`role-${user.id}`)
+
+      const response = await fetch('/api/admin/users/membership', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          tenantId: membership.tenantId,
+          newRole: newRole
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(`✅ ${result.message}`)
+        await fetchData() // Refresh data
+      } else {
+        alert(`❌ Failed to update role: ${result.error}`)
+      }
+    } catch (err) {
+      console.error('❌ Change role error:', err)
+      alert('❌ Network error during role change')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -276,9 +365,18 @@ export default function AdminUsers() {
                     <div className="flex flex-wrap gap-2">
                       {user.memberships.map((membership, idx) => (
                         <div key={idx} className="flex flex-col">
-                          <span className={`inline-flex px-2 py-1 text-xs rounded-full ${getRoleColor(membership.role)}`}>
-                            {membership.role}
-                          </span>
+                          <select
+                            value={membership.role}
+                            onChange={(e) => handleChangeRole(user, membership, e.target.value)}
+                            disabled={actionLoading === `role-${user.id}`}
+                            className={`inline-flex px-2 py-1 text-xs rounded-full border-0 cursor-pointer ${getRoleColor(membership.role)}`}
+                          >
+                            <option value="OWNER">OWNER</option>
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="MANAGER">MANAGER</option>
+                            <option value="SCOUT">SCOUT</option>
+                            <option value="VIEWER">VIEWER</option>
+                          </select>
                           <span className="text-xs text-gray-500 mt-1">
                             {membership.tenant.name}
                           </span>
@@ -293,9 +391,26 @@ export default function AdminUsers() {
                     <div className="text-sm text-gray-900">{formatDate(user.createdAt)}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button className="text-gray-600 hover:text-gray-900 mr-4">View</button>
-                    <button className="text-gray-600 hover:text-gray-900 mr-4">Edit</button>
-                    <button className="text-red-600 hover:text-red-700">Remove</button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleViewUser(user)}
+                        disabled={actionLoading === `view-${user.id}`}
+                        className="text-blue-600 hover:text-blue-700 disabled:text-blue-400 flex items-center gap-1"
+                      >
+                        <Eye className="w-4 h-4" />
+                        {actionLoading === `view-${user.id}` ? 'Loading...' : 'View'}
+                      </button>
+                      {user.memberships.length > 0 && (
+                        <button
+                          onClick={() => handleRemoveUser(user, user.memberships[0])}
+                          disabled={actionLoading === `remove-${user.id}`}
+                          className="text-red-600 hover:text-red-700 disabled:text-red-400 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          {actionLoading === `remove-${user.id}` ? 'Removing...' : 'Remove'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -381,6 +496,130 @@ export default function AdminUsers() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* User Details Modal */}
+      {showUserModal && selectedUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">User Details</h3>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* User Info */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Basic Information</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-600">Name:</span>
+                    <div className="font-medium">
+                      {selectedUser.firstName && selectedUser.lastName
+                        ? `${selectedUser.firstName} ${selectedUser.lastName}`
+                        : selectedUser.email.split('@')[0]
+                      }
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Email:</span>
+                    <div className="font-medium">{selectedUser.email}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Joined:</span>
+                    <div className="font-medium">{formatDate(selectedUser.createdAt)}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Last Updated:</span>
+                    <div className="font-medium">{formatDate(selectedUser.updatedAt)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3">Summary</h4>
+                <div className="grid grid-cols-3 gap-4 text-sm">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">{selectedUser.summary.totalMemberships}</div>
+                    <div className="text-gray-600">Organizations</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">{selectedUser.summary.roles.length}</div>
+                    <div className="text-gray-600">Different Roles</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {selectedUser.summary.roles.includes('OWNER') ? '👑' :
+                       selectedUser.summary.roles.includes('ADMIN') ? '🛡️' :
+                       selectedUser.summary.roles.includes('MANAGER') ? '📋' : '🔍'}
+                    </div>
+                    <div className="text-gray-600">Highest Role</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Memberships */}
+              <div>
+                <h4 className="font-medium text-gray-900 mb-3">Organization Memberships</h4>
+                <div className="space-y-3">
+                  {selectedUser.memberships.map((membership: any, idx: number) => (
+                    <div key={idx} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <Building2 className="w-5 h-5 text-gray-500" />
+                          <div>
+                            <div className="font-medium">{membership.tenant.name}</div>
+                            <div className="text-sm text-gray-500">/{membership.tenant.slug}</div>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 text-xs rounded-full ${getRoleColor(membership.role)}`}>
+                          {membership.role}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-xs text-gray-600 mt-3">
+                        <div>
+                          <span className="font-medium">Players:</span> {membership.stats?.totalPlayers || 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Requests:</span> {membership.stats?.totalRequests || 0}
+                        </div>
+                        <div>
+                          <span className="font-medium">Trials:</span> {membership.stats?.totalTrials || 0}
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-gray-500 mt-2">
+                        Joined: {formatDate(membership.joinedAt)}
+                      </div>
+
+                      {membership.tenant.description && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          {membership.tenant.description}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4 mt-6 border-t border-gray-200">
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
