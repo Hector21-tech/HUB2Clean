@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Plus, Building2, Users, ArrowRight, Mail } from 'lucide-react'
+import { Plus, Building2, Users, ArrowRight, Mail, Target } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthContext'
 import { UserNav } from '@/components/user-nav'
 
@@ -156,14 +155,9 @@ export default function RootDashboard() {
       <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-sm border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Image
-                src="/scout-hub-logo.svg"
-                alt="Scout Hub"
-                width={140}
-                height={42}
-                className="h-9 w-auto filter brightness-0 invert"
-              />
+            <div className="flex items-center space-x-3">
+              <Target className="w-8 h-8 text-blue-400" />
+              <h1 className="text-xl font-bold text-white">Scout Hub</h1>
             </div>
             <UserNav />
           </div>
