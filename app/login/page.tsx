@@ -34,8 +34,41 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        // Redirect to dashboard or first available tenant
-        router.push('/dashboard')
+        // Wait a moment for auth context to update then redirect intelligently
+        setTimeout(async () => {
+          try {
+            // Try to get user's tenant memberships
+            const { apiFetch } = await import('../../src/lib/api-config')
+            const response = await apiFetch('/api/users/sync', {
+              method: 'POST',
+              body: JSON.stringify({
+                id: data.user.id,
+                email: data.user.email,
+                firstName: data.user.user_metadata?.firstName,
+                lastName: data.user.user_metadata?.lastName,
+                avatarUrl: data.user.user_metadata?.avatarUrl
+              })
+            })
+
+            // Check for tenant memberships by trying a quick tenant query
+            const tenantResponse = await fetch(`/api/admin/users/${data.user.id}`)
+            if (tenantResponse.ok) {
+              const userData = await tenantResponse.json()
+              if (userData.success && userData.user.memberships?.length > 0) {
+                // Redirect to first available tenant
+                const firstTenant = userData.user.memberships[0].tenant
+                router.push(`/${firstTenant.slug}/dashboard`)
+                return
+              }
+            }
+
+            // Fallback to root dashboard if no tenants
+            router.push('/dashboard')
+          } catch (error) {
+            console.log('Login redirect fallback to dashboard')
+            router.push('/dashboard')
+          }
+        }, 100) // Small delay to allow auth state to propagate
       }
     } catch (err) {
       setError('An unexpected error occurred')

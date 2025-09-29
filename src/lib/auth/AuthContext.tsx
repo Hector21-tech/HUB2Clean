@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  initializing: boolean
   signOut: () => Promise<void>
   userTenants: TenantMembership[]
   currentTenant: string | null
@@ -29,7 +30,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Changed to false, will be set by tenant loading
+  const [initializing, setInitializing] = useState(true) // New state for initial session check
   const [userTenants, setUserTenants] = useState<TenantMembership[]>([])
   const [currentTenant, setCurrentTenant] = useState<string | null>(null)
   const [isFetchingTenants, setIsFetchingTenants] = useState(false)
@@ -37,14 +39,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = createClient()
 
   useEffect(() => {
-    // Get initial session - simplified and fast
+    // Get initial session - optimized for fast loading
     const getInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession()
 
         if (error) {
           console.error('❌ AuthContext: Error getting session:', error)
-          setLoading(false)
+          setInitializing(false)
           return
         }
 
@@ -67,12 +69,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }]
           setUserTenants(mockTenants)
+          setInitializing(false) // Complete immediately in dev mode
+          return
         }
 
-        setLoading(false)
+        // If we have a user, start tenant fetching but don't block UI
+        if (session?.user) {
+          setInitializing(false) // Allow UI to proceed
+          setLoading(true) // Show tenant loading state
+          await fetchUserTenants(session.user.id)
+          setLoading(false)
+        } else {
+          setInitializing(false) // Complete initialization
+        }
       } catch (error) {
         console.error('❌ AuthContext: Fatal auth error:', error)
-        setLoading(false)
+        setInitializing(false)
       }
     }
 
@@ -81,17 +93,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 Auth state change:', event, !!session?.user)
+
         setSession(session)
         setUser(session?.user ?? null)
 
         if (session?.user) {
+          // Don't block UI during auth changes
+          setLoading(true)
+
           // Ensure user exists in database
           await ensureUserInDatabase(session.user)
-          // Fetch user's tenant memberships
+
+          // Fetch user's tenant memberships in background
           await fetchUserTenants(session.user.id)
+
+          setLoading(false)
         } else {
           setUserTenants([])
           setCurrentTenant(null)
+          setLoading(false)
         }
       }
     )
@@ -118,8 +139,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Auth performance monitoring (development only)
+  const logAuthPerformance = (operation: string, startTime: number, data?: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      const duration = Date.now() - startTime
+      console.log(`⏱️ Auth Performance: ${operation} took ${duration}ms`, data || '')
+    }
+  }
+
   // Fetch user's tenant memberships - simplified and fast
   const fetchUserTenants = async (userId: string) => {
+    const startTime = Date.now()
     // Development mode: Use test tenant directly (ONLY in development)
     if (process.env.NODE_ENV === 'development' &&
         process.env.VERCEL_ENV !== 'production' &&
@@ -135,6 +165,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }]
       setUserTenants(mockTenants)
       setCurrentTenant('test-tenant-demo')
+      logAuthPerformance('fetchUserTenants (dev mode)', startTime, { tenants: 1 })
       return
     }
 
@@ -196,6 +227,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (memberships.length > 0 && !currentTenant) {
           setCurrentTenant(memberships[0].tenantId)
         }
+
+        logAuthPerformance('fetchUserTenants (success)', startTime, { tenants: memberships.length })
       } else {
         // No memberships found - try auto-setup once
         try {
@@ -213,9 +246,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('❌ AuthContext: Setup failed:', setupError)
         }
         setUserTenants([])
+        logAuthPerformance('fetchUserTenants (no tenants)', startTime, { tenants: 0 })
       }
     } catch (error) {
       console.error('❌ AuthContext: Fatal error in fetchUserTenants:', error)
+      logAuthPerformance('fetchUserTenants (error)', startTime, { error: error instanceof Error ? error.message : 'Unknown error' })
       setUserTenants([])
     } finally {
       setIsFetchingTenants(false)
@@ -240,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    initializing,
     signOut,
     userTenants,
     currentTenant,

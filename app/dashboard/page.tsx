@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth/AuthContext'
 import { UserNav } from '@/components/user-nav'
 
 export default function RootDashboard() {
-  const { user, userTenants, loading } = useAuth()
+  const { user, userTenants, loading, initializing } = useAuth()
   const router = useRouter()
   const [creatingOrg, setCreatingOrg] = useState(false)
   const [orgName, setOrgName] = useState('')
@@ -79,22 +79,37 @@ export default function RootDashboard() {
     }
   }
 
-  // Redirect to login if no user and not loading
-  if (!loading && !user) {
-    router.push('/login')
-    return null
-  }
-
-  // Show loading while checking auth
-  if (loading) {
+  // Show initial loading while auth is initializing - prevents redirect loops
+  if (initializing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+        <div className="text-white flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          Initializing...
+        </div>
       </div>
     )
   }
 
-  // Show loading if user exists but we don't have it yet
+  // Redirect to login if no user after initialization is complete
+  if (!initializing && !user) {
+    router.push('/login')
+    return null
+  }
+
+  // Show tenant loading while fetching user tenants
+  if (user && loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+        <div className="text-white flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          Loading your organizations...
+        </div>
+      </div>
+    )
+  }
+
+  // Final safety check
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
