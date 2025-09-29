@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
@@ -170,11 +168,6 @@ export async function POST(request: NextRequest) {
       hint: 'Check server logs for detailed error information'
     }, { status: 500 })
 
-  } finally {
-    try {
-      await prisma.$disconnect()
-    } catch (disconnectError) {
-      console.error('❌ Prisma disconnect error:', disconnectError)
-    }
   }
+  // Note: No $disconnect() needed - singleton maintains connection pool
 }
