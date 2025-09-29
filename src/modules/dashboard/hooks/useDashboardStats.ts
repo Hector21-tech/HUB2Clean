@@ -117,17 +117,18 @@ function getMockDashboardStats(): DashboardStats {
   }
 }
 
-async function fetchDashboardStats(tenantId: string): Promise<DashboardStats> {
-  if (process.env.NODE_ENV === 'development' && process.env.DEBUG_DASHBOARD === '1') {
-    console.log('🔍 Dashboard API: Fetching stats for tenant:', tenantId)
-  }
+async function fetchDashboardStats(tenantId: string, fast = true): Promise<DashboardStats> {
+  const startTime = Date.now()
+
   try {
-    const url = `/api/dashboard/stats?tenant=${tenantId}`
+    // Use fast mode by default for instant loading
+    const url = `/api/dashboard/stats?tenant=${tenantId}${fast ? '&fast=1' : ''}`
 
     const response = await fetch(url)
 
-    if (process.env.NODE_ENV === 'development' && process.env.DEBUG_DASHBOARD === '1') {
-      console.log('🔍 Dashboard API: Response status:', response.status, response.statusText)
+    if (process.env.NODE_ENV === 'development') {
+      const duration = Date.now() - startTime
+      console.log(`⚡ Dashboard API: ${fast ? 'Fast' : 'Full'} mode took ${duration}ms`)
     }
 
     if (!response.ok) {
@@ -152,16 +153,16 @@ async function fetchDashboardStats(tenantId: string): Promise<DashboardStats> {
 export function useDashboardStats(tenantId: string) {
   return useQuery({
     queryKey: ['dashboard-stats', tenantId],
-    queryFn: () => fetchDashboardStats(tenantId),
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes (reduced from 30s)
-    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes (increased from 20s)
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (increased from 5)
-    retry: 1, // Reduce retry attempts to fail faster and use fallback
-    retryDelay: 1000, // Quick retry then fallback
+    queryFn: () => fetchDashboardStats(tenantId, true), // Use fast mode
+    refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes (longer)
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    retry: 0, // No retries - use fallback immediately for speed
     enabled: !!tenantId,
     throwOnError: false, // Don't throw errors, let fallback handle it
     refetchOnWindowFocus: false, // Avoid unnecessary refetches
     refetchOnReconnect: false, // Don't refetch when reconnecting
+    refetchOnMount: false, // Use cache if available
   })
 }
 

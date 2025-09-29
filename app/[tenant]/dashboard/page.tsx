@@ -1,4 +1,27 @@
-import { DashboardContent } from '@/modules/dashboard/components/dashboard-content'
+import dynamic from 'next/dynamic'
+
+// Lazy load dashboard content for faster initial page load
+const DashboardContent = dynamic(
+  () => import('@/modules/dashboard/components/dashboard-content').then(mod => ({ default: mod.DashboardContent })),
+  {
+    loading: () => (
+      <div className="max-w-7xl mx-auto">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-gradient-to-br from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-6 animate-pulse">
+              <div className="h-6 bg-white/10 rounded mb-4"></div>
+              <div className="h-8 bg-white/20 rounded mb-2"></div>
+              <div className="h-4 bg-white/10 rounded"></div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-white/5 rounded-xl p-6 animate-pulse">
+          <div className="h-64 bg-white/10 rounded"></div>
+        </div>
+      </div>
+    ),
+  }
+)
 
 interface DashboardPageProps {
   params: Promise<{
