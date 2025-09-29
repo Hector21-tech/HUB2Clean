@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, Target, BarChart3, Shield, ArrowRight } from 'lucide-react'
@@ -10,9 +11,14 @@ export default function HomePage() {
       <nav className="border-b bg-background/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-2">
-              <Target className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold text-foreground">Scout Hub</span>
+            <div className="flex items-center">
+              <Image
+                src="/scout-hub-logo.svg"
+                alt="Scout Hub"
+                width={160}
+                height={48}
+                className="h-10 w-auto"
+              />
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -131,9 +137,14 @@ export default function HomePage() {
       <footer className="border-t bg-background/80 backdrop-blur-sm mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Target className="h-6 w-6 text-primary" />
-              <span className="text-lg font-semibold text-foreground">Scout Hub</span>
+            <div className="flex items-center">
+              <Image
+                src="/scout-hub-logo.svg"
+                alt="Scout Hub"
+                width={120}
+                height={36}
+                className="h-8 w-auto"
+              />
             </div>
             <p className="text-sm text-muted-foreground">
               © 2024 Scout Hub. Professional football scouting platform.
