@@ -73,6 +73,10 @@ interface DashboardStats {
   lastUpdated: string
 }
 
+// Simple in-memory cache for dashboard stats
+const cache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_DURATION = 2 * 60 * 1000 // 2 minutes
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -83,6 +87,17 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Tenant is required' },
         { status: 400 }
       )
+    }
+
+    // Check cache first
+    const cacheKey = `dashboard-${tenant}`
+    const cached = cache.get(cacheKey)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      return NextResponse.json({
+        success: true,
+        data: cached.data,
+        cached: true
+      })
     }
 
     // Verify tenant exists
@@ -111,29 +126,57 @@ export async function GET(request: NextRequest) {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
     const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    // Parallel data fetching for performance
+    // Optimized data fetching - essential queries first
     const [
       totalPlayers,
       playersThisMonth,
       playersLastMonth,
-      playersByPosition,
-      recentPlayers,
       totalRequests,
       activeRequests,
-      requestsByStatus,
-      requestsByCountry,
-      recentRequests,
       totalTrials,
       upcomingTrials,
       completedTrials,
       trialsNext7Days,
-      recentTrials,
       completedTrialsWithRating
     ] = await Promise.all([
-      // Players data
+      // Essential counts only
       prisma.player.count({ where: { tenantId } }),
       prisma.player.count({ where: { tenantId, createdAt: { gte: startOfMonth } } }),
       prisma.player.count({ where: { tenantId, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
+
+      // Requests data
+      prisma.request.count({ where: { tenantId } }),
+      prisma.request.count({ where: { tenantId, status: 'OPEN' } }),
+
+      // Trials data
+      prisma.trial.count({ where: { tenantId } }),
+      prisma.trial.count({ where: { tenantId, status: 'SCHEDULED', scheduledAt: { gte: now } } }),
+      prisma.trial.count({ where: { tenantId, status: 'COMPLETED' } }),
+      prisma.trial.count({
+        where: {
+          tenantId,
+          status: 'SCHEDULED',
+          scheduledAt: { gte: now, lte: next7Days }
+        }
+      }),
+      prisma.trial.count({
+        where: {
+          tenantId,
+          status: 'COMPLETED',
+          rating: { not: null }
+        }
+      })
+    ])
+
+    // Secondary batch for detailed data (optional for better performance)
+    const [
+      playersByPosition,
+      recentPlayers,
+      requestsByStatus,
+      requestsByCountry,
+      recentRequests,
+      recentTrials
+    ] = await Promise.all([
       prisma.player.groupBy({
         by: ['position'],
         where: { tenantId, position: { not: null } },
@@ -153,10 +196,6 @@ export async function GET(request: NextRequest) {
           createdAt: true
         }
       }),
-
-      // Requests data
-      prisma.request.count({ where: { tenantId } }),
-      prisma.request.count({ where: { tenantId, status: 'OPEN' } }),
       prisma.request.groupBy({
         by: ['status'],
         where: { tenantId },
@@ -170,7 +209,7 @@ export async function GET(request: NextRequest) {
       prisma.request.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: 3, // Reduced from 5 for performance
         select: {
           id: true,
           title: true,
@@ -181,22 +220,10 @@ export async function GET(request: NextRequest) {
           createdAt: true
         }
       }),
-
-      // Trials data
-      prisma.trial.count({ where: { tenantId } }),
-      prisma.trial.count({ where: { tenantId, status: 'SCHEDULED', scheduledAt: { gte: now } } }),
-      prisma.trial.count({ where: { tenantId, status: 'COMPLETED' } }),
-      prisma.trial.count({
-        where: {
-          tenantId,
-          status: 'SCHEDULED',
-          scheduledAt: { gte: now, lte: next7Days }
-        }
-      }),
       prisma.trial.findMany({
         where: { tenantId },
         orderBy: { createdAt: 'desc' },
-        take: 5,
+        take: 3, // Reduced from 5 for performance
         include: {
           player: {
             select: {
@@ -205,13 +232,6 @@ export async function GET(request: NextRequest) {
               position: true
             }
           }
-        }
-      }),
-      prisma.trial.count({
-        where: {
-          tenantId,
-          status: 'COMPLETED',
-          rating: { not: null }
         }
       })
     ])
@@ -328,6 +348,9 @@ export async function GET(request: NextRequest) {
       alerts,
       lastUpdated: now.toISOString()
     }
+
+    // Cache the result
+    cache.set(cacheKey, { data: stats, timestamp: Date.now() })
 
     return NextResponse.json({
       success: true,

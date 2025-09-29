@@ -153,14 +153,15 @@ export function useDashboardStats(tenantId: string) {
   return useQuery({
     queryKey: ['dashboard-stats', tenantId],
     queryFn: () => fetchDashboardStats(tenantId),
-    refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
-    staleTime: 20000, // Consider data stale after 20 seconds
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes (reduced from 30s)
+    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes (increased from 20s)
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (increased from 5)
     retry: 1, // Reduce retry attempts to fail faster and use fallback
     retryDelay: 1000, // Quick retry then fallback
     enabled: !!tenantId,
     throwOnError: false, // Don't throw errors, let fallback handle it
     refetchOnWindowFocus: false, // Avoid unnecessary refetches
+    refetchOnReconnect: false, // Don't refetch when reconnecting
   })
 }
 
