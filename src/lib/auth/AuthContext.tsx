@@ -53,35 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         setUser(session?.user ?? null)
 
-        // Development mode: Set tenant immediately (ONLY in development)
-        if (session?.user &&
-            process.env.NODE_ENV === 'development' &&
-            process.env.VERCEL_ENV !== 'production' &&
-            process.env.DEV_AUTH_ENABLED === 'true') {
-          setCurrentTenant('test-tenant-demo')
-          const mockTenants: TenantMembership[] = [{
-            tenantId: 'test-tenant-demo',
-            role: 'OWNER',
-            tenant: {
-              id: 'test-tenant-demo',
-              name: 'Test Scout Hub',
-              slug: 'test-scout-hub'
-            }
-          }]
-          setUserTenants(mockTenants)
-          setInitializing(false) // Complete immediately in dev mode
-          return
-        }
-
-        // If we have a user, start tenant fetching but don't block UI
-        if (session?.user) {
-          setInitializing(false) // Allow UI to proceed
-          setLoading(true) // Show tenant loading state
-          await fetchUserTenants(session.user.id)
-          setLoading(false)
-        } else {
-          setInitializing(false) // Complete initialization
-        }
+        // Complete initialization immediately - let onAuthStateChange handle tenant fetching
+        setInitializing(false)
       } catch (error) {
         console.error('❌ AuthContext: Fatal auth error:', error)
         setInitializing(false)
@@ -147,34 +120,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Fetch user's tenant memberships - simplified and fast
+  // Fetch user's tenant memberships - production ready
   const fetchUserTenants = async (userId: string) => {
     const startTime = Date.now()
-    // Development mode: Use test tenant directly (ONLY in development)
-    if (process.env.NODE_ENV === 'development' &&
-        process.env.VERCEL_ENV !== 'production' &&
-        process.env.DEV_AUTH_ENABLED === 'true') {
-      const mockTenants: TenantMembership[] = [{
-        tenantId: 'test-tenant-demo',
-        role: 'OWNER',
-        tenant: {
-          id: 'test-tenant-demo',
-          name: 'Test Scout Hub',
-          slug: 'test-scout-hub'
-        }
-      }]
-      setUserTenants(mockTenants)
-      setCurrentTenant('test-tenant-demo')
-      logAuthPerformance('fetchUserTenants (dev mode)', startTime, { tenants: 1 })
+
+    // Prevent duplicate calls - but allow retry if stuck for too long
+    if (isFetchingTenants) {
+      console.log('📍 AuthContext: Already fetching tenants, skipping duplicate call')
       return
     }
 
-    // Prevent duplicate calls
-    if (isFetchingTenants || userTenants.length > 0) {
-      return
-    }
-
+    // Allow retry if we have no tenants and it's not a duplicate call
     setIsFetchingTenants(true)
+
+    // Safety timeout to prevent stuck states
+    const timeoutId = setTimeout(() => {
+      console.warn('⏰ AuthContext: Tenant fetching timeout, resetting state')
+      setIsFetchingTenants(false)
+    }, 30000) // 30 second safety timeout
 
     try {
       // Simple query without timeout complications
@@ -193,23 +156,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('❌ AuthContext: Error fetching user tenants:', error)
-        // Try auto-setup only if no existing data
-        if (!userTenants.length) {
-          try {
-            const response = await fetch('/api/setup-user-data', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            })
-            const result = await response.json()
-            if (result.success) {
-              // Retry once after setup
-              setTimeout(() => fetchUserTenants(userId), 500)
-              return
-            }
-          } catch (setupError) {
-            console.error('❌ AuthContext: Setup failed:', setupError)
-          }
-        }
+        logAuthPerformance('fetchUserTenants (error)', startTime, { error: error.message })
+        // Set empty tenants and complete - no retries to avoid infinite loops
         setUserTenants([])
         return
       }
@@ -230,21 +178,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         logAuthPerformance('fetchUserTenants (success)', startTime, { tenants: memberships.length })
       } else {
-        // No memberships found - try auto-setup once
-        try {
-          const response = await fetch('/api/setup-user-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-          })
-          const result = await response.json()
-          if (result.success) {
-            // Retry once after setup
-            setTimeout(() => fetchUserTenants(userId), 500)
-            return
-          }
-        } catch (setupError) {
-          console.error('❌ AuthContext: Setup failed:', setupError)
-        }
+        // No memberships found - log and complete (no auto-setup to avoid loops)
+        console.warn('⚠️ AuthContext: No tenant memberships found for user')
         setUserTenants([])
         logAuthPerformance('fetchUserTenants (no tenants)', startTime, { tenants: 0 })
       }
@@ -253,6 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logAuthPerformance('fetchUserTenants (error)', startTime, { error: error instanceof Error ? error.message : 'Unknown error' })
       setUserTenants([])
     } finally {
+      clearTimeout(timeoutId) // Clear the safety timeout
       setIsFetchingTenants(false)
     }
   }
