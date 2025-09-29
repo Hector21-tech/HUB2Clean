@@ -144,13 +144,28 @@ export async function POST(request: NextRequest) {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : 'No stack trace',
       databaseUrlSet: !!process.env.DATABASE_URL,
+      directUrlSet: !!process.env.DIRECT_URL,
       supabaseUrlSet: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      errorType: error?.constructor?.name
+      errorType: error?.constructor?.name,
+      errorCode: (error as any)?.code,
+      errorMeta: (error as any)?.meta
     })
+
+    // More specific error messages
+    let errorMessage = 'Failed to create organization'
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        errorMessage = 'Organization slug already exists'
+      } else if (error.message.includes('connection')) {
+        errorMessage = 'Database connection failed'
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out'
+      }
+    }
 
     return NextResponse.json({
       success: false,
-      error: 'Failed to create organization',
+      error: errorMessage,
       details: error instanceof Error ? error.message : 'Unknown error',
       hint: 'Check server logs for detailed error information'
     }, { status: 500 })
