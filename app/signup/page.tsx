@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Mail, Lock, Eye, EyeOff, User, UserPlus, Shield } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, User, UserPlus, Shield, Target } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function SignUpPage() {
@@ -47,8 +46,8 @@ export default function SignUpPage() {
         password,
         options: {
           data: {
-            first_name: firstName,
-            last_name: lastName,
+            firstName: firstName,
+            lastName: lastName,
           }
         }
       })
@@ -99,14 +98,9 @@ export default function SignUpPage() {
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-6">
-            <Image
-              src="/scout-hub-logo.svg"
-              alt="Scout Hub"
-              width={180}
-              height={60}
-              className="h-14 w-auto"
-            />
+          <div className="flex justify-center items-center space-x-3 mb-6">
+            <Target className="h-12 w-12 text-blue-600" />
+            <h1 className="text-3xl font-bold text-slate-800">Scout Hub</h1>
           </div>
           <p className="text-slate-600 text-lg font-medium">Create your account</p>
           <p className="text-slate-500 text-sm mt-1">Join our Professional Football Scouting Platform</p>
