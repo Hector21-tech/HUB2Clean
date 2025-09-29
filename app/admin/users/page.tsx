@@ -182,6 +182,62 @@ export default function AdminUsers() {
     }
   }
 
+  const handleDeleteUser = async (user: User) => {
+    const userName = getUserDisplayName(user)
+    const membershipInfo = user.memberships.length > 0
+      ? `\n\nMemberships: ${user.memberships.map(m => `${m.tenant.name} (${m.role})`).join(', ')}`
+      : '\n\nNo memberships'
+
+    const confirmed = window.confirm(
+      `🗑️ PERMANENTLY DELETE USER?\n\n` +
+      `User: ${userName} (${user.email})${membershipInfo}\n\n` +
+      `⚠️ This will delete:\n` +
+      `- User account from database\n` +
+      `- All memberships (${user.memberships.length})\n\n` +
+      `This action CANNOT be undone!\n\n` +
+      `Type user's email to confirm or Cancel to abort.`
+    )
+
+    if (!confirmed) return
+
+    // Extra confirmation for safety
+    const emailConfirm = window.prompt(
+      `⚠️ FINAL CONFIRMATION\n\nType the user's email exactly to confirm deletion:\n\n${user.email}`
+    )
+
+    if (emailConfirm !== user.email) {
+      alert('❌ Email did not match. Deletion cancelled.')
+      return
+    }
+
+    try {
+      setActionLoading(`delete-${user.id}`)
+
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        alert(
+          `✅ User deleted successfully!\n\n` +
+          `Deleted: ${result.deleted.email}\n` +
+          `Memberships removed: ${result.deleted.membershipCount}\n` +
+          `Tenants affected: ${result.deleted.tenants.join(', ') || 'None'}`
+        )
+        await fetchData() // Refresh data
+      } else {
+        alert(`❌ Failed to delete user: ${result.error}`)
+      }
+    } catch (err) {
+      console.error('❌ Delete user error:', err)
+      alert('❌ Network error during deletion')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const handleChangeRole = async (user: User, membership: any, newRole: string) => {
     if (newRole === membership.role) return // No change
 
@@ -400,16 +456,15 @@ export default function AdminUsers() {
                         <Eye className="w-4 h-4" />
                         {actionLoading === `view-${user.id}` ? 'Loading...' : 'View'}
                       </button>
-                      {user.memberships.length > 0 && (
-                        <button
-                          onClick={() => handleRemoveUser(user, user.memberships[0])}
-                          disabled={actionLoading === `remove-${user.id}`}
-                          className="text-red-600 hover:text-red-700 disabled:text-red-400 flex items-center gap-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          {actionLoading === `remove-${user.id}` ? 'Removing...' : 'Remove'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDeleteUser(user)}
+                        disabled={actionLoading === `delete-${user.id}`}
+                        className="text-red-600 hover:text-red-700 disabled:text-red-400 flex items-center gap-1 font-medium"
+                        title="Permanently delete user from database"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {actionLoading === `delete-${user.id}` ? 'Deleting...' : 'Delete User'}
+                      </button>
                     </div>
                   </td>
                 </tr>
