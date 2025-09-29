@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userIdPrefix: userId?.substring(0, 8) + '...'
       })
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('tenant_memberships')
         .select(`
           tenantId,
