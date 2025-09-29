@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await ensureUserInDatabase(session.user)
 
               // Fetch user's tenant memberships with enhanced error recovery
-              await fetchUserTenants(session.user.id)
+              await fetchUserTenants(session.user.id, 0, session.user)
             } catch (error) {
               console.error('❌ AuthContext: Failed to load tenant data:', error)
               // Complete loading even on failure to prevent infinite loading
@@ -96,8 +96,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Run in background, don't await
           loadTenantData()
         } else {
-          setUserTenants([])
-          setCurrentTenant(null)
+          // Only clear tenant data on explicit sign out, not during auth state transitions
+          if (event === 'SIGNED_OUT') {
+            console.log('📝 AuthContext: User signed out, clearing tenant data')
+            setUserTenants([])
+            setCurrentTenant(null)
+          }
           setLoading(false)
         }
       }
@@ -134,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Fetch user's tenant memberships - enhanced with aggressive error recovery
-  const fetchUserTenants = async (userId: string, retryCount = 0) => {
+  const fetchUserTenants = async (userId: string, retryCount = 0, user?: User) => {
     const startTime = Date.now()
     const maxRetries = 2
     const timeoutDuration = 8000 // Reduced from 30s to 8s
@@ -142,6 +146,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Prevent duplicate calls - but allow retry if stuck for too long
     if (isFetchingTenants && retryCount === 0) {
       console.log('📍 AuthContext: Already fetching tenants, skipping duplicate call')
+      return
+    }
+
+    // If we already have memberships for this user, don't refetch unless it's a retry
+    if (userTenants.length > 0 && retryCount === 0) {
+      console.log('📍 AuthContext: User already has tenant memberships, skipping refetch to prevent race condition')
       return
     }
 
@@ -156,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Try retry if available, otherwise complete with empty state
       if (retryCount < maxRetries) {
         console.log(`🔄 AuthContext: Retrying fetchUserTenants (${retryCount + 1}/${maxRetries})`)
-        setTimeout(() => fetchUserTenants(userId, retryCount + 1), 1000)
+        setTimeout(() => fetchUserTenants(userId, retryCount + 1, user), 1000)
       } else {
         console.warn('❌ AuthContext: Max retries exceeded, setting empty tenant state')
         setUserTenants([])
@@ -167,6 +177,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Add timeout to the database query itself
       const controller = new AbortController()
       const queryTimeoutId = setTimeout(() => controller.abort(), 5000) // 5s query timeout
+
+      console.log('🔍 AuthContext: Fetching tenant memberships for user:', {
+        userId,
+        email: user?.email,
+        attempt: retryCount + 1
+      })
 
       const { data, error } = await supabase
         .from('tenant_memberships')
@@ -182,6 +198,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('userId', userId)
         .abortSignal(controller.signal)
 
+      console.log('📊 AuthContext: Database query result:', {
+        userId,
+        email: user?.email,
+        dataLength: data?.length || 0,
+        hasError: !!error,
+        errorMessage: error?.message,
+        rawData: data
+      })
+
       clearTimeout(queryTimeoutId)
 
       if (error) {
@@ -193,7 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log(`🔄 AuthContext: Retrying after database error (${retryCount + 1}/${maxRetries})`)
           clearTimeout(timeoutId)
           setIsFetchingTenants(false)
-          setTimeout(() => fetchUserTenants(userId, retryCount + 1), 2000)
+          setTimeout(() => fetchUserTenants(userId, retryCount + 1, user), 2000)
           return
         } else {
           // Max retries exceeded, set empty and complete
@@ -220,9 +245,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log(`✅ AuthContext: Successfully loaded ${memberships.length} tenant memberships`)
         logAuthPerformance('fetchUserTenants (success)', startTime, { tenants: memberships.length, attempt: retryCount + 1 })
       } else {
-        // No memberships found - this is valid, complete successfully
-        console.log('📝 AuthContext: No tenant memberships found (valid state)')
-        setUserTenants([])
+        // No memberships found - only set empty if we haven't loaded any before
+        if (userTenants.length === 0) {
+          console.log('📝 AuthContext: No tenant memberships found (valid state)')
+          setUserTenants([])
+        } else {
+          console.log('📝 AuthContext: No memberships returned but keeping existing data to prevent race condition')
+        }
         logAuthPerformance('fetchUserTenants (no_tenants)', startTime, { tenants: 0, attempt: retryCount + 1 })
       }
     } catch (error) {
