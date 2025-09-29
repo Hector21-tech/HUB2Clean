@@ -72,16 +72,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
 
         if (session?.user) {
-          // Don't block UI during auth changes
-          setLoading(true)
+          // Critical fix: Don't block UI during auth changes, run in background
+          console.log('🔄 AuthContext: User authenticated, loading tenant data in background')
 
-          // Ensure user exists in database
-          await ensureUserInDatabase(session.user)
+          // Run tenant loading in background without blocking UI
+          const loadTenantData = async () => {
+            setLoading(true)
+            try {
+              // Ensure user exists in database
+              await ensureUserInDatabase(session.user)
 
-          // Fetch user's tenant memberships in background
-          await fetchUserTenants(session.user.id)
+              // Fetch user's tenant memberships with enhanced error recovery
+              await fetchUserTenants(session.user.id)
+            } catch (error) {
+              console.error('❌ AuthContext: Failed to load tenant data:', error)
+              // Complete loading even on failure to prevent infinite loading
+              setUserTenants([])
+            } finally {
+              setLoading(false)
+            }
+          }
 
-          setLoading(false)
+          // Run in background, don't await
+          loadTenantData()
         } else {
           setUserTenants([])
           setCurrentTenant(null)
@@ -120,27 +133,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Fetch user's tenant memberships - production ready
-  const fetchUserTenants = async (userId: string) => {
+  // Fetch user's tenant memberships - enhanced with aggressive error recovery
+  const fetchUserTenants = async (userId: string, retryCount = 0) => {
     const startTime = Date.now()
+    const maxRetries = 2
+    const timeoutDuration = 8000 // Reduced from 30s to 8s
 
     // Prevent duplicate calls - but allow retry if stuck for too long
-    if (isFetchingTenants) {
+    if (isFetchingTenants && retryCount === 0) {
       console.log('📍 AuthContext: Already fetching tenants, skipping duplicate call')
       return
     }
 
-    // Allow retry if we have no tenants and it's not a duplicate call
     setIsFetchingTenants(true)
 
-    // Safety timeout to prevent stuck states
+    // Aggressive timeout to prevent stuck states
     const timeoutId = setTimeout(() => {
-      console.warn('⏰ AuthContext: Tenant fetching timeout, resetting state')
+      console.warn(`⏰ AuthContext: Tenant fetching timeout after ${timeoutDuration}ms (attempt ${retryCount + 1})`)
       setIsFetchingTenants(false)
-    }, 30000) // 30 second safety timeout
+      setLoading(false) // Force exit loading state
+
+      // Try retry if available, otherwise complete with empty state
+      if (retryCount < maxRetries) {
+        console.log(`🔄 AuthContext: Retrying fetchUserTenants (${retryCount + 1}/${maxRetries})`)
+        setTimeout(() => fetchUserTenants(userId, retryCount + 1), 1000)
+      } else {
+        console.warn('❌ AuthContext: Max retries exceeded, setting empty tenant state')
+        setUserTenants([])
+      }
+    }, timeoutDuration)
 
     try {
-      // Simple query without timeout complications
+      // Add timeout to the database query itself
+      const controller = new AbortController()
+      const queryTimeoutId = setTimeout(() => controller.abort(), 5000) // 5s query timeout
+
       const { data, error } = await supabase
         .from('tenant_memberships')
         .select(`
@@ -153,12 +180,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           )
         `)
         .eq('userId', userId)
+        .abortSignal(controller.signal)
+
+      clearTimeout(queryTimeoutId)
 
       if (error) {
-        console.error('❌ AuthContext: Error fetching user tenants:', error)
-        logAuthPerformance('fetchUserTenants (error)', startTime, { error: error.message })
-        // Set empty tenants and complete - no retries to avoid infinite loops
-        setUserTenants([])
+        console.error('❌ AuthContext: Database error fetching user tenants:', error)
+        logAuthPerformance('fetchUserTenants (db_error)', startTime, { error: error.message, attempt: retryCount + 1 })
+
+        // Retry on database errors
+        if (retryCount < maxRetries) {
+          console.log(`🔄 AuthContext: Retrying after database error (${retryCount + 1}/${maxRetries})`)
+          clearTimeout(timeoutId)
+          setIsFetchingTenants(false)
+          setTimeout(() => fetchUserTenants(userId, retryCount + 1), 2000)
+          return
+        } else {
+          // Max retries exceeded, set empty and complete
+          console.warn('❌ AuthContext: Max retries exceeded after database error')
+          setUserTenants([])
+        }
         return
       }
 
@@ -176,17 +217,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setCurrentTenant(memberships[0].tenantId)
         }
 
-        logAuthPerformance('fetchUserTenants (success)', startTime, { tenants: memberships.length })
+        console.log(`✅ AuthContext: Successfully loaded ${memberships.length} tenant memberships`)
+        logAuthPerformance('fetchUserTenants (success)', startTime, { tenants: memberships.length, attempt: retryCount + 1 })
       } else {
-        // No memberships found - log and complete (no auto-setup to avoid loops)
-        console.warn('⚠️ AuthContext: No tenant memberships found for user')
+        // No memberships found - this is valid, complete successfully
+        console.log('📝 AuthContext: No tenant memberships found (valid state)')
         setUserTenants([])
-        logAuthPerformance('fetchUserTenants (no tenants)', startTime, { tenants: 0 })
+        logAuthPerformance('fetchUserTenants (no_tenants)', startTime, { tenants: 0, attempt: retryCount + 1 })
       }
     } catch (error) {
-      console.error('❌ AuthContext: Fatal error in fetchUserTenants:', error)
-      logAuthPerformance('fetchUserTenants (error)', startTime, { error: error instanceof Error ? error.message : 'Unknown error' })
-      setUserTenants([])
+      console.error(`❌ AuthContext: Network/fatal error in fetchUserTenants (attempt ${retryCount + 1}):`, error)
+      logAuthPerformance('fetchUserTenants (network_error)', startTime, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        attempt: retryCount + 1
+      })
+
+      // Retry on network errors
+      if (retryCount < maxRetries && error instanceof Error && !error.message.includes('aborted')) {
+        console.log(`🔄 AuthContext: Retrying after network error (${retryCount + 1}/${maxRetries})`)
+        clearTimeout(timeoutId)
+        setIsFetchingTenants(false)
+        setTimeout(() => fetchUserTenants(userId, retryCount + 1), 3000)
+        return
+      } else {
+        // Max retries or aborted, set empty and complete
+        console.warn('❌ AuthContext: Completing with empty tenant state after network error')
+        setUserTenants([])
+      }
     } finally {
       clearTimeout(timeoutId) // Clear the safety timeout
       setIsFetchingTenants(false)

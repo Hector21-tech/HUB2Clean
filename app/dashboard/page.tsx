@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Building2, Users, ArrowRight, Mail } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthContext'
@@ -13,6 +13,19 @@ export default function RootDashboard() {
   const [orgName, setOrgName] = useState('')
   const [orgSlug, setOrgSlug] = useState('')
   const [setupStatus, setSetupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [showRetryOption, setShowRetryOption] = useState(false)
+
+  // Show retry option after 8 seconds of loading
+  React.useEffect(() => {
+    if (loading && user) {
+      const timer = setTimeout(() => {
+        setShowRetryOption(true)
+      }, 8000)
+      return () => clearTimeout(timer)
+    } else {
+      setShowRetryOption(false)
+    }
+  }, [loading, user])
 
 
   // Auto-generate slug from name
@@ -97,13 +110,31 @@ export default function RootDashboard() {
     return null
   }
 
-  // Show tenant loading while fetching user tenants
+  // Enhanced loading state with timeout recovery
   if (user && loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
-        <div className="text-white flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          Loading your organizations...
+        <div className="text-center">
+          <div className="text-white flex items-center justify-center gap-3 mb-4">
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            Loading your organizations...
+          </div>
+          <p className="text-white/60 text-sm mb-6">This should only take a moment...</p>
+
+          {/* Show retry option only after timeout */}
+          {showRetryOption && (
+            <div className="space-y-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                Retry Loading
+              </button>
+              <p className="text-white/50 text-xs">
+                If this keeps happening, try refreshing your browser or contact support.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     )
