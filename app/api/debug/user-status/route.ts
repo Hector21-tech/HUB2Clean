@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const dbUser = await prisma.user.findUnique({
       where: { email },
       include: {
-        tenantMemberships: {
+        memberships: {
           include: {
             tenant: true
           }
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       email,
       foundInDB: !!dbUser,
       userId: dbUser?.id,
-      membershipCount: dbUser?.tenantMemberships?.length || 0
+      membershipCount: dbUser?.memberships?.length || 0
     })
 
     if (!dbUser) {
@@ -55,10 +55,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Format memberships for response
-    const memberships = dbUser.tenantMemberships.map(membership => ({
+    const memberships = dbUser.memberships.map(membership => ({
       tenantId: membership.tenantId,
       role: membership.role,
-      createdAt: membership.createdAt,
+      createdAt: membership.joinedAt,
       tenant: {
         id: membership.tenant.id,
         name: membership.tenant.name,
