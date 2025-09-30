@@ -153,17 +153,43 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Step 1: Delete from Supabase Auth (requires service role key)
     console.log('🔐 Admin: Deleting user from Supabase Auth...')
+    let authDeleted = false
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
     if (authDeleteError) {
-      // Log warning but continue - user might not exist in Auth anymore
-      console.warn('⚠️ Admin: Supabase Auth deletion warning:', authDeleteError.message)
-      // Don't fail the entire operation if user doesn't exist in Auth
-      if (!authDeleteError.message.includes('not found') && !authDeleteError.message.includes('User not found')) {
-        throw new Error(`Supabase Auth deletion failed: ${authDeleteError.message}`)
+      console.warn('⚠️ Admin: Primary deletion failed via userId:', authDeleteError.message)
+      console.log('🔄 Admin: Attempting email fallback for orphaned user cleanup...')
+
+      // Fallback: Search for user by email and delete (handles orphaned users)
+      try {
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
+
+        if (listError) {
+          console.error('❌ Admin: Failed to list users for fallback:', listError.message)
+        } else {
+          const orphanedUser = users.find(u => u.email === user.email)
+
+          if (orphanedUser) {
+            console.log('🎯 Admin: Found orphaned user via email:', orphanedUser.email, '| ID:', orphanedUser.id)
+            const { error: emailDeleteError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUser.id)
+
+            if (!emailDeleteError) {
+              console.log('✅ Admin: Successfully deleted orphaned user via email fallback')
+              authDeleted = true
+            } else {
+              console.error('❌ Admin: Email fallback deletion failed:', emailDeleteError.message)
+            }
+          } else {
+            console.log('ℹ️ Admin: User not found in Supabase Auth (already deleted or never existed)')
+            authDeleted = true // Consider this success - user doesn't exist
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Admin: Email fallback error:', fallbackError)
       }
     } else {
-      console.log('✅ Admin: Successfully deleted user from Supabase Auth')
+      console.log('✅ Admin: Successfully deleted user from Supabase Auth via userId')
+      authDeleted = true
     }
 
     // Step 2: Delete from Prisma database (cascades to memberships)
@@ -180,7 +206,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: 'User deleted successfully from both Prisma and Supabase Auth',
+      message: authDeleted
+        ? 'User deleted successfully from both Prisma and Supabase Auth'
+        : 'User deleted from Prisma database (Supabase Auth cleanup may have failed - check logs)',
       deleted: {
         userId: user.id,
         email: user.email,
@@ -188,7 +216,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         lastName: user.lastName,
         membershipCount: user.memberships.length,
         tenants: user.memberships.map(m => m.tenant.name),
-        deletedFromAuth: !authDeleteError,
+        deletedFromAuth: authDeleted,
         deletedFromDatabase: true
       },
       timestamp: new Date().toISOString()
