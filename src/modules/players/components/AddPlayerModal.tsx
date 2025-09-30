@@ -569,6 +569,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                   ) : (
                     <div className="space-y-2">
                       <SearchableSelect
+                        key={editingPlayer?.id || 'new-player'}
                         options={clubOptions}
                         value={formData.club}
                         onChange={(value) => handleInputChange('club', value || '')}
