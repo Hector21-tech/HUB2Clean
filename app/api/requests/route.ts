@@ -3,10 +3,18 @@ import { prisma } from '@/lib/prisma'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
 import { requireTenant } from '@/lib/server/authz'
 import { Logger, createLogContext } from '@/lib/logger'
+import crypto from 'crypto'
 
 // Aggressive caching for requests data
-const cache = new Map<string, { data: any, timestamp: number }>()
-const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes - same as dashboard
+const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+// Generate ETag from data content for conditional caching
+function generateETag(data: any): string {
+  const hash = crypto.createHash('md5')
+  hash.update(JSON.stringify(data))
+  return `"${hash.digest('hex')}"`
+}
 
 // GET - List all requests for a tenant
 export async function GET(request: NextRequest) {
@@ -62,7 +70,26 @@ export async function GET(request: NextRequest) {
     // Check cache first for performance boost
     const cacheKey = `requests-${tenantId}`
     const cached = cache.get(cacheKey)
+    const ifNoneMatch = request.headers.get('if-none-match')
+
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      // 304 Not Modified if ETag matches
+      if (ifNoneMatch && ifNoneMatch === cached.etag) {
+        const duration = timer.end()
+        Logger.info('Requests: 304 Not Modified (ETag match)', {
+          ...baseContext,
+          tenant: tenantSlug,
+          userId,
+          status: 304,
+          duration
+        })
+        const response = new NextResponse(null, { status: 304 })
+        response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+        response.headers.set('ETag', cached.etag)
+        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
+        return response
+      }
+
       const duration = timer.end()
       Logger.info('Requests fetched from cache', {
         ...baseContext,
@@ -72,11 +99,15 @@ export async function GET(request: NextRequest) {
         duration,
         details: { cached: true, requestCount: cached.data.length }
       })
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         data: cached.data,
         cached: true
       })
+      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      response.headers.set('ETag', cached.etag)
+      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
+      return response
     }
 
     const requests = await prisma.request.findMany({
@@ -101,8 +132,10 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' }
     })
 
-    // Cache the result for future requests
-    cache.set(cacheKey, { data: requests, timestamp: Date.now() })
+    // Generate ETag and cache the result
+    const etag = generateETag(requests)
+    const timestamp = Date.now()
+    cache.set(cacheKey, { data: requests, timestamp, etag })
 
     const duration = timer.end()
     Logger.success('Requests fetched successfully', {
@@ -114,10 +147,15 @@ export async function GET(request: NextRequest) {
       details: { requestCount: requests.length, cached: false }
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: requests
     })
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    response.headers.set('ETag', etag)
+    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
+
+    return response
   } catch (error) {
     const duration = timer.end()
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
