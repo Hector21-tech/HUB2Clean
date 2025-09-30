@@ -33,8 +33,12 @@ const adminMenuItems = [
 ]
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
-  const { user, loading } = useAuth()
+  const { user, loading, userTenants, currentTenant } = useAuth()
   const pathname = usePathname()
+
+  // Get tenant slug for "Back to App" link
+  const tenantData = userTenants.find(t => t.tenantId === currentTenant)
+  const backUrl = tenantData?.tenant?.slug ? `/${tenantData.tenant.slug}/dashboard` : '/dashboard'
 
   // Show loading state
   if (loading) {
@@ -76,7 +80,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">{user?.email}</span>
               <Link
-                href="/"
+                href={backUrl}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 ← Back to App
