@@ -28,10 +28,15 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
     positions: [] as string[],
     club: '',
     contractExpiry: '',
+    agencyContractExpiry: '',
     height: '',
     notes: '',
     rating: '',
-    avatarPath: ''
+    avatarPath: '',
+    hasMandate: false,
+    mandateExpiry: '',
+    mandateClubs: '',
+    mandateNotes: ''
   })
   const [showCustomClubInput, setShowCustomClubInput] = useState(false)
 
@@ -94,6 +99,10 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         lastName: editingPlayer.lastName
       })
 
+      // Parse notes to extract mandate info if it exists
+      const notes = editingPlayer.notes || ''
+      const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([^\n]*)/s)
+
       setFormData({
         firstName: editingPlayer.firstName || '',
         lastName: editingPlayer.lastName || '',
@@ -104,10 +113,16 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         club: editingPlayer.club || '',
         contractExpiry: editingPlayer.contractExpiry ?
           new Date(editingPlayer.contractExpiry).toISOString().split('T')[0] : '',
+        agencyContractExpiry: editingPlayer.agencyContractExpiry ?
+          new Date(editingPlayer.agencyContractExpiry).toISOString().split('T')[0] : '',
         height: editingPlayer.height ? String(editingPlayer.height) : '',
-        notes: editingPlayer.notes || '',
+        notes: mandateMatch ? notes.replace(/MANDAT:.*$/s, '').trim() : notes,
         rating: editingPlayer.rating ? String(editingPlayer.rating) : '',
-        avatarPath: editingPlayer.avatarPath || ''
+        avatarPath: editingPlayer.avatarPath || '',
+        hasMandate: !!mandateMatch,
+        mandateExpiry: mandateMatch?.[2]?.trim() || '',
+        mandateClubs: mandateMatch?.[1]?.trim() || '',
+        mandateNotes: mandateMatch?.[3]?.trim() || ''
       })
     } else {
       // Reset form for new player
@@ -119,10 +134,15 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         positions: [],
         club: '',
         contractExpiry: '',
+        agencyContractExpiry: '',
         height: '',
-            notes: '',
+        notes: '',
         rating: '',
-        avatarPath: ''
+        avatarPath: '',
+        hasMandate: false,
+        mandateExpiry: '',
+        mandateClubs: '',
+        mandateNotes: ''
       })
     }
     setErrors({})
@@ -207,25 +227,40 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
       newErrors.rating = 'Rating must be between 1-10'
     }
 
-    // Validate contract expiry date if club is selected and not Free Agent
-    if (formData.club && formData.club !== 'Free Agent') {
-      if (formData.contractExpiry) {
-        const contractDate = new Date(formData.contractExpiry)
-        const today = new Date()
-        today.setHours(0, 0, 0, 0) // Reset time to compare dates only
+    // Validate club contract expiry date (no FIFA limit, but max 10 years is reasonable)
+    if (formData.club && formData.club !== 'Free Agent' && formData.contractExpiry) {
+      const contractDate = new Date(formData.contractExpiry)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
 
-        if (contractDate < today) {
-          newErrors.contractExpiry = 'Contract expiry date must be in the future'
-        }
-
-        // Check if contract is too far in the future (more than 10 years)
-        const maxDate = new Date()
-        maxDate.setFullYear(maxDate.getFullYear() + 10)
-        if (contractDate > maxDate) {
-          newErrors.contractExpiry = 'Contract expiry date cannot be more than 10 years in the future'
-        }
+      if (contractDate < today) {
+        newErrors.contractExpiry = 'Klubb-kontrakt måste vara i framtiden'
       }
-      // Note: We don't make contract expiry required to allow flexibility
+
+      // Reasonable max: 10 years
+      const maxDate = new Date()
+      maxDate.setFullYear(maxDate.getFullYear() + 10)
+      if (contractDate > maxDate) {
+        newErrors.contractExpiry = 'Klubb-kontrakt kan max vara 10 år (rimlig gräns)'
+      }
+    }
+
+    // Validate agency contract expiry date (FIFA: max 2 years)
+    if (formData.agencyContractExpiry) {
+      const agencyContractDate = new Date(formData.agencyContractExpiry)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      if (agencyContractDate < today) {
+        newErrors.agencyContractExpiry = 'Agent-kontrakt måste vara i framtiden'
+      }
+
+      // FIFA Rule: Maximum 2 years for agency contracts
+      const maxDate = new Date()
+      maxDate.setFullYear(maxDate.getFullYear() + 2)
+      if (agencyContractDate > maxDate) {
+        newErrors.agencyContractExpiry = 'Agent-kontrakt får max vara 2 år enligt FIFA-regler'
+      }
     }
 
     setErrors(newErrors)
@@ -245,20 +280,33 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
     setIsSubmitting(true)
     try {
+      // Build notes with mandate info if applicable
+      let finalNotes = formData.notes.trim()
+      if (formData.hasMandate && formData.mandateClubs && formData.mandateExpiry) {
+        const mandateSection = `\n\nMANDAT:\nKlubbar: ${formData.mandateClubs}\nGäller till: ${formData.mandateExpiry}\nBeskrivning: ${formData.mandateNotes || 'Inget specificerat'}`
+        finalNotes = finalNotes + mandateSection
+      }
+
       const playerData = {
         ...formData,
         tenantId,
         dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth) : undefined,
         contractExpiry: formData.contractExpiry ? new Date(formData.contractExpiry) : undefined,
+        agencyContractExpiry: formData.agencyContractExpiry ? new Date(formData.agencyContractExpiry) : undefined,
         height: Number(formData.height),
         rating: formData.rating ? Number(formData.rating) : undefined,
         tags: [], // Default empty tags
+        notes: finalNotes || undefined,
         // Clear club if Free Agent is selected (use null for consistency)
         club: formData.club === 'Free Agent' ? null : formData.club,
         // Convert positions array to single position string for Prisma compatibility
         position: formData.positions && formData.positions.length > 0 ? formData.positions[0] : undefined,
-        // Remove positions array to avoid sending invalid field to backend
-        positions: undefined
+        // Remove mandate fields and positions array to avoid sending invalid fields to backend
+        positions: undefined,
+        hasMandate: undefined,
+        mandateExpiry: undefined,
+        mandateClubs: undefined,
+        mandateNotes: undefined
       }
 
       await onSave(playerData)
@@ -272,10 +320,15 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         positions: [],
         club: '',
         contractExpiry: '',
+        agencyContractExpiry: '',
         height: '',
-            notes: '',
+        notes: '',
         rating: '',
-        avatarPath: ''
+        avatarPath: '',
+        hasMandate: false,
+        mandateExpiry: '',
+        mandateClubs: '',
+        mandateNotes: ''
       })
       setShowCustomClubInput(false)
 
@@ -550,37 +603,95 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
               </div>
 
-              {/* Contract Expiry Date - Only show if club is selected and not Free Agent */}
+              {/* Club Contract Expiry Date - Only show if club is selected and not Free Agent */}
               {formData.club && formData.club !== 'Free Agent' && (
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
                     <Calendar className="w-4 h-4 inline mr-1" />
-                    Contract Expiry Date
+                    Klubb-kontrakt utgår (valfritt)
                   </label>
                   <input
                     type="date"
                     value={formData.contractExpiry}
                     onChange={(e) => handleInputChange('contractExpiry', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]} // Minimum date is today
-                    max="2035-12-31" // Maximum reasonable contract length
-                    className="
+                    min={new Date().toISOString().split('T')[0]}
+                    max={(() => {
+                      const maxDate = new Date()
+                      maxDate.setFullYear(maxDate.getFullYear() + 10)
+                      return maxDate.toISOString().split('T')[0]
+                    })()}
+                    className={`
                       w-full px-3 sm:px-4 py-3
                       bg-white/5 backdrop-blur-sm
-                      border border-white/20 rounded-lg
-                      text-white text-base
+                      border rounded-lg text-base
+                      text-white
                       focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
                       hover:border-white/30
                       transition-all duration-200
-                    "
+                      ${errors.contractExpiry ? 'border-red-400' : 'border-white/20'}
+                    `}
                   />
                   <p className="text-xs text-white/50 mt-1">
-                    When does the player's contract with {formData.club} expire?
+                    När går spelarens kontrakt med {formData.club} ut? (Max 10 år)
                   </p>
                   {errors.contractExpiry && (
                     <p className="text-red-400 text-sm mt-1">{errors.contractExpiry}</p>
                   )}
                 </div>
               )}
+
+              {/* Agency Contract Expiry Date - FIFA 2 year rule */}
+              <div>
+                <label className="block text-sm font-medium text-white/60 mb-2">
+                  <Calendar className="w-4 h-4 inline mr-1" />
+                  Agent-kontrakt utgår (valfritt)
+                </label>
+                <input
+                  type="date"
+                  value={formData.agencyContractExpiry}
+                  onChange={(e) => handleInputChange('agencyContractExpiry', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  max={(() => {
+                    const maxDate = new Date()
+                    maxDate.setFullYear(maxDate.getFullYear() + 2)
+                    return maxDate.toISOString().split('T')[0]
+                  })()} // FIFA: Maximum 2 years
+                  className={`
+                    w-full px-3 sm:px-4 py-3
+                    bg-white/5 backdrop-blur-sm
+                    border rounded-lg text-base
+                    text-white
+                    focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                    hover:border-white/30
+                    transition-all duration-200
+                    ${errors.agencyContractExpiry ? 'border-red-400' : 'border-white/20'}
+                  `}
+                />
+                {/* Agency Contract Feedback */}
+                {formData.agencyContractExpiry && !errors.agencyContractExpiry && (
+                  (() => {
+                    const selectedDate = new Date(formData.agencyContractExpiry)
+                    const today = new Date()
+                    const twoYearsFromNow = new Date()
+                    twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2)
+
+                    const monthsUntilExpiry = Math.floor((selectedDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 30))
+                    const isValid = selectedDate <= twoYearsFromNow && selectedDate > today
+
+                    return isValid ? (
+                      <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                        ✅ Giltigt agent-kontrakt ({monthsUntilExpiry} månader, inom FIFA 2-års regel)
+                      </p>
+                    ) : null
+                  })()
+                )}
+                <p className="text-xs text-white/50 mt-1">
+                  När går ert kontrakt med spelaren ut? (Max 2 år enligt FIFA)
+                </p>
+                {errors.agencyContractExpiry && (
+                  <p className="text-red-400 text-sm mt-1">{errors.agencyContractExpiry}</p>
+                )}
+              </div>
 
               {/* Multi-Position Selection */}
               <div>
@@ -654,6 +765,104 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                 "
                 placeholder="Add any scouting notes or observations..."
               />
+            </div>
+
+            {/* Mandate Section */}
+            <div className="space-y-4 border-t border-white/20 pt-6">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="hasMandate"
+                  checked={formData.hasMandate}
+                  onChange={(e) => handleInputChange('hasMandate', e.target.checked)}
+                  className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-2 focus:ring-blue-400/20"
+                />
+                <label htmlFor="hasMandate" className="text-base font-medium text-white">
+                  📋 Vi har mandat för spelaren
+                </label>
+              </div>
+
+              {formData.hasMandate && (
+                <div className="space-y-4 pl-7 animate-in fade-in duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white/60 mb-2">
+                        <Calendar className="w-4 h-4 inline mr-1" />
+                        Mandat gäller till *
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.mandateExpiry}
+                        onChange={(e) => handleInputChange('mandateExpiry', e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        max={(() => {
+                          const maxDate = new Date()
+                          maxDate.setFullYear(maxDate.getFullYear() + 2)
+                          return maxDate.toISOString().split('T')[0]
+                        })()}
+                        className="
+                          w-full px-3 sm:px-4 py-3
+                          bg-white/5 backdrop-blur-sm
+                          border border-white/20 rounded-lg
+                          text-white text-base
+                          focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                          hover:border-white/30
+                          transition-all duration-200
+                        "
+                      />
+                      <p className="text-xs text-white/50 mt-1">Max 2 år enligt FIFA</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-white/60 mb-2">
+                        Klubbar som mandatet gäller för *
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.mandateClubs}
+                        onChange={(e) => handleInputChange('mandateClubs', e.target.value)}
+                        placeholder="t.ex. AIK, IFK Göteborg, Malmö FF"
+                        className="
+                          w-full px-3 sm:px-4 py-3
+                          bg-white/5 backdrop-blur-sm
+                          border border-white/20 rounded-lg
+                          text-white placeholder-white/50 text-base
+                          focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                          hover:border-white/30
+                          transition-all duration-200
+                        "
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white/60 mb-2">
+                      Beskrivning av mandatet (valfritt)
+                    </label>
+                    <textarea
+                      value={formData.mandateNotes}
+                      onChange={(e) => handleInputChange('mandateNotes', e.target.value)}
+                      rows={2}
+                      placeholder="T.ex. Exklusivt mandat för försäljning, representationsrättigheter, etc."
+                      className="
+                        w-full px-3 sm:px-4 py-3
+                        bg-white/5 backdrop-blur-sm
+                        border border-white/20 rounded-lg
+                        text-white placeholder-white/50 text-base
+                        focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                        hover:border-white/30
+                        transition-all duration-200 resize-none
+                      "
+                    />
+                  </div>
+
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                    <p className="text-blue-400 text-xs">
+                      💡 Mandatinformationen sparas i spelarens anteckningar och visas i spelarprofilen.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Submit Error */}

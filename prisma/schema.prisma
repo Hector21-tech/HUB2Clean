@@ -105,23 +105,24 @@ enum InvitationStatus {
 
 // Player management
 model Player {
-  id             String    @id @default(uuid())
-  tenantId       String
-  firstName      String
-  lastName       String
-  dateOfBirth    DateTime?
-  position       String?
-  club           String?
-  contractExpiry DateTime? // Contract expiry date
-  nationality    String?
-  height         Int? // cm
-  notes          String?
-  tags           String[] // Array of tags
-  rating         Float? // Overall rating 1-10
-  avatarUrl      String? // Legacy: Player avatar/photo URL (deprecated)
-  avatarPath     String? // New: Storage path for avatar in Supabase Storage
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                    String    @id @default(uuid())
+  tenantId              String
+  firstName             String
+  lastName              String
+  dateOfBirth           DateTime?
+  position              String?
+  club                  String?
+  contractExpiry        DateTime? // Contract expiry with CLUB (no FIFA limit)
+  agencyContractExpiry  DateTime? // Contract expiry with AGENCY (max 2 years FIFA rule)
+  nationality           String?
+  height                Int? // cm
+  notes                 String?
+  tags                  String[] // Array of tags
+  rating                Float? // Overall rating 1-10
+  avatarUrl             String? // Legacy: Player avatar/photo URL (deprecated)
+  avatarPath            String? // New: Storage path for avatar in Supabase Storage
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   // Relations
   tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)

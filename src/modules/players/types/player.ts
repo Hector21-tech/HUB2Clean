@@ -23,7 +23,8 @@ export interface Player {
 
   // Contract & Market
   marketValue?: number
-  contractExpiry?: Date
+  contractExpiry?: Date // Contract with CLUB (no FIFA limit)
+  agencyContractExpiry?: Date // Contract with AGENCY (max 2 years FIFA rule)
   salary?: number // per week
   agent?: string
 

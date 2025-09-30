@@ -172,18 +172,38 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
             <span className="text-white/60" aria-label={`Nationality ${player.nationality || 'unknown'}`}>
               {player.nationality || 'Unknown'}
             </span>
-            <span className={`${
-              !player.club
-                ? 'text-yellow-300 font-medium'
-                : isContractExpiring(player.contractExpiry)
-                  ? 'text-yellow-400 font-medium'
-                  : 'text-white/60'
-            }`} aria-label={`Contract status`}>
+            {/* Agency Contract Status with Color Coding */}
+            <span className={(() => {
+              if (!player.club) return 'text-yellow-300 font-medium'
+              if (!player.agencyContractExpiry) return 'text-white/60'
+
+              const today = new Date()
+              const agencyContractDate = new Date(player.agencyContractExpiry)
+              const sixMonthsFromNow = new Date()
+              sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6)
+
+              if (agencyContractDate < today) {
+                return 'text-red-400 font-semibold' // Expired
+              } else if (agencyContractDate < sixMonthsFromNow) {
+                return 'text-yellow-400 font-semibold' // Expiring soon (< 6 months)
+              } else {
+                return 'text-green-400 font-medium' // Active (> 6 months)
+              }
+            })()} aria-label={`Agency contract status`}>
               {!player.club
-                ? 'Free Agent'
-                : player.contractExpiry
-                  ? new Date(player.contractExpiry).toLocaleDateString('sv-SE')
-                  : 'No contract date'
+                ? '🟡 Free Agent'
+                : player.agencyContractExpiry
+                  ? (() => {
+                      const today = new Date()
+                      const agencyContractDate = new Date(player.agencyContractExpiry)
+
+                      if (agencyContractDate < today) {
+                        return '🔴 Agent-kontrakt utgånget'
+                      } else {
+                        return `Agent: ${new Date(player.agencyContractExpiry).toLocaleDateString('sv-SE')}`
+                      }
+                    })()
+                  : 'Inget agent-kontrakt'
               }
             </span>
           </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Edit, Star, TrendingUp, Calendar, MapPin, Mail, Phone, Globe, Trash2, FileText, Loader2, Share, Bot, Save, RefreshCw } from 'lucide-react'
+import { X, Edit, Star, TrendingUp, Calendar, MapPin, Mail, Phone, Globe, Trash2, FileText, Loader2, Share, Bot, Save, RefreshCw, FileCheck } from 'lucide-react'
 import { Player } from '../types/player'
 import { formatPositionsDisplay } from '@/lib/positions'
 import { generateAndSharePDFWithGesture, isMobileDevice, isShareSupported } from '@/lib/sharePdf'
@@ -565,6 +565,167 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
         </div>
 
         <div className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+          {/* Contract & Mandate Section */}
+          <section>
+            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <FileCheck className="w-5 h-5 text-blue-400" />
+              Kontrakt & Mandat
+            </h3>
+            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 sm:p-6 border border-white/20">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* Club Contract Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Calendar className="w-5 h-5 text-blue-400" />
+                    <h4 className="text-base font-semibold text-white">Klubb-kontrakt</h4>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-white/60">Nuvarande klubb</label>
+                    <p className="text-lg font-semibold text-white">
+                      {player.club || '🟡 Free Agent'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-white/60">Kontrakt utgår</label>
+                    {player.contractExpiry ? (
+                      <div>
+                        <p className="text-lg font-semibold text-white">
+                          {formatDate(player.contractExpiry)}
+                        </p>
+                        <p className="text-xs text-white/60 mt-1">
+                          Spelarens kontrakt med klubben
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-base text-white/60">Inget angivet</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Agency Contract Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileCheck className="w-5 h-5 text-green-400" />
+                    <h4 className="text-base font-semibold text-white">Agent-kontrakt</h4>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-white/60">Status</label>
+                    {player.agencyContractExpiry ? (
+                      <p className="text-lg font-semibold text-green-400">
+                        ✅ Aktivt kontrakt
+                      </p>
+                    ) : (
+                      <p className="text-base text-white/60">
+                        Inget agent-kontrakt registrerat
+                      </p>
+                    )}
+                  </div>
+                  {player.agencyContractExpiry && (
+                    <div>
+                      <label className="text-sm font-medium text-white/60">Kontrakt utgår</label>
+                      {(() => {
+                        const today = new Date()
+                        const agencyContractDate = new Date(player.agencyContractExpiry)
+                        const sixMonthsFromNow = new Date()
+                        sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6)
+
+                        const daysUntilExpiry = Math.floor((agencyContractDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                        const monthsUntilExpiry = Math.floor(daysUntilExpiry / 30)
+
+                        let statusColor = 'text-green-400'
+                        let statusText = `${monthsUntilExpiry} månader kvar`
+                        let statusIcon = '🟢'
+
+                        if (agencyContractDate < today) {
+                          statusColor = 'text-red-400'
+                          statusText = 'Utgånget'
+                          statusIcon = '🔴'
+                        } else if (agencyContractDate < sixMonthsFromNow) {
+                          statusColor = 'text-yellow-400'
+                          statusText = `${daysUntilExpiry} dagar kvar`
+                          statusIcon = '🟡'
+                        }
+
+                        return (
+                          <div>
+                            <p className={`text-lg font-semibold ${statusColor}`}>
+                              {formatDate(player.agencyContractExpiry)}
+                            </p>
+                            <p className={`text-sm ${statusColor} mt-1 flex items-center gap-1`}>
+                              {statusIcon} {statusText} (FIFA max 2 år)
+                            </p>
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Mandate Info */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileCheck className="w-5 h-5 text-purple-400" />
+                    <h4 className="text-base font-semibold text-white">Mandat</h4>
+                  </div>
+                  {(() => {
+                    // Parse mandate info from notes
+                    const notes = player.notes || ''
+                    const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([^\n]*)/s)
+
+                    if (mandateMatch) {
+                      const clubs = mandateMatch[1]?.trim()
+                      const expiryDate = mandateMatch[2]?.trim()
+                      const description = mandateMatch[3]?.trim()
+
+                      return (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm font-medium text-white/60">Status</label>
+                            <p className="text-lg font-semibold text-purple-400">
+                              ✅ Vi har mandat
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-white/60">Klubbar</label>
+                            <p className="text-base text-white">
+                              {clubs || 'Ej angivet'}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-white/60">Gäller till</label>
+                            <p className="text-base text-white">
+                              {expiryDate || 'Ej angivet'}
+                            </p>
+                          </div>
+                          {description && description !== 'Inget specificerat' && (
+                            <div>
+                              <label className="text-sm font-medium text-white/60">Beskrivning</label>
+                              <p className="text-sm text-white/80">
+                                {description}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    } else {
+                      return (
+                        <div>
+                          <label className="text-sm font-medium text-white/60">Status</label>
+                          <p className="text-base text-white/60">
+                            Inget mandat registrerat
+                          </p>
+                          <p className="text-xs text-white/40 mt-2">
+                            Lägg till mandat via "Redigera spelare"
+                          </p>
+                        </div>
+                      )
+                    }
+                  })()}
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Basic Information */}
           <section>
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -586,12 +747,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                       {player.nationality || 'N/A'}
                     </p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-white/60">Preferred Foot</label>
-                    <p className="text-lg font-semibold text-white">
-                      {player.preferredFoot || 'N/A'}
-                    </p>
-                  </div>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -607,9 +762,9 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-white/60">Contract Expiry</label>
+                    <label className="text-sm font-medium text-white/60">Jersey Number</label>
                     <p className="text-lg font-semibold text-white">
-                      {formatDate(player.contractExpiry)}
+                      {player.jerseyNumber || 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -800,11 +955,17 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                   />
                 ) : (
                   <div className="min-h-[100px] p-4 bg-white/5 rounded-lg border border-white/10">
-                    {player.notes ? (
-                      <p className="text-white leading-relaxed whitespace-pre-wrap">{player.notes}</p>
-                    ) : (
-                      <p className="text-white/40 italic">Inga anteckningar ännu. Klicka på "Redigera" för att lägga till.</p>
-                    )}
+                    {(() => {
+                      // Remove mandate section from display notes
+                      const notes = player.notes || ''
+                      const displayNotes = notes.replace(/MANDAT:.*$/s, '').trim()
+
+                      return displayNotes ? (
+                        <p className="text-white leading-relaxed whitespace-pre-wrap">{displayNotes}</p>
+                      ) : (
+                        <p className="text-white/40 italic">Inga anteckningar ännu. Klicka på "Redigera" för att lägga till.</p>
+                      )
+                    })()}
                   </div>
                 )}
               </div>
