@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface CalendarEventConflict {
   id: string
@@ -21,6 +19,10 @@ interface CreateEventInput {
   recurrence?: string
 }
 
+// Aggressive caching for calendar events
+const cache = new Map<string, { data: any, timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - shorter than dashboard for real-time updates
+
 // GET /api/calendar/events - Fetch calendar events
 export async function GET(request: NextRequest) {
   try {
@@ -37,14 +39,30 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify tenant exists
+    // Create cache key including all query params for accurate caching
+    const cacheKey = `events-${tenant}-${start}-${end}-${type || 'all'}`
+    const cached = cache.get(cacheKey)
+
+    // IMMEDIATE RETURN for cached data (skip tenant check)
+    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      console.log('📦 Calendar events: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
+      return NextResponse.json({
+        success: true,
+        data: cached.data,
+        cached: true,
+        cacheAge: Math.round((Date.now() - cached.timestamp) / 1000)
+      })
+    }
+
+    // Only verify tenant on cache miss - optimized with minimal select
     const tenantExists = await prisma.tenant.findFirst({
       where: {
         OR: [
           { id: tenant },
           { slug: tenant }
         ]
-      }
+      },
+      select: { id: true } // Minimal select for speed
     })
 
     if (!tenantExists) {
@@ -55,6 +73,7 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantId = tenantExists.id
+    console.log('⚡ Calendar events: Cache miss, fetching fresh data for tenant:', tenantId)
 
     // Build where clause
     const whereClause: any = { tenantId }
@@ -146,6 +165,10 @@ export async function GET(request: NextRequest) {
       } : null
     }))
 
+    // Cache the result for subsequent requests
+    cache.set(cacheKey, { data: transformedEvents, timestamp: Date.now() })
+    console.log('✅ Calendar events: Cached', transformedEvents.length, 'events for', CACHE_DURATION / 1000, 'seconds')
+
     return NextResponse.json({
       success: true,
       data: transformedEvents
@@ -157,8 +180,6 @@ export async function GET(request: NextRequest) {
       { success: false, error: 'Failed to fetch calendar events' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -175,14 +196,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify tenant exists
+    // Optimized tenant verification with minimal select
     const tenantExists = await prisma.tenant.findFirst({
       where: {
         OR: [
           { id: tenant },
           { slug: tenant }
         ]
-      }
+      },
+      select: { id: true } // Minimal select for speed
     })
 
     if (!tenantExists) {
@@ -297,6 +319,16 @@ export async function POST(request: NextRequest) {
       trial: null
     }
 
+    // Invalidate all caches for this tenant (new event created)
+    const keysToDelete: string[] = []
+    cache.forEach((_, key) => {
+      if (key.startsWith(`events-${tenant}-`)) {
+        keysToDelete.push(key)
+      }
+    })
+    keysToDelete.forEach(key => cache.delete(key))
+    console.log('🗑️ Calendar events: Invalidated', keysToDelete.length, 'cache entries after event creation')
+
     return NextResponse.json({
       success: true,
       data: transformedEvent,
@@ -309,7 +341,5 @@ export async function POST(request: NextRequest) {
       { success: false, error: 'Failed to create calendar event' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

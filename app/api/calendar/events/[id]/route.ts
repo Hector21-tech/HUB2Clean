@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface UpdateEventInput {
   title?: string
@@ -39,14 +37,15 @@ export async function PUT(
       )
     }
 
-    // Verify tenant exists
+    // Optimized tenant verification with minimal select
     const tenantExists = await prisma.tenant.findFirst({
       where: {
         OR: [
           { id: tenant },
           { slug: tenant }
         ]
-      }
+      },
+      select: { id: true } // Minimal select for speed
     })
 
     if (!tenantExists) {
@@ -181,8 +180,6 @@ export async function PUT(
       { success: false, error: 'Failed to update calendar event' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
 
@@ -211,14 +208,15 @@ export async function DELETE(
       )
     }
 
-    // Verify tenant exists
+    // Optimized tenant verification with minimal select
     const tenantExists = await prisma.tenant.findFirst({
       where: {
         OR: [
           { id: tenant },
           { slug: tenant }
         ]
-      }
+      },
+      select: { id: true } // Minimal select for speed
     })
 
     if (!tenantExists) {
@@ -261,7 +259,5 @@ export async function DELETE(
       { success: false, error: 'Failed to delete calendar event' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }

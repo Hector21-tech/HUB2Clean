@@ -246,6 +246,8 @@ model CalendarEvent {
 
   @@index([tenantId])
   @@index([tenantId, startTime])
+  @@index([tenantId, type]) // Speed up type-filtered queries
+  @@index([tenantId, startTime, endTime]) // Optimize date range queries
   @@map("calendar_events")
 }
 
