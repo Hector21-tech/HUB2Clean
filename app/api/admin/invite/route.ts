@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import crypto from 'crypto'
+import { sendInvitationEmail } from '@/lib/email/send-invitation'
 
 const prisma = new PrismaClient()
 
-// POST: Bjud in användare till tenant
+// POST: Bjud in användare till tenant via invitation token
 export async function POST(request: NextRequest) {
   try {
     const { email, tenantId, role } = await request.json()
@@ -15,7 +17,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log('📧 Admin: Inviting user:', { email, tenantId, role })
+    console.log('📧 Admin: Creating invitation for:', { email, tenantId, role })
 
     // Validate tenant exists
     const tenant = await prisma.tenant.findUnique({
@@ -30,93 +32,125 @@ export async function POST(request: NextRequest) {
       }, { status: 404 })
     }
 
-    // Check if user already exists
-    let user = await prisma.user.findUnique({
-      where: { email },
+    // Check if user already has membership to this tenant
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
       include: {
         memberships: {
           where: { tenantId },
-          include: {
-            tenant: { select: { name: true } }
-          }
+          include: { tenant: { select: { name: true } } }
         }
       }
     })
 
-    // Check if user already has membership to this tenant
-    if (user && user.memberships.length > 0) {
+    if (existingUser && existingUser.memberships.length > 0) {
       return NextResponse.json({
         success: false,
-        error: `User already has membership to ${user.memberships[0].tenant.name}`,
+        error: `User ${email} already has membership to ${existingUser.memberships[0].tenant.name}`,
         userExists: true
       }, { status: 409 })
     }
 
-    // Create user if doesn't exist
-    if (!user) {
-      console.log('👤 Creating new user:', email)
-
-      // Extract name from email for better UX
-      const emailName = email.split('@')[0]
-      const nameParts = emailName.split('.')
-      const firstName = nameParts[0] ? nameParts[0].charAt(0).toUpperCase() + nameParts[0].slice(1) : undefined
-      const lastName = nameParts[1] ? nameParts[1].charAt(0).toUpperCase() + nameParts[1].slice(1) : undefined
-
-      user = await prisma.user.create({
-        data: {
-          email: email.toLowerCase(),
-          firstName,
-          lastName
-        },
-        include: {
-          memberships: {
-            where: { tenantId },
-            include: {
-              tenant: { select: { name: true } }
-            }
-          }
-        }
-      })
-
-      console.log('✅ Created user:', user.id)
-    }
-
-    // Create tenant membership
-    const membership = await prisma.tenantMembership.create({
-      data: {
-        userId: user.id,
-        tenantId: tenantId,
-        role: role as any // TenantRole enum
-      },
-      include: {
-        tenant: { select: { name: true, slug: true } },
-        user: { select: { email: true, firstName: true, lastName: true } }
+    // Check for existing pending invitation
+    const existingInvite = await prisma.invitation.findFirst({
+      where: {
+        email: email.toLowerCase(),
+        tenantId,
+        status: 'PENDING',
+        expiresAt: { gt: new Date() }
       }
     })
 
-    console.log('✅ Created membership:', {
-      userId: user.id,
-      tenantName: membership.tenant.name,
-      role: membership.role
+    if (existingInvite) {
+      console.log('📧 Reusing existing pending invitation:', existingInvite.token)
+
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const inviteLink = `${siteUrl}/accept-invite/${existingInvite.token}`
+
+      return NextResponse.json({
+        success: true,
+        message: `Invitation already exists for ${email}`,
+        data: {
+          invitationId: existingInvite.id,
+          email: existingInvite.email,
+          tenantName: tenant.name,
+          role: existingInvite.role,
+          token: existingInvite.token,
+          expiresAt: existingInvite.expiresAt,
+          inviteLink
+        },
+        invitationStatus: 'REUSED_EXISTING',
+        timestamp: new Date().toISOString()
+      })
+    }
+
+    // Generate unique invitation token
+    const token = crypto.randomBytes(32).toString('hex')
+
+    // Create invitation (expires in 7 days)
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 7)
+
+    const invitation = await prisma.invitation.create({
+      data: {
+        email: email.toLowerCase(),
+        tenantId,
+        role: role as any,
+        token,
+        expiresAt,
+        status: 'PENDING'
+      },
+      include: {
+        tenant: { select: { name: true, slug: true } }
+      }
     })
 
-    // TODO: Send email invitation here
-    // For now, we'll just create the membership directly
-    console.log('📧 TODO: Send email invitation to:', email)
+    console.log('✅ Created invitation:', {
+      email: invitation.email,
+      tenantName: invitation.tenant.name,
+      role: invitation.role,
+      token: invitation.token.substring(0, 8) + '...',
+      expiresAt: invitation.expiresAt
+    })
+
+    // Build invitation link
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const inviteLink = `${siteUrl}/accept-invite/${token}`
+
+    console.log('📧 Invitation link:', inviteLink)
+
+    // Send invitation email
+    const emailResult = await sendInvitationEmail({
+      to: email,
+      inviteToken: token,
+      organizationName: tenant.name,
+      role: role,
+      expiresAt: invitation.expiresAt
+    })
+
+    if (!emailResult.success) {
+      console.warn('⚠️ Email sending failed:', emailResult.error)
+      // Don't fail the invitation creation - admin can still manually share the link
+    } else {
+      console.log('✅ Invitation email sent successfully to:', email)
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Successfully invited ${email} to ${tenant.name}`,
+      message: `Successfully created invitation for ${email}`,
       data: {
-        userId: user.id,
-        userEmail: user.email,
+        invitationId: invitation.id,
+        email: invitation.email,
         tenantId: tenant.id,
         tenantName: tenant.name,
-        role: membership.role,
-        membershipId: membership.id
+        role: invitation.role,
+        token: invitation.token,
+        expiresAt: invitation.expiresAt,
+        inviteLink
       },
-      // For development - would include invitation link in real app
-      invitationStatus: 'Created membership directly (email invitation TODO)',
+      invitationStatus: 'PENDING',
+      // For development - show link in console/response
+      devNote: `Share this link with the user: ${inviteLink}`,
       timestamp: new Date().toISOString()
     })
 
@@ -125,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: false,
-      error: 'Failed to invite user',
+      error: 'Failed to create invitation',
       details: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     }, { status: 500 })

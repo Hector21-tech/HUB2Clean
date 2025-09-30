@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { UserPlus, Mail, Shield, Users, Building2, Trash2, Eye, Edit, X } from 'lucide-react'
+import toast, { Toaster } from 'react-hot-toast'
 
 interface User {
   id: string
@@ -112,17 +113,47 @@ export default function AdminUsers() {
       const result = await response.json()
 
       if (result.success) {
-        alert(`✅ Successfully invited ${inviteForm.email} to ${result.tenantName}`)
+        const inviteLink = result.data?.inviteLink || ''
+
+        // Copy invite link to clipboard
+        if (inviteLink) {
+          navigator.clipboard.writeText(inviteLink).catch(err => {
+            console.warn('Failed to copy to clipboard:', err)
+          })
+        }
+
+        // Show success toast
+        toast.success(
+          `Successfully invited ${inviteForm.email} to ${result.data?.tenantName}! Link copied to clipboard.`,
+          {
+            duration: 5000,
+            position: 'top-center',
+            style: {
+              background: '#10B981',
+              color: '#fff',
+              padding: '16px',
+              borderRadius: '8px',
+            },
+          }
+        )
+
         setShowInviteModal(false)
         setInviteForm({ email: '', tenantId: inviteForm.tenantId, role: 'SCOUT' })
+
         // Refresh data
         await fetchData()
       } else {
-        alert(`❌ Failed to invite user: ${result.error}`)
+        toast.error(`Failed to invite user: ${result.error}`, {
+          duration: 4000,
+          position: 'top-center',
+        })
       }
     } catch (err) {
       console.error('❌ Invite error:', err)
-      alert('❌ Network error during invitation')
+      toast.error('Network error during invitation', {
+        duration: 4000,
+        position: 'top-center',
+      })
     } finally {
       setInviting(false)
     }
@@ -329,6 +360,7 @@ export default function AdminUsers() {
 
   return (
     <div className="space-y-6">
+      <Toaster />
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
