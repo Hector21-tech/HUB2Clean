@@ -210,6 +210,8 @@ model Trial {
 
   @@index([tenantId])
   @@index([tenantId, scheduledAt])
+  @@index([tenantId, status]) // Speed up status-filtered queries
+  @@index([tenantId, status, scheduledAt]) // Optimize upcoming trials query
   @@index([playerId])
   @@map("trials")
 }
