@@ -92,12 +92,16 @@ export async function GET(request: NextRequest) {
     const cached = cache.get(cacheKey)
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
       console.log('📦 Dashboard stats: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         data: cached.data,
         cached: true,
         cacheAge: Math.round((Date.now() - cached.timestamp) / 1000)
       })
+
+      // HTTP caching headers for browser cache (works in serverless!)
+      response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+      return response
     }
 
     // Only verify tenant on cache miss
@@ -217,10 +221,15 @@ export async function GET(request: NextRequest) {
     // Cache the result
     cache.set(cacheKey, { data: stats, timestamp: Date.now() })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: stats
     })
+
+    // HTTP caching headers for browser cache (30 min cache, 1 hour stale-while-revalidate)
+    response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+
+    return response
 
   } catch (error) {
     console.error('Dashboard stats API error:', error)

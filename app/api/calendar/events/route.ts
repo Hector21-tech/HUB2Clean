@@ -46,12 +46,16 @@ export async function GET(request: NextRequest) {
     // IMMEDIATE RETURN for cached data (skip tenant check)
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
       console.log('📦 Calendar events: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         data: cached.data,
         cached: true,
         cacheAge: Math.round((Date.now() - cached.timestamp) / 1000)
       })
+
+      // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
+      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      return response
     }
 
     // Only verify tenant on cache miss - optimized with minimal select
@@ -169,10 +173,15 @@ export async function GET(request: NextRequest) {
     cache.set(cacheKey, { data: transformedEvents, timestamp: Date.now() })
     console.log('✅ Calendar events: Cached', transformedEvents.length, 'events for', CACHE_DURATION / 1000, 'seconds')
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: transformedEvents
     })
+
+    // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+
+    return response
 
   } catch (error) {
     console.error('Calendar events GET error:', error)
