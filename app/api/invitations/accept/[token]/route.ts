@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
 
 // GET: Accept invitation and create user + membership
@@ -181,8 +181,17 @@ export async function POST(
       }, { status: 409 })
     }
 
-    // Create Supabase auth user
-    const supabase = createClient()
+    // Create Supabase admin client for server-side auth operations
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
 
     let userId: string
     let userFirstName: string
@@ -197,16 +206,14 @@ export async function POST(
         }, { status: 404 })
       }
 
-      // Create new Supabase auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // Create new Supabase auth user using admin API
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: invitation.email,
         password,
-        options: {
-          data: {
-            firstName,
-            lastName
-          },
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/login`
+        email_confirm: true, // Auto-confirm email for invited users
+        user_metadata: {
+          firstName,
+          lastName
         }
       })
 
