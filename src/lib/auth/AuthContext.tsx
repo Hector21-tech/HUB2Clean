@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   // Cache synced user IDs in memory to prevent duplicate sync calls
-  const syncedUsers = React.useRef<Set<string>>(new Set())
+  const syncedUsers = useRef<Set<string>>(new Set())
 
   // Ensure user exists in our database (with caching to prevent duplicate calls)
   const ensureUserInDatabase = async (user: User) => {
