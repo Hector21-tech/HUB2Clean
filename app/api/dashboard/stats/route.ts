@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface DashboardStats {
   overview: {
@@ -75,7 +73,7 @@ interface DashboardStats {
 
 // Aggressive caching for dashboard stats
 const cache = new Map<string, { data: any, timestamp: number }>()
-const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes - much longer cache
+const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes - extended for better performance
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,25 +87,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check cache first
+    // Check cache first - IMMEDIATE RETURN for cached data (skip tenant check)
     const cacheKey = `dashboard-${tenant}`
     const cached = cache.get(cacheKey)
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      console.log('📦 Dashboard stats: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
       return NextResponse.json({
         success: true,
         data: cached.data,
-        cached: true
+        cached: true,
+        cacheAge: Math.round((Date.now() - cached.timestamp) / 1000)
       })
     }
 
-    // Verify tenant exists
+    // Only verify tenant on cache miss
     const tenantExists = await prisma.tenant.findFirst({
       where: {
         OR: [
           { id: tenant },
           { slug: tenant }
         ]
-      }
+      },
+      select: { id: true } // Minimal select for speed
     })
 
     if (!tenantExists) {
@@ -118,137 +119,38 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantId = tenantExists.id
+    console.log('⚡ Dashboard stats: Cache miss, fetching fresh data for tenant:', tenantId)
 
-    // Get date boundaries for calculations
+    // ULTRA-OPTIMIZED: Only 6 essential counts - no aggregations or heavy queries
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0)
     const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
-    // ULTRA-FAST: Only essential counts first - detailed data loaded separately
+    const startTime = Date.now()
+
     const [
       totalPlayers,
       totalRequests,
       activeRequests,
       totalTrials,
-      upcomingTrials
+      upcomingTrials,
+      completedTrials
     ] = await Promise.all([
-      // Essential counts only - fastest possible queries
+      // ONLY ESSENTIAL COUNTS - fastest possible queries
       prisma.player.count({ where: { tenantId } }),
       prisma.request.count({ where: { tenantId } }),
       prisma.request.count({ where: { tenantId, status: 'OPEN' } }),
       prisma.trial.count({ where: { tenantId } }),
-      prisma.trial.count({ where: { tenantId, status: 'SCHEDULED', scheduledAt: { gte: now } } })
+      prisma.trial.count({ where: { tenantId, status: 'SCHEDULED', scheduledAt: { gte: now, lte: next7Days } } }),
+      prisma.trial.count({ where: { tenantId, status: 'COMPLETED' } })
     ])
 
-    // Return immediate basic stats for instant UI
-    const basicStats = {
-      overview: {
-        totalPlayers,
-        totalRequests,
-        totalTrials,
-        successRate: 0 // Calculate later
-      },
-      players: {
-        total: totalPlayers,
-        thisMonth: 0, // Calculate later
-        growth: 0, // Calculate later
-        byPosition: {},
-        recent: []
-      },
-      requests: {
-        total: totalRequests,
-        active: activeRequests,
-        byStatus: {},
-        byCountry: {},
-        recent: []
-      },
-      trials: {
-        total: totalTrials,
-        upcoming: upcomingTrials,
-        completed: 0, // Calculate later
-        pendingEvaluations: 0,
-        next7Days: 0,
-        successRate: 0,
-        recent: []
-      },
-      transferWindows: {
-        active: 0,
-        upcoming: 0,
-        expiring: 0
-      },
-      alerts: [{
-        type: 'info' as const,
-        message: 'Dashboard loaded! Detailed analytics loading...'
-      }],
-      lastUpdated: now.toISOString(),
-      loading: true // Flag to indicate more data is coming
-    }
+    const queryDuration = Date.now() - startTime
+    console.log('⚡ Dashboard stats: Queries completed in', queryDuration, 'ms')
 
-    // For immediate response, return basic stats and load detailed data in background
-    if (request.url.includes('fast=1')) {
-      cache.set(cacheKey, { data: basicStats, timestamp: Date.now() })
-      return NextResponse.json({
-        success: true,
-        data: basicStats,
-        message: 'Fast mode - basic stats only'
-      })
-    }
+    // Simple success rate calculation (no additional queries needed)
+    const successRate = completedTrials > 0 ? Math.round((completedTrials / totalTrials) * 100) : 0
 
-    // Load detailed data only when needed
-    const [
-      playersThisMonth,
-      playersLastMonth,
-      completedTrials,
-      trialsNext7Days,
-      completedTrialsWithRating,
-      recentPlayers
-    ] = await Promise.all([
-      prisma.player.count({ where: { tenantId, createdAt: { gte: startOfMonth } } }),
-      prisma.player.count({ where: { tenantId, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
-      prisma.trial.count({ where: { tenantId, status: 'COMPLETED' } }),
-      prisma.trial.count({
-        where: {
-          tenantId,
-          status: 'SCHEDULED',
-          scheduledAt: { gte: now, lte: next7Days }
-        }
-      }),
-      prisma.trial.count({
-        where: {
-          tenantId,
-          status: 'COMPLETED',
-          rating: { not: null }
-        }
-      }),
-      // Only get recent players, skip other heavy queries for now
-      prisma.player.findMany({
-        where: { tenantId },
-        orderBy: { createdAt: 'desc' },
-        take: 3, // Reduced from 5
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          position: true,
-          club: true,
-          rating: true,
-          createdAt: true
-        }
-      })
-    ])
-
-    // Calculate growth rate and success rate
-    const growth = playersLastMonth > 0
-      ? Math.round(((playersThisMonth - playersLastMonth) / playersLastMonth) * 100)
-      : playersThisMonth > 0 ? 100 : 0
-
-    const successRate = completedTrials > 0
-      ? Math.round((completedTrialsWithRating / completedTrials) * 100)
-      : 0
-
-    // Generate smart alerts based on data
+    // Generate minimal alerts
     const alerts: Array<{ type: 'info' | 'warning' | 'error', message: string }> = []
 
     if (activeRequests > 10) {
@@ -258,28 +160,21 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    if (trialsNext7Days === 0 && upcomingTrials > 0) {
+    if (upcomingTrials === 0 && totalTrials > 0) {
       alerts.push({
         type: 'info',
-        message: 'No trials scheduled for next 7 days'
-      })
-    }
-
-    if (successRate < 50 && completedTrials > 5) {
-      alerts.push({
-        type: 'warning',
-        message: `Trial success rate: ${successRate}% (needs improvement)`
+        message: 'No upcoming trials scheduled'
       })
     }
 
     if (alerts.length === 0) {
       alerts.push({
         type: 'info',
-        message: '✅ Dashboard loaded - all systems running smoothly!'
+        message: '✅ All systems running smoothly!'
       })
     }
 
-    // Streamlined data structure - minimal for speed
+    // STREAMLINED response - ONLY essential data for fast loading
     const stats: DashboardStats = {
       overview: {
         totalPlayers,
@@ -289,29 +184,26 @@ export async function GET(request: NextRequest) {
       },
       players: {
         total: totalPlayers,
-        thisMonth: playersThisMonth,
-        growth,
-        byPosition: {}, // Skip for now
-        recent: recentPlayers.map(p => ({
-          ...p,
-          createdAt: p.createdAt.toISOString()
-        }))
+        thisMonth: 0, // Removed for performance
+        growth: 0, // Removed for performance
+        byPosition: {}, // Removed for performance
+        recent: [] // Removed for performance
       },
       requests: {
         total: totalRequests,
         active: activeRequests,
-        byStatus: {}, // Skip for now
-        byCountry: {}, // Skip for now
-        recent: [] // Skip for now
+        byStatus: {}, // Removed for performance
+        byCountry: {}, // Removed for performance
+        recent: [] // Removed for performance
       },
       trials: {
         total: totalTrials,
         upcoming: upcomingTrials,
         completed: completedTrials,
-        pendingEvaluations: Math.max(0, completedTrials - completedTrialsWithRating),
-        next7Days: trialsNext7Days,
+        pendingEvaluations: 0, // Removed for performance
+        next7Days: upcomingTrials, // Simplified
         successRate,
-        recent: [] // Skip for now
+        recent: [] // Removed for performance
       },
       transferWindows: {
         active: 0,
@@ -336,7 +228,5 @@ export async function GET(request: NextRequest) {
       { success: false, error: 'Failed to fetch dashboard stats' },
       { status: 500 }
     )
-  } finally {
-    await prisma.$disconnect()
   }
 }
