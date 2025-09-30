@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { UserPlus, Mail, Shield, Users, Building2, Trash2, Eye, Edit, X } from 'lucide-react'
+import { UserPlus, Mail, Shield, Users, Building2, Trash2, Eye, Edit, X, Clock, Copy, RefreshCw } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 
 interface User {
@@ -33,8 +33,26 @@ interface InviteForm {
   role: string
 }
 
+interface Invitation {
+  id: string
+  email: string
+  tenantId: string
+  role: string
+  token: string
+  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED'
+  expiresAt: string
+  createdAt: string
+  acceptedAt: string | null
+  tenant: {
+    name: string
+    slug: string
+  }
+}
+
 export default function AdminUsers() {
+  const [activeTab, setActiveTab] = useState<'users' | 'invitations'>('users')
   const [users, setUsers] = useState<User[]>([])
+  const [invitations, setInvitations] = useState<Invitation[]>([])
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -58,13 +76,15 @@ export default function AdminUsers() {
       setLoading(true)
       setError(null)
 
-      // Fetch users and tenants in parallel
-      const [usersResponse, tenantsResponse] = await Promise.all([
+      // Fetch users, invitations and tenants in parallel
+      const [usersResponse, invitationsResponse, tenantsResponse] = await Promise.all([
         fetch('/api/admin/users'),
+        fetch('/api/invitations'),
         fetch('/api/admin/tenants')
       ])
 
       const usersData = await usersResponse.json()
+      const invitationsData = await invitationsResponse.json()
       const tenantsData = await tenantsResponse.json()
 
       if (usersData.success) {
@@ -72,6 +92,13 @@ export default function AdminUsers() {
       } else {
         console.warn('Users API failed:', usersData.error)
         setUsers([])
+      }
+
+      if (invitationsData.success) {
+        setInvitations(invitationsData.invitations || [])
+      } else {
+        console.warn('Invitations API failed:', invitationsData.error)
+        setInvitations([])
       }
 
       if (tenantsData.success) {
@@ -326,6 +353,105 @@ export default function AdminUsers() {
     return user.email.split('@')[0]
   }
 
+  const handleDeleteInvitation = async (invitation: Invitation) => {
+    const confirmed = window.confirm(
+      `Delete invitation for ${invitation.email}?\n\n` +
+      `Organization: ${invitation.tenant.name}\n` +
+      `Role: ${invitation.role}\n` +
+      `Status: ${invitation.status}`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setActionLoading(`delete-invite-${invitation.id}`)
+
+      const response = await fetch(`/api/invitations/${invitation.id}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success(`Invitation for ${invitation.email} deleted!`, {
+          duration: 3000,
+          position: 'top-center'
+        })
+        await fetchData()
+      } else {
+        toast.error(`Failed to delete: ${result.error}`, {
+          duration: 4000,
+          position: 'top-center'
+        })
+      }
+    } catch (err) {
+      console.error('❌ Delete invitation error:', err)
+      toast.error('Network error during deletion', {
+        duration: 4000,
+        position: 'top-center'
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleResendInvitation = async (invitation: Invitation) => {
+    try {
+      setActionLoading(`resend-${invitation.id}`)
+
+      const response = await fetch(`/api/invitations/${invitation.id}/resend`, {
+        method: 'POST'
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success(`Invitation resent to ${invitation.email}!`, {
+          duration: 3000,
+          position: 'top-center'
+        })
+      } else {
+        toast.error(`Failed to resend: ${result.error}`, {
+          duration: 4000,
+          position: 'top-center'
+        })
+      }
+    } catch (err) {
+      console.error('❌ Resend invitation error:', err)
+      toast.error('Network error during resend', {
+        duration: 4000,
+        position: 'top-center'
+      })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleCopyInviteLink = (invitation: Invitation) => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+    const inviteLink = `${siteUrl}/accept-invite?token=${invitation.token}`
+
+    navigator.clipboard.writeText(inviteLink)
+    toast.success('Invite link copied to clipboard!', {
+      duration: 2000,
+      position: 'top-center'
+    })
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'PENDING': return 'bg-yellow-100 text-yellow-800'
+      case 'ACCEPTED': return 'bg-green-100 text-green-800'
+      case 'EXPIRED': return 'bg-red-100 text-red-800'
+      case 'CANCELLED': return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const isInvitationExpired = (expiresAt: string) => {
+    return new Date(expiresAt) < new Date()
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -358,6 +484,8 @@ export default function AdminUsers() {
     )
   }
 
+  const pendingInvitations = invitations.filter(inv => inv.status === 'PENDING')
+
   return (
     <div className="space-y-6">
       <Toaster />
@@ -366,7 +494,7 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-2xl font-medium text-gray-900">User Management</h1>
           <p className="text-gray-600 mt-1">
-            Manage users and team invitations • {users.length} total users
+            Manage users and team invitations • {users.length} users • {pendingInvitations.length} pending invites
           </p>
         </div>
         <div className="flex gap-3">
@@ -382,6 +510,43 @@ export default function AdminUsers() {
           >
             <UserPlus className="w-4 h-4" />
             Invite User
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <div className="flex gap-6">
+          <button
+            onClick={() => setActiveTab('users')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'users'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Users ({users.length})
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('invitations')}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === 'invitations'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Mail className="w-4 h-4" />
+              Invitations ({invitations.length})
+              {pendingInvitations.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                  {pendingInvitations.length} pending
+                </span>
+              )}
+            </div>
           </button>
         </div>
       </div>
@@ -418,10 +583,11 @@ export default function AdminUsers() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">All Users</h2>
-        </div>
+      {activeTab === 'users' && (
+        <div className="bg-white border border-gray-200 rounded">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">All Users</h2>
+          </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -509,7 +675,124 @@ export default function AdminUsers() {
             <p className="text-gray-500">No users found</p>
           </div>
         )}
-      </div>
+        </div>
+      )}
+
+      {/* Invitations Table */}
+      {activeTab === 'invitations' && (
+        <div className="bg-white border border-gray-200 rounded">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium text-gray-900">All Invitations</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Organization
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Expires
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {invitations.length > 0 ? (
+                  invitations.map((invitation) => {
+                    const expired = isInvitationExpired(invitation.expiresAt)
+                    const displayStatus = expired && invitation.status === 'PENDING' ? 'EXPIRED' : invitation.status
+
+                    return (
+                      <tr key={invitation.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Mail className="w-4 h-4 text-gray-400 mr-2" />
+                            <span className="font-medium text-gray-900">{invitation.email}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <Building2 className="w-4 h-4 text-gray-400 mr-2" />
+                            <span className="text-sm text-gray-900">{invitation.tenant.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full ${getRoleColor(invitation.role)}`}>
+                            {invitation.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeColor(displayStatus)}`}>
+                            {displayStatus}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            {formatDate(invitation.expiresAt)}
+                          </div>
+                          {expired && invitation.status === 'PENDING' && (
+                            <span className="text-xs text-red-600 mt-1 block">Expired</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <div className="flex items-center gap-2">
+                            {invitation.status === 'PENDING' && !expired && (
+                              <>
+                                <button
+                                  onClick={() => handleCopyInviteLink(invitation)}
+                                  className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                                  title="Copy invite link"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleResendInvitation(invitation)}
+                                  disabled={actionLoading === `resend-${invitation.id}`}
+                                  className="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded disabled:opacity-50"
+                                  title="Resend email"
+                                >
+                                  <RefreshCw className={`w-4 h-4 ${actionLoading === `resend-${invitation.id}` ? 'animate-spin' : ''}`} />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleDeleteInvitation(invitation)}
+                              disabled={actionLoading === `delete-invite-${invitation.id}`}
+                              className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded disabled:opacity-50"
+                              title="Delete invitation"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      No invitations found
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Invite Modal */}
       {showInviteModal && (
