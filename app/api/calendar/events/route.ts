@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
 
 interface CalendarEventConflict {
   id: string
@@ -20,8 +21,15 @@ interface CreateEventInput {
 }
 
 // Aggressive caching for calendar events
-const cache = new Map<string, { data: any, timestamp: number }>()
+const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - shorter than dashboard for real-time updates
+
+// Generate ETag from data content for conditional caching
+function generateETag(data: any): string {
+  const hash = crypto.createHash('md5')
+  hash.update(JSON.stringify(data))
+  return `"${hash.digest('hex')}"`
+}
 
 // GET /api/calendar/events - Fetch calendar events
 export async function GET(request: NextRequest) {
@@ -43,8 +51,21 @@ export async function GET(request: NextRequest) {
     const cacheKey = `events-${tenant}-${start}-${end}-${type || 'all'}`
     const cached = cache.get(cacheKey)
 
+    // Check conditional caching headers (ETag)
+    const ifNoneMatch = request.headers.get('if-none-match')
+
     // IMMEDIATE RETURN for cached data (skip tenant check)
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      // Check if client has same ETag (304 Not Modified)
+      if (ifNoneMatch && ifNoneMatch === cached.etag) {
+        console.log('⚡ Calendar events: 304 Not Modified (ETag match)')
+        const response = new NextResponse(null, { status: 304 })
+        response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+        response.headers.set('ETag', cached.etag)
+        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
+        return response
+      }
+
       console.log('📦 Calendar events: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
       const response = NextResponse.json({
         success: true,
@@ -55,6 +76,8 @@ export async function GET(request: NextRequest) {
 
       // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
       response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      response.headers.set('ETag', cached.etag)
+      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
       return response
     }
 
@@ -169,8 +192,12 @@ export async function GET(request: NextRequest) {
       } : null
     }))
 
-    // Cache the result for subsequent requests
-    cache.set(cacheKey, { data: transformedEvents, timestamp: Date.now() })
+    // Generate ETag from events data
+    const etag = generateETag(transformedEvents)
+    const timestamp = Date.now()
+
+    // Cache the result for subsequent requests with ETag
+    cache.set(cacheKey, { data: transformedEvents, timestamp, etag })
     console.log('✅ Calendar events: Cached', transformedEvents.length, 'events for', CACHE_DURATION / 1000, 'seconds')
 
     const response = NextResponse.json({
@@ -180,6 +207,8 @@ export async function GET(request: NextRequest) {
 
     // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
     response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    response.headers.set('ETag', etag)
+    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
 
     return response
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import crypto from 'crypto'
 
 interface DashboardStats {
   overview: {
@@ -72,8 +73,15 @@ interface DashboardStats {
 }
 
 // Aggressive caching for dashboard stats
-const cache = new Map<string, { data: any, timestamp: number }>()
+const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
 const CACHE_DURATION = 30 * 60 * 1000 // 30 minutes - extended for better performance
+
+// Generate ETag from data content for conditional caching
+function generateETag(data: any): string {
+  const hash = crypto.createHash('md5')
+  hash.update(JSON.stringify(data))
+  return `"${hash.digest('hex')}"`
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -90,7 +98,21 @@ export async function GET(request: NextRequest) {
     // Check cache first - IMMEDIATE RETURN for cached data (skip tenant check)
     const cacheKey = `dashboard-${tenant}`
     const cached = cache.get(cacheKey)
+
+    // Check conditional caching headers (ETag)
+    const ifNoneMatch = request.headers.get('if-none-match')
+
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+      // Check if client has same ETag (304 Not Modified)
+      if (ifNoneMatch && ifNoneMatch === cached.etag) {
+        console.log('⚡ Dashboard stats: 304 Not Modified (ETag match)')
+        const response = new NextResponse(null, { status: 304 })
+        response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+        response.headers.set('ETag', cached.etag)
+        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
+        return response
+      }
+
       console.log('📦 Dashboard stats: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
       const response = NextResponse.json({
         success: true,
@@ -101,6 +123,8 @@ export async function GET(request: NextRequest) {
 
       // HTTP caching headers for browser cache (works in serverless!)
       response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+      response.headers.set('ETag', cached.etag)
+      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
       return response
     }
 
@@ -218,8 +242,12 @@ export async function GET(request: NextRequest) {
       lastUpdated: now.toISOString()
     }
 
-    // Cache the result
-    cache.set(cacheKey, { data: stats, timestamp: Date.now() })
+    // Generate ETag from stats data
+    const etag = generateETag(stats)
+    const timestamp = Date.now()
+
+    // Cache the result with ETag
+    cache.set(cacheKey, { data: stats, timestamp, etag })
 
     const response = NextResponse.json({
       success: true,
@@ -228,6 +256,8 @@ export async function GET(request: NextRequest) {
 
     // HTTP caching headers for browser cache (30 min cache, 1 hour stale-while-revalidate)
     response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+    response.headers.set('ETag', etag)
+    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
 
     return response
 
