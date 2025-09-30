@@ -152,7 +152,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     )
 
     // Step 1: Delete from Supabase Auth (requires service role key)
+    // IMPORTANT: This will invalidate all active sessions for this user
+    // However, cached JWT tokens in browsers will remain valid until they expire (typically 1 hour)
+    // The AuthContext auto-logout for orphaned users will handle these cached sessions
     console.log('🔐 Admin: Deleting user from Supabase Auth...')
+    console.log('🔐 Admin: Note - Active JWT tokens will remain valid until expiry, but AuthContext will auto-logout orphaned users')
     let authDeleted = false
     const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
@@ -207,7 +211,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       message: authDeleted
-        ? 'User deleted successfully from both Prisma and Supabase Auth'
+        ? 'User deleted successfully from both Prisma and Supabase Auth. Active sessions will be auto-logged out by AuthContext.'
         : 'User deleted from Prisma database (Supabase Auth cleanup may have failed - check logs)',
       deleted: {
         userId: user.id,
@@ -219,6 +223,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         deletedFromAuth: authDeleted,
         deletedFromDatabase: true
       },
+      note: 'Cached JWT tokens in browsers will remain valid until expiry (typically 1 hour), but AuthContext will auto-logout orphaned users after 3 seconds.',
       timestamp: new Date().toISOString()
     })
 

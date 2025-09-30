@@ -289,8 +289,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // No memberships found - only set empty if we haven't loaded any before
         if (userTenants.length === 0) {
-          console.log('📝 AuthContext: No tenant memberships found (valid state)')
+          console.log('📝 AuthContext: No tenant memberships found')
           setUserTenants([])
+
+          // Security: Auto-logout orphaned users (deleted users with cached sessions)
+          // Wait 3 seconds to ensure this isn't a temporary loading issue
+          setTimeout(async () => {
+            // Double-check user still has no memberships after delay
+            const { data: recheckData } = await supabase
+              .from('tenant_memberships')
+              .select('tenantId')
+              .eq('userId', userId)
+              .limit(1)
+
+            if (!recheckData || recheckData.length === 0) {
+              console.warn('🚨 AuthContext: User has no memberships - orphaned account detected. Logging out...')
+              console.warn('🚨 This typically means the user was deleted but had a cached session.')
+
+              // Sign out the orphaned user
+              await supabase.auth.signOut()
+
+              // Redirect to login with message
+              if (typeof window !== 'undefined') {
+                const message = encodeURIComponent('Your account access has been removed. Please contact an administrator.')
+                window.location.href = `/login?error=${message}`
+              }
+            }
+          }, 3000)
         } else {
           console.log('📝 AuthContext: No memberships returned but keeping existing data to prevent race condition')
         }
