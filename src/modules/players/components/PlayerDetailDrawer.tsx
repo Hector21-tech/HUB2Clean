@@ -875,7 +875,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
           {/* Notes & Tags - Editable */}
           <section>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">📝 Scout Anteckningar</h3>
+              <h3 className="text-lg font-semibold text-white">📝 Scout Notes</h3>
               <div className="flex gap-2">
                 {!isEditingNotes ? (
                   <button
@@ -886,7 +886,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                     className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors duration-200"
                   >
                     <Edit className="w-4 h-4" />
-                    Redigera
+                    Edit
                   </button>
                 ) : (
                   <>
@@ -894,17 +894,17 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                       onClick={handleEnhanceNotes}
                       disabled={isEnhancingNotes || !editedNotes.trim()}
                       className="flex items-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded-lg transition-colors duration-200"
-                      title="Förbättra texten med AI - rättar grammatik och struktur utan att lägga till ny information"
+                      title="Enhance text with AI - corrects grammar and structure without adding new information"
                     >
                       {isEnhancingNotes ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          AI arbetar...
+                          AI working...
                         </>
                       ) : (
                         <>
                           <Bot className="w-4 h-4" />
-                          Skriv om med AI
+                          Rewrite with AI
                         </>
                       )}
                     </button>
@@ -943,7 +943,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
               {/* Notes Section */}
               <div>
                 <label className="text-sm font-medium text-white/60 block mb-2">
-                  Scout Anteckningar {isEditingNotes && <span className="text-purple-400">(AI kan förbättra din text)</span>}
+                  Scout Notes {isEditingNotes && <span className="text-purple-400">(AI can enhance your text)</span>}
                 </label>
                 {isEditingNotes ? (
                   <textarea
@@ -951,19 +951,19 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                     onChange={(e) => setEditedNotes(e.target.value)}
                     rows={6}
                     className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-vertical"
-                    placeholder="Skriv dina scout-anteckningar här... (t.ex. snabb spelare, bra teknik, behöver förbättra avslut)"
+                    placeholder="Write your scout notes here... (e.g. fast player, good technique, needs to improve finishing)"
                   />
                 ) : (
                   <div className="min-h-[100px] p-4 bg-white/5 rounded-lg border border-white/10">
                     {(() => {
                       // Remove mandate section from display notes
                       const notes = player.notes || ''
-                      const displayNotes = notes.replace(/MANDAT:[\s\S]*$/, '').trim()
+                      const displayNotes = notes.replace(/MANDATE:[\s\S]*$/, '').trim()
 
                       return displayNotes ? (
                         <p className="text-white leading-relaxed whitespace-pre-wrap">{displayNotes}</p>
                       ) : (
-                        <p className="text-white/40 italic">Inga anteckningar ännu. Klicka på "Redigera" för att lägga till.</p>
+                        <p className="text-white/40 italic">No notes yet. Click "Edit" to add.</p>
                       )
                     })()}
                   </div>
@@ -990,7 +990,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
               {/* Info Text */}
               <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
                 <p className="text-blue-400 text-xs">
-                  💡 Tips: Skriv stödord och tryck "Skriv om med AI" för professionella anteckningar. AI använder ENDAST din information - inget påhitt.
+                  💡 Tip: Write keywords and press "Rewrite with AI" for professional notes. AI uses ONLY your information - no fabrication.
                 </p>
               </div>
             </div>
