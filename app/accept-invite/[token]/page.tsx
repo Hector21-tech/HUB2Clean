@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Shield, Building2, UserPlus, Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface InvitationData {
   id: string
@@ -30,6 +31,7 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
   const [confirmPassword, setConfirmPassword] = useState('')
 
   const router = useRouter()
+  const supabase = createClient()
 
   useEffect(() => {
     params.then(({ token: unwrappedToken }) => {
@@ -90,9 +92,15 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
         setError(result.error || 'Failed to accept invitation')
         return
       }
+
+      // Clear any existing session (e.g., admin logged in same browser)
+      console.log('✅ Account created! Clearing old session and redirecting to login...')
+      await supabase.auth.signOut({ scope: 'global' })
+      await new Promise(resolve => setTimeout(resolve, 500))
+
       setSuccess(true)
       setTimeout(() => {
-        router.push(result.data.redirectUrl)
+        window.location.href = `/login?email=${encodeURIComponent(invitation?.email || '')}&message=account_created`
       }, 2000)
     } catch (err) {
       setError('Network error.')
@@ -142,11 +150,11 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">Welcome!</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">Account Created!</h2>
             <p className="text-slate-700 mb-2 font-medium">
-              You have successfully joined {invitation?.tenant.name}!
+              Welcome to {invitation?.tenant.name}!
             </p>
-            <p className="text-slate-600 mb-6">Redirecting...</p>
+            <p className="text-slate-600 mb-6">Redirecting to login...</p>
             <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto" />
           </div>
         </div>
