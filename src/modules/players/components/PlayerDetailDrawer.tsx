@@ -569,7 +569,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
           <section>
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <FileCheck className="w-5 h-5 text-blue-400" />
-              Kontrakt & Mandat
+              Contract & Mandate
             </h3>
             <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 sm:p-6 border border-white/20">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -916,12 +916,12 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                       {isSavingNotes ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Sparar...
+                          Saving...
                         </>
                       ) : (
                         <>
                           <Save className="w-4 h-4" />
-                          Spara
+                          Save
                         </>
                       )}
                     </button>
@@ -932,7 +932,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                       }}
                       className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors duration-200"
                     >
-                      Avbryt
+                      Cancel
                     </button>
                   </>
                 )}
@@ -1023,7 +1023,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                   ) : (
                     <FileText className="w-5 h-5" />
                   )}
-                  {isMobileDevice() && isShareSupported() ? 'Dela PDF' : 'Exportera PDF'}
+                  {isMobileDevice() && isShareSupported() ? 'Share PDF' : 'Export PDF'}
                 </>
               )}
             </button>
@@ -1035,10 +1035,10 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
       {showDeleteConfirm && (
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-10 p-4">
           <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 sm:p-6 max-w-md w-full">
-            <h3 className="text-lg font-semibold text-white mb-4">Ta bort spelare</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Delete Player</h3>
             <p className="text-white/80 mb-6">
-              Är du säker på att du vill ta bort <strong translate="no" lang="en">{player.firstName} {player.lastName}</strong>?
-              Detta går inte att ångra.
+              Are you sure you want to delete <strong translate="no" lang="en">{player.firstName} {player.lastName}</strong>?
+              This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
@@ -1046,7 +1046,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                 disabled={isDeleting}
                 className="flex-1 px-4 py-3 sm:py-2 bg-white/10 border border-white/20 text-white rounded-lg hover:bg-white/15 transition-colors duration-200 disabled:opacity-50 touch-none"
               >
-                Avbryt
+                Cancel
               </button>
               <button
                 onClick={async () => {
@@ -1064,7 +1064,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                 disabled={isDeleting}
                 className="flex-1 px-4 py-3 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200 disabled:opacity-50 touch-none"
               >
-                {isDeleting ? 'Tar bort...' : 'Ta bort'}
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
