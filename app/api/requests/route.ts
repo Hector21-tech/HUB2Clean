@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
           duration
         })
         const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
         response.headers.set('ETag', cached.etag)
         response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
         return response
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
         data: cached.data,
         cached: true
       })
-      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
       response.headers.set('ETag', cached.etag)
       response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
       return response
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: requests
     })
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
     response.headers.set('ETag', etag)
     response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
 

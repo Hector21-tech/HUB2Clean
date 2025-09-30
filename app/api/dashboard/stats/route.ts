@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
         console.log('⚡ Dashboard stats: 304 Not Modified (ETag match)')
         const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+        response.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600, stale-if-error=3600')
         response.headers.set('ETag', cached.etag)
         response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
         return response
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
       })
 
       // HTTP caching headers for browser cache (works in serverless!)
-      response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+      response.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600, stale-if-error=3600')
       response.headers.set('ETag', cached.etag)
       response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
       return response
@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
     })
 
     // HTTP caching headers for browser cache (30 min cache, 1 hour stale-while-revalidate)
-    response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600')
+    response.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=3600, stale-if-error=3600')
     response.headers.set('ETag', etag)
     response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
 

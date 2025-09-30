@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       if (ifNoneMatch && ifNoneMatch === cached.etag) {
         console.log('⚡ Calendar events: 304 Not Modified (ETag match)')
         const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
         response.headers.set('ETag', cached.etag)
         response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
         return response
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       })
 
       // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
-      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
       response.headers.set('ETag', cached.etag)
       response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
       return response
@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
     })
 
     // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
-    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
     response.headers.set('ETag', etag)
     response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
 
