@@ -167,13 +167,13 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   }
 
   const generatePDFContent = (player: Player, notesContent: string | null) => {
-    const currentDate = new Date().toLocaleDateString('sv-SE')
+    const currentDate = new Date().toLocaleDateString('en-US')
     const age = calculateAge(player.dateOfBirth)
     const positions = formatPositionsDisplay(player.positions || []) || 'Player'
 
     const formatDate = (date?: Date) => {
-      if (!date) return 'Ej angivet'
-      return new Date(date).toLocaleDateString('sv-SE')
+      if (!date) return 'Not specified'
+      return new Date(date).toLocaleDateString('en-US')
     }
 
     return `<!DOCTYPE html>
@@ -338,38 +338,38 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
 
     <div class="info-grid">
         <div class="info-section">
-            <h3>Personlig Information</h3>
+            <h3>Personal Information</h3>
             <div class="info-item">
-                <span class="info-label">Ålder:</span>
-                <span class="info-value">${age || 'Ej angivet'} år</span>
+                <span class="info-label">Age:</span>
+                <span class="info-value">${age || 'Not specified'} years</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Längd:</span>
-                <span class="info-value">${player.height ? player.height + ' cm' : 'Ej angivet'}</span>
+                <span class="info-label">Height:</span>
+                <span class="info-value">${player.height ? player.height + ' cm' : 'Not specified'}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Födelsedatum:</span>
-                <span class="info-value">${player.dateOfBirth ? formatDate(player.dateOfBirth) : 'Ej angivet'}</span>
+                <span class="info-label">Date of Birth:</span>
+                <span class="info-value">${player.dateOfBirth ? formatDate(player.dateOfBirth) : 'Not specified'}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Nationalitet:</span>
-                <span class="info-value">${player.nationality || 'Ej angivet'}</span>
+                <span class="info-label">Nationality:</span>
+                <span class="info-value">${player.nationality || 'Not specified'}</span>
             </div>
         </div>
 
         <div class="info-section">
-            <h3>Klubb & Kontrakt</h3>
+            <h3>Club & Contract</h3>
             <div class="info-item">
-                <span class="info-label">Nuvarande klubb:</span>
-                <span class="info-value">${player.club || 'Ej angivet'}</span>
+                <span class="info-label">Current club:</span>
+                <span class="info-value">${player.club || 'Not specified'}</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Kontraktstart:</span>
-                <span class="info-value">Ej angivet</span>
+                <span class="info-label">Contract start:</span>
+                <span class="info-value">Not specified</span>
             </div>
             <div class="info-item">
-                <span class="info-label">Kontraktslut:</span>
-                <span class="info-value">${player.contractExpiry ? formatDate(player.contractExpiry) : 'Ej angivet'}</span>
+                <span class="info-label">Contract end:</span>
+                <span class="info-value">${player.contractExpiry ? formatDate(player.contractExpiry) : 'Not specified'}</span>
             </div>
         </div>
     </div>
@@ -577,27 +577,27 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Calendar className="w-5 h-5 text-blue-400" />
-                    <h4 className="text-base font-semibold text-white">Klubb-kontrakt</h4>
+                    <h4 className="text-base font-semibold text-white">Club Contract</h4>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-white/60">Nuvarande klubb</label>
+                    <label className="text-sm font-medium text-white/60">Current club</label>
                     <p className="text-lg font-semibold text-white">
                       {player.club || '🟡 Free Agent'}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-white/60">Kontrakt utgår</label>
+                    <label className="text-sm font-medium text-white/60">Contract expiry</label>
                     {player.contractExpiry ? (
                       <div>
                         <p className="text-lg font-semibold text-white">
                           {formatDate(player.contractExpiry)}
                         </p>
                         <p className="text-xs text-white/60 mt-1">
-                          Spelarens kontrakt med klubben
+                          Player's contract with club
                         </p>
                       </div>
                     ) : (
-                      <p className="text-base text-white/60">Inget angivet</p>
+                      <p className="text-base text-white/60">Not specified</p>
                     )}
                   </div>
                 </div>
@@ -606,23 +606,23 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-3">
                     <FileCheck className="w-5 h-5 text-green-400" />
-                    <h4 className="text-base font-semibold text-white">Agent-kontrakt</h4>
+                    <h4 className="text-base font-semibold text-white">Agency Contract</h4>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-white/60">Status</label>
                     {player.agencyContractExpiry ? (
                       <p className="text-lg font-semibold text-green-400">
-                        ✅ Aktivt kontrakt
+                        ✅ Active contract
                       </p>
                     ) : (
                       <p className="text-base text-white/60">
-                        Inget agent-kontrakt registrerat
+                        No agency contract registered
                       </p>
                     )}
                   </div>
                   {player.agencyContractExpiry && (
                     <div>
-                      <label className="text-sm font-medium text-white/60">Kontrakt utgår</label>
+                      <label className="text-sm font-medium text-white/60">Contract expiry</label>
                       {(() => {
                         const today = new Date()
                         const agencyContractDate = new Date(player.agencyContractExpiry)
@@ -633,16 +633,16 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                         const monthsUntilExpiry = Math.floor(daysUntilExpiry / 30)
 
                         let statusColor = 'text-green-400'
-                        let statusText = `${monthsUntilExpiry} månader kvar`
+                        let statusText = `${monthsUntilExpiry} months remaining`
                         let statusIcon = '🟢'
 
                         if (agencyContractDate < today) {
                           statusColor = 'text-red-400'
-                          statusText = 'Utgånget'
+                          statusText = 'Expired'
                           statusIcon = '🔴'
                         } else if (agencyContractDate < sixMonthsFromNow) {
                           statusColor = 'text-yellow-400'
-                          statusText = `${daysUntilExpiry} dagar kvar`
+                          statusText = `${daysUntilExpiry} days remaining`
                           statusIcon = '🟡'
                         }
 
@@ -652,7 +652,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                               {formatDate(player.agencyContractExpiry)}
                             </p>
                             <p className={`text-sm ${statusColor} mt-1 flex items-center gap-1`}>
-                              {statusIcon} {statusText} (FIFA max 2 år)
+                              {statusIcon} {statusText} (FIFA max 2 years)
                             </p>
                           </div>
                         )
@@ -665,12 +665,12 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-3">
                     <FileCheck className="w-5 h-5 text-purple-400" />
-                    <h4 className="text-base font-semibold text-white">Mandat</h4>
+                    <h4 className="text-base font-semibold text-white">Mandate</h4>
                   </div>
                   {(() => {
                     // Parse mandate info from notes
                     const notes = player.notes || ''
-                    const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([\s\S]*)/)
+                    const mandateMatch = notes.match(/MANDATE:\s*Clubs:\s*([^\n]*)\s*Valid until:\s*([^\n]*)\s*Description:\s*([\s\S]*)/)
 
                     if (mandateMatch) {
                       const clubs = mandateMatch[1]?.trim()
@@ -682,24 +682,24 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                           <div>
                             <label className="text-sm font-medium text-white/60">Status</label>
                             <p className="text-lg font-semibold text-purple-400">
-                              ✅ Vi har mandat
+                              ✅ We have mandate
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-white/60">Klubbar</label>
+                            <label className="text-sm font-medium text-white/60">Clubs</label>
                             <p className="text-base text-white">
-                              {clubs || 'Ej angivet'}
+                              {clubs || 'Not specified'}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-white/60">Gäller till</label>
+                            <label className="text-sm font-medium text-white/60">Valid until</label>
                             <p className="text-base text-white">
-                              {expiryDate || 'Ej angivet'}
+                              {expiryDate || 'Not specified'}
                             </p>
                           </div>
-                          {description && description !== 'Inget specificerat' && (
+                          {description && description !== 'Not specified' && (
                             <div>
-                              <label className="text-sm font-medium text-white/60">Beskrivning</label>
+                              <label className="text-sm font-medium text-white/60">Description</label>
                               <p className="text-sm text-white/80">
                                 {description}
                               </p>
@@ -712,10 +712,10 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                         <div>
                           <label className="text-sm font-medium text-white/60">Status</label>
                           <p className="text-base text-white/60">
-                            Inget mandat registrerat
+                            No mandate registered
                           </p>
                           <p className="text-xs text-white/40 mt-2">
-                            Lägg till mandat via "Redigera spelare"
+                            Add mandate via "Edit player"
                           </p>
                         </div>
                       )

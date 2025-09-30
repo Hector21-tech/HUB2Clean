@@ -198,12 +198,12 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
                       const agencyContractDate = new Date(player.agencyContractExpiry)
 
                       if (agencyContractDate < today) {
-                        return '🔴 Agent-kontrakt utgånget'
+                        return '🔴 Agency contract expired'
                       } else {
-                        return `Agent: ${new Date(player.agencyContractExpiry).toLocaleDateString('sv-SE')}`
+                        return `Agency: ${new Date(player.agencyContractExpiry).toLocaleDateString('en-US')}`
                       }
                     })()
-                  : 'Inget agent-kontrakt'
+                  : 'No agency contract'
               }
             </span>
           </div>

@@ -101,7 +101,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
       // Parse notes to extract mandate info if it exists
       const notes = editingPlayer.notes || ''
-      const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([\s\S]*)/)
+      const mandateMatch = notes.match(/MANDATE:\s*Clubs:\s*([^\n]*)\s*Valid until:\s*([^\n]*)\s*Description:\s*([\s\S]*)/)
 
       setFormData({
         firstName: editingPlayer.firstName || '',
@@ -234,14 +234,14 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
       today.setHours(0, 0, 0, 0)
 
       if (contractDate < today) {
-        newErrors.contractExpiry = 'Klubb-kontrakt måste vara i framtiden'
+        newErrors.contractExpiry = 'Club contract must be in the future'
       }
 
       // Reasonable max: 10 years
       const maxDate = new Date()
       maxDate.setFullYear(maxDate.getFullYear() + 10)
       if (contractDate > maxDate) {
-        newErrors.contractExpiry = 'Klubb-kontrakt kan max vara 10 år (rimlig gräns)'
+        newErrors.contractExpiry = 'Club contract can be max 10 years (reasonable limit)'
       }
     }
 
@@ -252,14 +252,14 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
       today.setHours(0, 0, 0, 0)
 
       if (agencyContractDate < today) {
-        newErrors.agencyContractExpiry = 'Agent-kontrakt måste vara i framtiden'
+        newErrors.agencyContractExpiry = 'Agency contract must be in the future'
       }
 
       // FIFA Rule: Maximum 2 years for agency contracts
       const maxDate = new Date()
       maxDate.setFullYear(maxDate.getFullYear() + 2)
       if (agencyContractDate > maxDate) {
-        newErrors.agencyContractExpiry = 'Agent-kontrakt får max vara 2 år enligt FIFA-regler'
+        newErrors.agencyContractExpiry = 'Agency contract can be max 2 years according to FIFA rules'
       }
     }
 
@@ -283,7 +283,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
       // Build notes with mandate info if applicable
       let finalNotes = formData.notes.trim()
       if (formData.hasMandate && formData.mandateClubs && formData.mandateExpiry) {
-        const mandateSection = `\n\nMANDAT:\nKlubbar: ${formData.mandateClubs}\nGäller till: ${formData.mandateExpiry}\nBeskrivning: ${formData.mandateNotes || 'Inget specificerat'}`
+        const mandateSection = `\n\nMANDATE:\nClubs: ${formData.mandateClubs}\nValid until: ${formData.mandateExpiry}\nDescription: ${formData.mandateNotes || 'Not specified'}`
         finalNotes = finalNotes + mandateSection
       }
 
@@ -609,7 +609,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                 <div>
                   <label className="block text-sm font-medium text-white/60 mb-2">
                     <Calendar className="w-4 h-4 inline mr-1" />
-                    Klubb-kontrakt utgår (valfritt)
+                    Club Contract Expiry (Optional)
                   </label>
                   <input
                     type="date"
@@ -633,7 +633,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                     `}
                   />
                   <p className="text-xs text-white/50 mt-1">
-                    När går spelarens kontrakt med {formData.club} ut? (Max 10 år)
+                    When does player's contract with {formData.club} expire? (Max 10 years)
                   </p>
                   {errors.contractExpiry && (
                     <p className="text-red-400 text-sm mt-1">{errors.contractExpiry}</p>
@@ -645,7 +645,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-2">
                   <Calendar className="w-4 h-4 inline mr-1" />
-                  Agent-kontrakt utgår (valfritt)
+                  Agency Contract Expiry (Optional)
                 </label>
                 <input
                   type="date"
@@ -681,13 +681,13 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
                     return isValid ? (
                       <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
-                        ✅ Giltigt agent-kontrakt ({monthsUntilExpiry} månader, inom FIFA 2-års regel)
+                        ✅ Valid agency contract ({monthsUntilExpiry} months, within FIFA 2-year rule)
                       </p>
                     ) : null
                   })()
                 )}
                 <p className="text-xs text-white/50 mt-1">
-                  När går ert kontrakt med spelaren ut? (Max 2 år enligt FIFA)
+                  When does your contract with the player expire? (Max 2 years per FIFA)
                 </p>
                 {errors.agencyContractExpiry && (
                   <p className="text-red-400 text-sm mt-1">{errors.agencyContractExpiry}</p>
@@ -779,7 +779,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                   className="w-4 h-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-2 focus:ring-blue-400/20"
                 />
                 <label htmlFor="hasMandate" className="text-base font-medium text-white">
-                  📋 Vi har mandat för spelaren
+                  📋 We have mandate for this player
                 </label>
               </div>
 
@@ -789,7 +789,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                     <div>
                       <label className="block text-sm font-medium text-white/60 mb-2">
                         <Calendar className="w-4 h-4 inline mr-1" />
-                        Mandat gäller till *
+                        Mandate Valid Until *
                       </label>
                       <input
                         type="date"
@@ -811,18 +811,18 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
                           transition-all duration-200
                         "
                       />
-                      <p className="text-xs text-white/50 mt-1">Max 2 år enligt FIFA</p>
+                      <p className="text-xs text-white/50 mt-1">Max 2 years per FIFA</p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-white/60 mb-2">
-                        Klubbar som mandatet gäller för *
+                        Clubs the mandate applies to *
                       </label>
                       <input
                         type="text"
                         value={formData.mandateClubs}
                         onChange={(e) => handleInputChange('mandateClubs', e.target.value)}
-                        placeholder="t.ex. AIK, IFK Göteborg, Malmö FF"
+                        placeholder="e.g. Real Madrid, Barcelona, Bayern München"
                         className="
                           w-full px-3 sm:px-4 py-3
                           bg-white/5 backdrop-blur-sm
@@ -838,13 +838,13 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
                   <div>
                     <label className="block text-sm font-medium text-white/60 mb-2">
-                      Beskrivning av mandatet (valfritt)
+                      Mandate Description (Optional)
                     </label>
                     <textarea
                       value={formData.mandateNotes}
                       onChange={(e) => handleInputChange('mandateNotes', e.target.value)}
                       rows={2}
-                      placeholder="T.ex. Exklusivt mandat för försäljning, representationsrättigheter, etc."
+                      placeholder="e.g. Exclusive mandate for sale, representation rights, etc."
                       className="
                         w-full px-3 sm:px-4 py-3
                         bg-white/5 backdrop-blur-sm
