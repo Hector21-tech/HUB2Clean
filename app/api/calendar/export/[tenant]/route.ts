@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { exportEventsToIcs } from '@/modules/calendar/utils/calendar-export'
 import { CalendarEvent } from '@/modules/calendar/types/calendar'
-
-const prisma = new PrismaClient()
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

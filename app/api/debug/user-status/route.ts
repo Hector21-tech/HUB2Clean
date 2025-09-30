@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // Debug endpoint to check user status and memberships (NO AUTH REQUIRED)
 export async function GET(request: NextRequest) {

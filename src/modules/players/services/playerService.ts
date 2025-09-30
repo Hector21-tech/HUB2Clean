@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { Player, PlayerFilters } from '../types/player'
-
-const prisma = new PrismaClient()
 
 export class PlayerService {
   // Helper function to convert database position (string) to frontend positions (array)

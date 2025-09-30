@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
 import { requireTenant } from '@/lib/server/authz'
 import { Logger, createLogContext } from '@/lib/logger'
-
-const prisma = new PrismaClient()
 
 // Aggressive caching for requests data
 const cache = new Map<string, { data: any, timestamp: number }>()

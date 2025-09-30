@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { CalendarEvent, CreateEventInput, UpdateEventInput, CalendarFilters } from '../types/calendar'
-
-const prisma = new PrismaClient()
 
 export class CalendarService {
   async createEvent(tenantId: string, data: CreateEventInput, trialId?: string): Promise<CalendarEvent> {

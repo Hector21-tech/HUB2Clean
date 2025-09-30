@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { requireTenant } from '@/lib/server/authz'
-
-const prisma = new PrismaClient()
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'

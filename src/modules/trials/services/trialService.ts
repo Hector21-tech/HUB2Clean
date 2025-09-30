@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '@/lib/prisma'
 import { Trial, TrialFilters, CreateTrialInput, UpdateTrialInput, TrialEvaluationInput, TrialStats } from '../types/trial'
 import { calendarService } from '../../calendar/services/calendarService'
-
-const prisma = new PrismaClient()
 
 export class TrialService {
   async getTrials(tenantId: string, filters?: TrialFilters): Promise<Trial[]> {
