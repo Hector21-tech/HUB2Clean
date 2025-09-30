@@ -116,7 +116,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         agencyContractExpiry: editingPlayer.agencyContractExpiry ?
           new Date(editingPlayer.agencyContractExpiry).toISOString().split('T')[0] : '',
         height: editingPlayer.height ? String(editingPlayer.height) : '',
-        notes: mandateMatch ? notes.replace(/MANDAT:.*$/s, '').trim() : notes,
+        notes: mandateMatch ? notes.replace(/MANDAT:[\s\S]*$/, '').trim() : notes,
         rating: editingPlayer.rating ? String(editingPlayer.rating) : '',
         avatarPath: editingPlayer.avatarPath || '',
         hasMandate: !!mandateMatch,
