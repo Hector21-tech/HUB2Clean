@@ -24,6 +24,7 @@ model Tenant {
 
   // Relations
   memberships TenantMembership[]
+  invitations Invitation[]
   players     Player[]
   requests    Request[]
   trials      Trial[]
@@ -71,6 +72,35 @@ enum TenantRole {
   MANAGER
   SCOUT
   VIEWER
+}
+
+// Invitation management
+model Invitation {
+  id        String   @id @default(cuid())
+  email     String   // Email of person being invited
+  tenantId  String
+  role      TenantRole @default(SCOUT)
+  token     String   @unique // Unique invitation token
+  invitedBy String?  // User ID of person who sent invite
+  status    InvitationStatus @default(PENDING)
+  expiresAt DateTime // Invitation expiry
+  createdAt DateTime @default(now())
+  acceptedAt DateTime? // When invitation was accepted
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([tenantId])
+  @@index([token])
+  @@map("invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
 }
 
 // Player management
