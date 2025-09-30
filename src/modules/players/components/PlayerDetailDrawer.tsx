@@ -670,7 +670,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                   {(() => {
                     // Parse mandate info from notes
                     const notes = player.notes || ''
-                    const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([^\n]*)/s)
+                    const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([\s\S]*)/)
 
                     if (mandateMatch) {
                       const clubs = mandateMatch[1]?.trim()
