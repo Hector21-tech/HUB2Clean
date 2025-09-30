@@ -110,8 +110,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Ensure user exists in our database
+  // Cache synced user IDs in memory to prevent duplicate sync calls
+  const syncedUsers = React.useRef<Set<string>>(new Set())
+
+  // Ensure user exists in our database (with caching to prevent duplicate calls)
   const ensureUserInDatabase = async (user: User) => {
+    // Skip if already synced this session
+    if (syncedUsers.current.has(user.id)) {
+      console.log('📍 AuthContext: User already synced this session, skipping')
+      return
+    }
+
     try {
       const { apiFetch } = await import('@/lib/api-config')
       await apiFetch('/api/users/sync', {
@@ -124,6 +133,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           avatarUrl: user.user_metadata?.avatarUrl || user.user_metadata?.avatar_url
         })
       })
+      // Mark as synced
+      syncedUsers.current.add(user.id)
+      console.log('✅ AuthContext: User synced successfully')
     } catch (error) {
       console.error('Error syncing user to database:', error)
     }
