@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
 import crypto from 'crypto'
 import { sendInvitationEmail } from '@/lib/email/send-invitation'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 // POST: Bjud in användare till tenant via invitation token
 export async function POST(request: NextRequest) {
@@ -163,7 +161,5 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     }, { status: 500 })
-  } finally {
-    await prisma.$disconnect()
   }
 }
