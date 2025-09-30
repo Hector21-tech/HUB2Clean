@@ -27,7 +27,8 @@ export function TrialsPage() {
   const [showEvaluateModal, setShowEvaluateModal] = useState(false)
   const [evaluateTrial, setEvaluateTrial] = useState<Trial | null>(null)
 
-  // Fetch trials with filters
+  // Fetch all trials (for counts) and filtered trials
+  const { data: allTrials = [] } = useTrialsQuery(tenantId, {}) // No filters for counts
   const { data: trials = [], isLoading, error } = useTrialsQuery(tenantId, filters)
   const deleteTrial = useDeleteTrial(tenantId)
 
@@ -144,6 +145,7 @@ export function TrialsPage() {
           completedCount={stats.completed}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
+          allTrials={allTrials}
         />
 
           {/* Loading State */}

@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Filter, Calendar, Users, TrendingUp, Grid, List } from 'lucide-react'
-import { TrialFilters, TrialStatus } from '../types/trial'
+import { Plus, Search, Calendar, Users, TrendingUp, Grid, List, X } from 'lucide-react'
+import { TrialFilters, TrialStatus, Trial } from '../types/trial'
 
 interface TrialsHeaderProps {
   onAddTrial: () => void
@@ -12,14 +12,16 @@ interface TrialsHeaderProps {
   completedCount: number
   viewMode: 'grid' | 'list'
   onViewModeChange: (mode: 'grid' | 'list') => void
+  allTrials: Trial[] // Need all trials to calculate counts per status
 }
 
-const statusOptions: { value: TrialStatus; label: string }[] = [
-  { value: 'SCHEDULED', label: 'Scheduled' },
-  { value: 'IN_PROGRESS', label: 'In Progress' },
-  { value: 'COMPLETED', label: 'Completed' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-  { value: 'NO_SHOW', label: 'No Show' }
+const statusOptions: { value: TrialStatus | 'ALL'; label: string; color: string }[] = [
+  { value: 'ALL', label: 'All', color: 'bg-white/10 text-white' },
+  { value: 'SCHEDULED', label: 'Scheduled', color: 'bg-blue-600/20 text-blue-300' },
+  { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-yellow-600/20 text-yellow-300' },
+  { value: 'COMPLETED', label: 'Completed', color: 'bg-green-600/20 text-green-300' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'bg-red-600/20 text-red-300' },
+  { value: 'NO_SHOW', label: 'No Show', color: 'bg-gray-600/20 text-gray-300' }
 ]
 
 export function TrialsHeader({
@@ -29,43 +31,41 @@ export function TrialsHeader({
   upcomingCount,
   completedCount,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  allTrials
 }: TrialsHeaderProps) {
   const [search, setSearch] = useState('')
-  const [selectedStatuses, setSelectedStatuses] = useState<TrialStatus[]>([])
-  const [showFilters, setShowFilters] = useState(false)
+  const [selectedStatus, setSelectedStatus] = useState<TrialStatus | 'ALL'>('ALL')
+
+  // Calculate count for each status
+  const getStatusCount = (status: TrialStatus | 'ALL'): number => {
+    if (status === 'ALL') return allTrials.length
+    return allTrials.filter(t => t.status === status).length
+  }
 
   const handleSearchChange = (value: string) => {
     setSearch(value)
     onFiltersChange({
       search: value || undefined,
-      status: selectedStatuses.length > 0 ? selectedStatuses : undefined
+      status: selectedStatus !== 'ALL' ? [selectedStatus as TrialStatus] : undefined
     })
   }
 
-  const handleStatusChange = (status: TrialStatus, checked: boolean) => {
-    let newStatuses: TrialStatus[]
-
-    if (checked) {
-      newStatuses = [...selectedStatuses, status]
-    } else {
-      newStatuses = selectedStatuses.filter(s => s !== status)
-    }
-
-    setSelectedStatuses(newStatuses)
+  const handleStatusClick = (status: TrialStatus | 'ALL') => {
+    setSelectedStatus(status)
     onFiltersChange({
       search: search || undefined,
-      status: newStatuses.length > 0 ? newStatuses : undefined
+      status: status !== 'ALL' ? [status as TrialStatus] : undefined
     })
   }
 
   const clearFilters = () => {
     setSearch('')
-    setSelectedStatuses([])
+    setSelectedStatus('ALL')
     onFiltersChange({})
   }
 
-  const hasActiveFilters = search.length > 0 || selectedStatuses.length > 0
+  const hasActiveFilters = search.length > 0 || selectedStatus !== 'ALL'
 
   return (
     <div className="space-y-4">
@@ -155,7 +155,8 @@ export function TrialsHeader({
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4">
+      <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4 space-y-4">
+        {/* Search Row */}
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search */}
           <div className="flex-1 relative">
@@ -169,65 +170,47 @@ export function TrialsHeader({
             />
           </div>
 
-          {/* Filter Button */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className={`
-              inline-flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors
-              ${hasActiveFilters
-                ? 'bg-blue-600/20 border-blue-400/30 text-blue-300'
-                : 'border-white/20 text-white/60 hover:bg-white/10'
-              }
-            `}
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {hasActiveFilters && (
-              <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                {selectedStatuses.length + (search ? 1 : 0)}
-              </span>
-            )}
-          </button>
-
           {/* Clear Filters */}
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
-              className="px-4 py-2 text-white/60 hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 text-white/60 hover:text-white transition-colors border border-white/20 rounded-lg hover:bg-white/10"
             >
+              <X className="w-4 h-4" />
               Clear
             </button>
           )}
         </div>
 
-        {/* Filter Panel */}
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-white/20">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Status
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {statusOptions.map((option) => (
-                    <label
-                      key={option.value}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedStatuses.includes(option.value)}
-                        onChange={(e) => handleStatusChange(option.value, e.target.checked)}
-                        className="rounded border-white/30 bg-white/10 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-white/70">{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Quick Filter Chips */}
+        <div className="flex flex-wrap gap-2">
+          {statusOptions.map((option) => {
+            const count = getStatusCount(option.value)
+            const isActive = selectedStatus === option.value
+
+            return (
+              <button
+                key={option.value}
+                onClick={() => handleStatusClick(option.value)}
+                className={`
+                  inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-200
+                  ${isActive
+                    ? `${option.color} border-current font-medium shadow-lg`
+                    : 'bg-white/5 border-white/20 text-white/60 hover:bg-white/10 hover:text-white'
+                  }
+                `}
+              >
+                <span className="text-sm">{option.label}</span>
+                <span className={`
+                  text-xs px-1.5 py-0.5 rounded-full
+                  ${isActive ? 'bg-white/20' : 'bg-white/10'}
+                `}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )

@@ -18,10 +18,49 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get trials for the tenant
+    // Parse filter parameters
+    const statusParam = searchParams.get('status')
+    const search = searchParams.get('search')
+    const playerId = searchParams.get('playerId')
+    const requestId = searchParams.get('requestId')
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
+
+    const statusFilter = statusParam ? statusParam.split(',') : undefined
+
+    // Build where clause with filters
     const trials = await prisma.trial.findMany({
       where: {
-        tenantId: tenant
+        tenantId: tenant,
+
+        // Status filter
+        ...(statusFilter && statusFilter.length > 0 && {
+          status: { in: statusFilter as any }
+        }),
+
+        // Player filter
+        ...(playerId && { playerId }),
+
+        // Request filter
+        ...(requestId && { requestId }),
+
+        // Date range filter
+        ...(dateFrom && {
+          scheduledAt: { gte: new Date(dateFrom) }
+        }),
+        ...(dateTo && {
+          scheduledAt: { lte: new Date(dateTo) }
+        }),
+
+        // Search filter (player name, location, notes)
+        ...(search && {
+          OR: [
+            { player: { firstName: { contains: search, mode: 'insensitive' } } },
+            { player: { lastName: { contains: search, mode: 'insensitive' } } },
+            { location: { contains: search, mode: 'insensitive' } },
+            { notes: { contains: search, mode: 'insensitive' } }
+          ]
+        })
       },
       include: {
         player: {
