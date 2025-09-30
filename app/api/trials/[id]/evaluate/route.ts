@@ -44,8 +44,7 @@ export async function POST(
       where: { id },
       data: {
         ...body,
-        status: 'EVALUATED',
-        evaluatedAt: new Date(),
+        status: 'COMPLETED',
         updatedAt: new Date()
       },
       include: {
