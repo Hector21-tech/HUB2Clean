@@ -101,7 +101,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
       // Parse notes to extract mandate info if it exists
       const notes = editingPlayer.notes || ''
-      const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([^\n]*)/s)
+      const mandateMatch = notes.match(/MANDAT:\s*Klubbar:\s*([^\n]*)\s*Gäller till:\s*([^\n]*)\s*Beskrivning:\s*([\s\S]*)/)
 
       setFormData({
         firstName: editingPlayer.firstName || '',
