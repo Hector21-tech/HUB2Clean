@@ -144,6 +144,22 @@ function AcceptInviteContent() {
         setError(result.error || 'Failed to accept invitation')
         return
       }
+
+      // Auto-login after successful account creation
+      console.log('✅ Account created, auto-logging in...')
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invitation?.email || '',
+        password: password
+      })
+
+      if (signInError) {
+        console.error('⚠️ Auto-login failed:', signInError)
+        // Still show success, but user will need to login manually
+        setError('Account created! Please login manually.')
+        return
+      }
+
+      console.log('✅ Auto-login successful!')
       setSuccess(true)
       setTimeout(() => {
         router.push(result.data.redirectUrl)
