@@ -148,6 +148,11 @@ function AcceptInviteContent() {
       // Auto-login after successful account creation with retry logic
       console.log('✅ Account created, attempting auto-login...')
 
+      // CRITICAL: Clear any existing session first (e.g., admin logged in same browser)
+      console.log('🧹 Clearing existing session before auto-login...')
+      await supabase.auth.signOut({ scope: 'global' })
+      await new Promise(resolve => setTimeout(resolve, 500)) // Wait for signOut to complete
+
       let loginSuccess = false
       let lastError = null
 
