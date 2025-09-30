@@ -149,7 +149,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
     setSubmitError('')
   }, [editingPlayer, isOpen])
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
