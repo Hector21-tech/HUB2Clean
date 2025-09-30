@@ -1,26 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
-    // Skip CSRF check in development for testing
-    const isDevelopment = process.env.NODE_ENV === 'development'
+    const body = await request.json()
+    const { id, email, firstName, lastName, avatarUrl } = body
 
-    // Minimal implementation for user sync
-    // In development mode, just return success
-    if (isDevelopment) {
-      return NextResponse.json({ success: true, message: 'Development mode - user sync simulated' })
+    if (!id || !email) {
+      return NextResponse.json(
+        { success: false, error: 'User ID and email are required' },
+        { status: 400 }
+      )
     }
 
-    const body = await request.json()
+    console.log('🔄 User sync: Syncing user to database', {
+      userId: id,
+      email,
+      firstName,
+      lastName
+    })
 
-    // TODO: Implement actual user sync logic when needed
-    console.log('User sync requested:', body)
+    // Upsert user in Prisma database
+    const user = await prisma.user.upsert({
+      where: { id },
+      update: {
+        email,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        avatarUrl: avatarUrl || null
+      },
+      create: {
+        id,
+        email,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        avatarUrl: avatarUrl || null
+      }
+    })
 
-    return NextResponse.json({ success: true })
+    console.log('✅ User sync: Successfully synced user', {
+      userId: user.id,
+      email: user.email
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      }
+    })
   } catch (error) {
-    console.error('User sync error:', error)
+    console.error('❌ User sync error:', error)
     return NextResponse.json(
-      { success: false, error: 'User sync failed' },
+      {
+        success: false,
+        error: 'User sync failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

@@ -61,12 +61,7 @@ export function getApiBaseUrl(): string {
   // Client-side: environment-specific URLs
   const isDev = process.env.NODE_ENV === 'development'
 
-  if (isDev) {
-    // Development: use localhost with correct port (Next.js currently on 3006)
-    return 'http://localhost:3006'
-  }
-
-  // Production/Preview: use current origin (same-origin requests)
+  // Always use current origin for same-origin requests (works in both dev and prod)
   return window.location.origin
 }
 

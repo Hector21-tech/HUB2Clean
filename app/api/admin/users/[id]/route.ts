@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@supabase/supabase-js'
 
 interface RouteParams {
   params: Promise<{
@@ -110,12 +111,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE: Radera användare helt från systemet
+// DELETE: Radera användare helt från systemet (både Prisma och Supabase Auth)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id: userId } = await params
 
-    console.log('🗑️ Admin: Deleting user:', userId)
+    console.log('🗑️ Admin: Deleting user from both Prisma and Supabase Auth:', userId)
 
     // Verify user exists first
     const user = await prisma.user.findUnique({
@@ -134,16 +135,44 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: 'User not found'
+        error: 'User not found in database'
       }, { status: 404 })
     }
 
-    // Delete user (cascades to memberships due to Prisma schema onDelete: Cascade)
+    // Initialize Supabase Admin client for user deletion
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Step 1: Delete from Supabase Auth (requires service role key)
+    console.log('🔐 Admin: Deleting user from Supabase Auth...')
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+
+    if (authDeleteError) {
+      // Log warning but continue - user might not exist in Auth anymore
+      console.warn('⚠️ Admin: Supabase Auth deletion warning:', authDeleteError.message)
+      // Don't fail the entire operation if user doesn't exist in Auth
+      if (!authDeleteError.message.includes('not found') && !authDeleteError.message.includes('User not found')) {
+        throw new Error(`Supabase Auth deletion failed: ${authDeleteError.message}`)
+      }
+    } else {
+      console.log('✅ Admin: Successfully deleted user from Supabase Auth')
+    }
+
+    // Step 2: Delete from Prisma database (cascades to memberships)
+    console.log('💾 Admin: Deleting user from Prisma database...')
     await prisma.user.delete({
       where: { id: userId }
     })
 
-    console.log('✅ Admin: Successfully deleted user:', {
+    console.log('✅ Admin: Successfully deleted user from both systems:', {
       userId,
       email: user.email,
       membershipCount: user.memberships.length
@@ -151,14 +180,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: 'User deleted successfully',
+      message: 'User deleted successfully from both Prisma and Supabase Auth',
       deleted: {
         userId: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         membershipCount: user.memberships.length,
-        tenants: user.memberships.map(m => m.tenant.name)
+        tenants: user.memberships.map(m => m.tenant.name),
+        deletedFromAuth: !authDeleteError,
+        deletedFromDatabase: true
       },
       timestamp: new Date().toISOString()
     })
@@ -170,6 +201,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       success: false,
       error: 'Failed to delete user',
       details: error instanceof Error ? error.message : 'Unknown error',
+      hint: 'Check that SUPABASE_SERVICE_ROLE_KEY is set in environment variables',
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }

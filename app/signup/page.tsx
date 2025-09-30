@@ -59,10 +59,7 @@ export default function SignUpPage() {
 
       if (data.user) {
         setSuccess(true)
-        // Redirect after a short delay
-        setTimeout(() => {
-          router.push('/login?message=Please check your email to confirm your account')
-        }, 2000)
+        // No auto-redirect - let user read message and click button
       }
     } catch (err) {
       setError('An unexpected error occurred')
@@ -78,14 +75,32 @@ export default function SignUpPage() {
         <div className="w-full max-w-md">
           <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-8 text-center shadow-xl shadow-blue-100/50">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UserPlus className="w-8 h-8 text-green-600" />
+              <Mail className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Account Created!</h2>
-            <p className="text-slate-600 mb-4">
-              Please check your email for a confirmation link to complete your registration.
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">Check Your Email! 📧</h2>
+            <p className="text-slate-700 mb-2 font-medium">
+              Account created successfully!
             </p>
-            <p className="text-sm text-slate-500">
-              Redirecting to login page...
+            <p className="text-slate-600 mb-6">
+              We've sent a confirmation link to your email address.
+              Please click the link to verify your account before logging in.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-800 font-medium mb-1">
+                ⚠️ Important: Check your spam folder
+              </p>
+              <p className="text-xs text-blue-600">
+                If you don't see the email in your inbox, check your spam or junk folder.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/login')}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-lg shadow-blue-200/50"
+            >
+              Go to Login Page
+            </button>
+            <p className="text-xs text-slate-400 mt-4">
+              Already confirmed? Click the button above to login.
             </p>
           </div>
         </div>
