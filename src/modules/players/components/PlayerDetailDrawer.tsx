@@ -958,7 +958,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                     {(() => {
                       // Remove mandate section from display notes
                       const notes = player.notes || ''
-                      const displayNotes = notes.replace(/MANDAT:.*$/s, '').trim()
+                      const displayNotes = notes.replace(/MANDAT:[\s\S]*$/, '').trim()
 
                       return displayNotes ? (
                         <p className="text-white leading-relaxed whitespace-pre-wrap">{displayNotes}</p>
