@@ -107,7 +107,7 @@ export async function POST(
   try {
     const { token } = await params
     const body = await request.json()
-    const { firstName, lastName, password } = body
+    const { firstName, lastName, password, joinExisting } = body
 
     if (!token) {
       return NextResponse.json({
@@ -116,18 +116,21 @@ export async function POST(
       }, { status: 400 })
     }
 
-    if (!firstName || !lastName || !password) {
-      return NextResponse.json({
-        success: false,
-        error: 'First name, last name, and password are required'
-      }, { status: 400 })
-    }
+    // For logged-in users joining with joinExisting flag, skip password check
+    if (!joinExisting) {
+      if (!firstName || !lastName || !password) {
+        return NextResponse.json({
+          success: false,
+          error: 'First name, last name, and password are required'
+        }, { status: 400 })
+      }
 
-    if (password.length < 6) {
-      return NextResponse.json({
-        success: false,
-        error: 'Password must be at least 6 characters'
-      }, { status: 400 })
+      if (password.length < 6) {
+        return NextResponse.json({
+          success: false,
+          error: 'Password must be at least 6 characters'
+        }, { status: 400 })
+      }
     }
 
     console.log('✅ Accepting invitation:', token.substring(0, 8) + '...')
@@ -186,6 +189,14 @@ export async function POST(
     let userLastName: string
 
     if (!existingUser) {
+      // Only create Supabase auth user if NOT using joinExisting (meaning user needs to create account)
+      if (joinExisting) {
+        return NextResponse.json({
+          success: false,
+          error: 'User account not found. Please sign up first or use a different email.'
+        }, { status: 404 })
+      }
+
       // Create new Supabase auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: invitation.email,
@@ -226,16 +237,21 @@ export async function POST(
     } else {
       userId = existingUser.id
 
-      // Update existing user's name
-      const updatedUser = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: { firstName, lastName }
-      })
+      // For existing users joining another organization, optionally update name if provided
+      if (firstName && lastName) {
+        const updatedUser = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { firstName, lastName }
+        })
 
-      userFirstName = updatedUser.firstName || firstName
-      userLastName = updatedUser.lastName || lastName
+        userFirstName = updatedUser.firstName || firstName
+        userLastName = updatedUser.lastName || lastName
+      } else {
+        userFirstName = existingUser.firstName || 'User'
+        userLastName = existingUser.lastName || 'Member'
+      }
 
-      console.log('👤 Updated existing user:', updatedUser.id)
+      console.log('👤 Using existing user:', existingUser.id)
     }
 
     // Create tenant membership

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Shield, Building2, UserPlus, Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { Shield, Building2, UserPlus, Mail, Lock, User, Loader2, AlertCircle, CheckCircle, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface InvitationData {
   id: string
@@ -20,8 +21,10 @@ interface InvitationData {
 function AcceptInviteContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
+  const supabase = createClient()
 
   const [invitation, setInvitation] = useState<InvitationData | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ email: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -40,10 +43,18 @@ function AcceptInviteContent() {
       return
     }
 
-    async function validateInvitation() {
+    async function init() {
       try {
         setLoading(true)
         setError(null)
+
+        // Check current session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          setCurrentUser({ email: session.user.email })
+        }
+
+        // Validate invitation
         const response = await fetch(`/api/invitations/accept/${token}`)
         const result = await response.json()
         if (!result.success) {
@@ -63,8 +74,50 @@ function AcceptInviteContent() {
         setLoading(false)
       }
     }
-    validateInvitation()
+    init()
   }, [token])
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      // Reload page to show registration form
+      window.location.reload()
+    } catch (err) {
+      console.error('Logout error:', err)
+      setError('Failed to logout. Please try again.')
+    }
+  }
+
+  const handleJoinOrganization = async () => {
+    // For logged-in users with matching email - just add membership
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/invitations/accept/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          joinExisting: true,
+          firstName: firstName || 'User',
+          lastName: lastName || 'Member'
+        })
+      })
+      const result = await response.json()
+      if (!result.success) {
+        setError(result.error || 'Failed to join organization')
+        return
+      }
+      setSuccess(true)
+      setTimeout(() => {
+        router.push(result.data.redirectUrl)
+      }, 2000)
+    } catch (err) {
+      setError('Network error.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,6 +154,10 @@ function AcceptInviteContent() {
       setSubmitting(false)
     }
   }
+
+  // Check if user email matches invitation
+  const isEmailMatch = currentUser && invitation && currentUser.email.toLowerCase() === invitation.email.toLowerCase()
+  const isEmailMismatch = currentUser && invitation && currentUser.email.toLowerCase() !== invitation.email.toLowerCase()
 
   if (loading) {
     return (
@@ -180,9 +237,65 @@ function AcceptInviteContent() {
             </div>
           </div>
         </div>
-        <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-8 shadow-xl">
-          <h2 className="text-xl font-bold text-slate-800 mb-6">Create Your Account</h2>
-          <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Email Mismatch Warning */}
+        {isEmailMismatch && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-900 mb-1">Email Mismatch</p>
+                <p className="text-sm text-yellow-800 mb-3">
+                  You're logged in as <strong>{currentUser?.email}</strong>, but this invitation is for <strong>{invitation?.email}</strong>.
+                </p>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout & Accept Invitation
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Email Match - Simple Join */}
+        {isEmailMatch && (
+          <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-8 shadow-xl">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Welcome Back!</h2>
+            <p className="text-slate-600 mb-6">
+              You're already logged in. Click below to join <strong>{invitation?.tenant.name}</strong> as a {invitation?.role}.
+            </p>
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+            <button
+              onClick={handleJoinOrganization}
+              disabled={submitting}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-blue-400 disabled:to-blue-500 text-white font-semibold py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Joining...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  Join Organization
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* No Session - Regular Registration */}
+        {!currentUser && (
+          <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-8 shadow-xl">
+            <h2 className="text-xl font-bold text-slate-800 mb-6">Create Your Account</h2>
+            <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">First Name</label>
@@ -276,7 +389,8 @@ function AcceptInviteContent() {
               )}
             </button>
           </form>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
