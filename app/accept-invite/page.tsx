@@ -145,52 +145,14 @@ function AcceptInviteContent() {
         return
       }
 
-      // Auto-login after successful account creation with retry logic
-      console.log('✅ Account created, attempting auto-login...')
-
-      // CRITICAL: Clear any existing session first (e.g., admin logged in same browser)
-      console.log('🧹 Clearing existing session before auto-login...')
+      // Clear any existing session (e.g., admin logged in same browser)
+      console.log('✅ Account created! Clearing old session and redirecting to login...')
       await supabase.auth.signOut({ scope: 'global' })
-      await new Promise(resolve => setTimeout(resolve, 500)) // Wait for signOut to complete
-
-      let loginSuccess = false
-      let lastError = null
-
-      // Retry up to 3 times with 1 second delay between attempts
-      for (let attempt = 1; attempt <= 3 && !loginSuccess; attempt++) {
-        // Wait 1 second before each attempt to allow Supabase Auth to propagate user creation
-        await new Promise(resolve => setTimeout(resolve, 1000))
-
-        console.log(`🔄 Auto-login attempt ${attempt}/3...`)
-
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: invitation?.email || '',
-          password: password
-        })
-
-        if (!signInError) {
-          // Force session refresh to ensure it's properly established
-          await supabase.auth.getSession()
-          loginSuccess = true
-          console.log('✅ Auto-login successful!')
-          break
-        } else {
-          lastError = signInError
-          if (attempt < 3) {
-            console.log(`⚠️ Auto-login attempt ${attempt} failed: ${signInError.message}, retrying...`)
-          }
-        }
-      }
-
-      if (!loginSuccess) {
-        console.error('❌ Auto-login failed after 3 attempts:', lastError)
-        setError('Account created! Please login manually at /login')
-        return
-      }
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       setSuccess(true)
       setTimeout(() => {
-        window.location.href = result.data.redirectUrl
+        window.location.href = `/login?email=${encodeURIComponent(invitation?.email || '')}&message=account_created`
       }, 2000)
     } catch (err) {
       setError('Network error.')
@@ -244,11 +206,11 @@ function AcceptInviteContent() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-3">Welcome!</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-3">Account Created!</h2>
             <p className="text-slate-700 mb-2 font-medium">
-              You have successfully joined {invitation?.tenant.name}!
+              Welcome to {invitation?.tenant.name}!
             </p>
-            <p className="text-slate-600 mb-6">Redirecting...</p>
+            <p className="text-slate-600 mb-6">Redirecting to login...</p>
             <Loader2 className="w-6 h-6 text-blue-600 animate-spin mx-auto" />
           </div>
         </div>

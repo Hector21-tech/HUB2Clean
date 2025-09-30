@@ -1,20 +1,36 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, Eye, EyeOff, LogIn, Shield, Target } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, LogIn, Shield, Target, CheckCircle } from 'lucide-react'
 import { createClient } from '../../src/lib/supabase/client'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const router = useRouter()
   const supabase = createClient()
+
+  // Pre-fill email and show success message from URL params
+  useEffect(() => {
+    const emailParam = searchParams.get('email')
+    const messageParam = searchParams.get('message')
+
+    if (emailParam) {
+      setEmail(decodeURIComponent(emailParam))
+    }
+
+    if (messageParam === 'account_created') {
+      setSuccessMessage('✅ Account created successfully! Please login with your password.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -109,6 +125,14 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <p className="text-green-700 text-sm">{successMessage}</p>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
