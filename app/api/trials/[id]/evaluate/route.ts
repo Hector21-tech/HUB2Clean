@@ -48,6 +48,7 @@ export async function POST(
         updatedAt: new Date()
       },
       include: {
+        calendarEvent: true, // Include linked calendar event for deletion
         player: {
           select: {
             id: true,
@@ -69,6 +70,21 @@ export async function POST(
         }
       }
     })
+
+    // Auto-delete linked calendar event when trial is completed
+    if (evaluatedTrial.calendarEvent) {
+      console.log(`🗑️ Auto-deleting calendar event: ${evaluatedTrial.calendarEvent.id} (Trial completed)`)
+
+      try {
+        await prisma.calendarEvent.delete({
+          where: { id: evaluatedTrial.calendarEvent.id }
+        })
+        console.log('✅ Calendar event deleted successfully')
+      } catch (deleteError) {
+        console.error('⚠️ Failed to delete calendar event:', deleteError)
+        // Don't fail the entire evaluation if calendar deletion fails
+      }
+    }
 
     return NextResponse.json({
       success: true,
