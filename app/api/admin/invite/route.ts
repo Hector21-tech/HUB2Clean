@@ -113,9 +113,9 @@ export async function POST(request: NextRequest) {
       expiresAt: invitation.expiresAt
     })
 
-    // Build invitation link
+    // Build invitation link (using query parameter for better compatibility)
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const inviteLink = `${siteUrl}/accept-invite/${token}`
+    const inviteLink = `${siteUrl}/accept-invite?token=${token}`
 
     console.log('📧 Invitation link:', inviteLink)
 
