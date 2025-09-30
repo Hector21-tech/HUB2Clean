@@ -188,7 +188,7 @@ export class PlayerService {
       // Filter data to only include fields that exist in Prisma schema
       const validFields = [
         'firstName', 'lastName', 'dateOfBirth', 'position', 'club',
-        'contractExpiry', 'nationality', 'height', 'notes', 'tags',
+        'contractExpiry', 'agencyContractExpiry', 'nationality', 'height', 'notes', 'tags',
         'rating', 'avatarUrl', 'avatarPath'
       ]
 
