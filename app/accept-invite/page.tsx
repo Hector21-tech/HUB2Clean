@@ -145,21 +145,44 @@ function AcceptInviteContent() {
         return
       }
 
-      // Auto-login after successful account creation
-      console.log('✅ Account created, auto-logging in...')
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: invitation?.email || '',
-        password: password
-      })
+      // Auto-login after successful account creation with retry logic
+      console.log('✅ Account created, attempting auto-login...')
 
-      if (signInError) {
-        console.error('⚠️ Auto-login failed:', signInError)
-        // Still show success, but user will need to login manually
-        setError('Account created! Please login manually.')
+      let loginSuccess = false
+      let lastError = null
+
+      // Retry up to 3 times with 1 second delay between attempts
+      for (let attempt = 1; attempt <= 3 && !loginSuccess; attempt++) {
+        // Wait 1 second before each attempt to allow Supabase Auth to propagate user creation
+        await new Promise(resolve => setTimeout(resolve, 1000))
+
+        console.log(`🔄 Auto-login attempt ${attempt}/3...`)
+
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: invitation?.email || '',
+          password: password
+        })
+
+        if (!signInError) {
+          // Force session refresh to ensure it's properly established
+          await supabase.auth.getSession()
+          loginSuccess = true
+          console.log('✅ Auto-login successful!')
+          break
+        } else {
+          lastError = signInError
+          if (attempt < 3) {
+            console.log(`⚠️ Auto-login attempt ${attempt} failed: ${signInError.message}, retrying...`)
+          }
+        }
+      }
+
+      if (!loginSuccess) {
+        console.error('❌ Auto-login failed after 3 attempts:', lastError)
+        setError('Account created! Please login manually at /login')
         return
       }
 
-      console.log('✅ Auto-login successful!')
       setSuccess(true)
       setTimeout(() => {
         router.push(result.data.redirectUrl)
