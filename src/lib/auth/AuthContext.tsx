@@ -137,11 +137,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Fetch user's tenant memberships - enhanced with aggressive error recovery
+  // Fetch user's tenant memberships - optimized for performance
   const fetchUserTenants = async (userId: string, retryCount = 0, user?: User) => {
     const startTime = Date.now()
-    const maxRetries = 2
-    const timeoutDuration = 8000 // Reduced from 30s to 8s
+    const maxRetries = 1 // Reduced from 2 to 1 for faster failover
+    const timeoutDuration = 2000 // Reduced from 8s to 2s for better UX
 
     // Prevent duplicate calls - but allow retry if stuck for too long
     if (isFetchingTenants && retryCount === 0) {
@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Try retry if available, otherwise complete with empty state
       if (retryCount < maxRetries) {
         console.log(`🔄 AuthContext: Retrying fetchUserTenants (${retryCount + 1}/${maxRetries})`)
-        setTimeout(() => fetchUserTenants(userId, retryCount + 1, user), 1000)
+        setTimeout(() => fetchUserTenants(userId, retryCount + 1, user), 500) // Reduced from 1s to 500ms
       } else {
         console.warn('❌ AuthContext: Max retries exceeded, setting empty tenant state')
         setUserTenants([])
@@ -176,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Add timeout to the database query itself
       const controller = new AbortController()
-      const queryTimeoutId = setTimeout(() => controller.abort(), 5000) // 5s query timeout
+      const queryTimeoutId = setTimeout(() => controller.abort(), 1500) // Reduced from 5s to 1.5s
 
       console.log('🔍 AuthContext: Fetching tenant memberships for user:', {
         userId,
@@ -209,46 +209,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         rawData: data
       })
 
-      // Auto-fix for jobb@torstens.se userId mismatch
-      if (!error && (!data || data.length === 0) && user?.email === 'jobb@torstens.se') {
-        console.log('🔧 AuthContext: Auto-fixing userId mismatch for jobb@torstens.se')
-        try {
-          // Update his membership record with correct userId
-          const { data: updateResult, error: updateError } = await supabase
-            .from('tenant_memberships')
-            .update({ userId: userId })
-            .eq('userId', 'cmg4s5kfg0000ji0am4igaw7f') // His old userId from Prisma
-            .select()
-
-          if (updateError) {
-            console.error('❌ AuthContext: Failed to update userId:', updateError)
-          } else {
-            console.log('✅ AuthContext: Successfully updated userId, retrying query')
-            // Retry the original query after fix
-            const { data: retryData, error: retryError } = await supabase
-              .from('tenant_memberships')
-              .select(`
-                tenantId,
-                role,
-                tenant:tenants!inner (
-                  id,
-                  name,
-                  slug
-                )
-              `)
-              .eq('userId', userId)
-
-            if (!retryError && retryData && retryData.length > 0) {
-              console.log('🎉 AuthContext: Auto-fix successful, found memberships!')
-              // Update our local data variable to continue with the flow
-              data = retryData
-            }
-          }
-        } catch (fixError) {
-          console.error('❌ AuthContext: Auto-fix failed:', fixError)
-        }
-      }
-
       clearTimeout(queryTimeoutId)
 
       if (error) {
@@ -260,7 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log(`🔄 AuthContext: Retrying after database error (${retryCount + 1}/${maxRetries})`)
           clearTimeout(timeoutId)
           setIsFetchingTenants(false)
-          setTimeout(() => fetchUserTenants(userId, retryCount + 1, user), 2000)
+          setTimeout(() => fetchUserTenants(userId, retryCount + 1, user), 500) // Reduced from 2s to 500ms
           return
         } else {
           // Max retries exceeded, set empty and complete
@@ -293,29 +253,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserTenants([])
 
           // Security: Auto-logout orphaned users (deleted users with cached sessions)
-          // Wait 3 seconds to ensure this isn't a temporary loading issue
-          setTimeout(async () => {
-            // Double-check user still has no memberships after delay
-            const { data: recheckData } = await supabase
-              .from('tenant_memberships')
-              .select('tenantId')
-              .eq('userId', userId)
-              .limit(1)
+          // Only redirect after final retry to avoid false positives
+          if (retryCount >= maxRetries) {
+            console.warn('🚨 AuthContext: User has no memberships after all retries - orphaned account detected')
+            console.warn('🚨 This typically means the user was deleted but had a cached session.')
 
-            if (!recheckData || recheckData.length === 0) {
-              console.warn('🚨 AuthContext: User has no memberships - orphaned account detected. Logging out...')
-              console.warn('🚨 This typically means the user was deleted but had a cached session.')
+            // Sign out the orphaned user immediately
+            await supabase.auth.signOut()
 
-              // Sign out the orphaned user
-              await supabase.auth.signOut()
-
-              // Redirect to login with message
-              if (typeof window !== 'undefined') {
-                const message = encodeURIComponent('Your account access has been removed. Please contact an administrator.')
-                window.location.href = `/login?error=${message}`
-              }
+            // Redirect to login with message
+            if (typeof window !== 'undefined') {
+              const message = encodeURIComponent('Your account access has been removed. Please contact an administrator.')
+              window.location.href = `/login?error=${message}`
             }
-          }, 3000)
+          }
         } else {
           console.log('📝 AuthContext: No memberships returned but keeping existing data to prevent race condition')
         }
@@ -333,7 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log(`🔄 AuthContext: Retrying after network error (${retryCount + 1}/${maxRetries})`)
         clearTimeout(timeoutId)
         setIsFetchingTenants(false)
-        setTimeout(() => fetchUserTenants(userId, retryCount + 1), 3000)
+        setTimeout(() => fetchUserTenants(userId, retryCount + 1), 500) // Reduced from 3s to 500ms
         return
       } else {
         // Max retries or aborted, set empty and complete
