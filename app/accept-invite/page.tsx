@@ -110,7 +110,7 @@ function AcceptInviteContent() {
       }
       setSuccess(true)
       setTimeout(() => {
-        router.push(result.data.redirectUrl)
+        window.location.href = result.data.redirectUrl
       }, 2000)
     } catch (err) {
       setError('Network error.')
@@ -185,7 +185,7 @@ function AcceptInviteContent() {
 
       setSuccess(true)
       setTimeout(() => {
-        router.push(result.data.redirectUrl)
+        window.location.href = result.data.redirectUrl
       }, 2000)
     } catch (err) {
       setError('Network error.')
