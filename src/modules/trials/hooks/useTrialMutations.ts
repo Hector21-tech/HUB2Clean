@@ -78,11 +78,37 @@ export function useDeleteTrial(tenantId: string | null) {
         throw new Error(result.message || 'Failed to delete trial')
       }
     },
-    onSuccess: (_, trialId) => {
-      // Invalidate trials list
-      queryClient.invalidateQueries({ queryKey: ['trials', tenantId] })
+    onMutate: async (trialId: string) => {
+      // INSTANT UI UPDATE: Remove trial from cache immediately
+
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['trials', tenantId] })
+
+      // Snapshot previous values for rollback
+      const previousTrials = queryClient.getQueryData(['trials', tenantId])
+
+      // Optimistically update trials list
+      queryClient.setQueriesData(
+        { queryKey: ['trials', tenantId] },
+        (old: Trial[] | undefined) => {
+          if (!old) return old
+          return old.filter(trial => trial.id !== trialId)
+        }
+      )
+
       // Remove single trial from cache
       queryClient.removeQueries({ queryKey: ['trial', trialId, tenantId] })
+
+      // Return context for rollback
+      return { previousTrials }
+    },
+    onError: (err, trialId, context) => {
+      // ROLLBACK: Restore previous data on error
+      if (context?.previousTrials) {
+        queryClient.setQueryData(['trials', tenantId], context.previousTrials)
+      }
+      // Force refetch to ensure fresh data
+      queryClient.refetchQueries({ queryKey: ['trials', tenantId], type: 'active' })
     }
   })
 }

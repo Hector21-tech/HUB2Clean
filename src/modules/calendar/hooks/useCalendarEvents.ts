@@ -145,8 +145,34 @@ export function useDeleteEvent(tenantId: string) {
 
   return useMutation({
     mutationFn: (id: string) => deleteCalendarEvent(tenantId, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] })
+    onMutate: async (id: string) => {
+      // INSTANT UI UPDATE: Remove event from all relevant caches immediately
+
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ['calendar-events', tenantId] })
+
+      // Snapshot previous values for rollback
+      const previousAllEvents = queryClient.getQueryData(['calendar-events', tenantId])
+
+      // Optimistically update all event queries
+      queryClient.setQueriesData(
+        { queryKey: ['calendar-events', tenantId] },
+        (old: CalendarEvent[] | undefined) => {
+          if (!old) return old
+          return old.filter(event => event.id !== id)
+        }
+      )
+
+      // Return context for rollback
+      return { previousAllEvents }
+    },
+    onError: (err, id, context) => {
+      // ROLLBACK: Restore previous data on error
+      if (context?.previousAllEvents) {
+        queryClient.setQueryData(['calendar-events', tenantId], context.previousAllEvents)
+      }
+      // Force refetch to ensure fresh data
+      queryClient.refetchQueries({ queryKey: ['calendar-events', tenantId], type: 'active' })
     }
   })
 }
