@@ -373,18 +373,19 @@ export function PlayersPage() {
 
         if (result.success) {
           console.log('✅ Player deleted successfully')
-          // Invalidate queries to ensure fresh data on next fetch
-          queryClient.invalidateQueries({ queryKey })
+          // No need to invalidate - optimistic update already handled cache update
         } else {
           console.error('❌ Error deleting player:', result.error)
-          // Rollback optimistic update
+          // Rollback optimistic update - restore previous data then force refetch
           queryClient.setQueryData(queryKey, previousData)
+          await queryClient.refetchQueries({ queryKey, type: 'active' })
           throw new Error(result.error)
         }
       } catch (networkError) {
         console.error('❌ Network error deleting player:', networkError)
-        // Rollback optimistic update
+        // Rollback optimistic update - restore previous data then force refetch
         queryClient.setQueryData(queryKey, previousData)
+        await queryClient.refetchQueries({ queryKey, type: 'active' })
         throw networkError
       }
     } catch (error) {
