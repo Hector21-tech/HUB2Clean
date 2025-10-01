@@ -137,10 +137,21 @@ export async function DELETE(
 
     const tenantId = authz.tenantId
 
-    // Delete with tenant isolation
-    await prisma.request.delete({
-      where: { id, tenantId }
-    })
+    try {
+      // Delete with tenant isolation
+      await prisma.request.delete({
+        where: { id, tenantId }
+      })
+
+      console.log('✅ Request deleted:', id)
+    } catch (error: any) {
+      // If record not found (P2025), treat as already deleted (idempotent)
+      if (error?.code === 'P2025') {
+        console.log('⚠️ Request already deleted or not found:', id)
+      } else {
+        throw error // Re-throw other errors
+      }
+    }
 
     // Invalidate cache for this tenant
     const cacheKey = `requests-${tenantId}`

@@ -275,7 +275,14 @@ export function RequestsPage() {
       console.log('📥 Response data:', result)
 
       if (result.success) {
-        refetch()
+        // Force immediate refetch for instant UI update
+        await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
+
+        // If editing and status was changed, reset filter to show all requests
+        if (isEditing && editingRequest && formData.status !== editingRequest.status) {
+          setStatusFilter('ALL')
+        }
+
         setFormData({
           title: '',
           description: '',
@@ -374,18 +381,20 @@ export function RequestsPage() {
     if (!confirmed) return
 
     try {
+      const { apiFetch } = await import('@/lib/api-config')
       const deletePromises = Array.from(selectedRequests).map(requestId =>
-        (async () => {
-          const { apiFetch } = await import('@/lib/api-config')
-          return apiFetch(`/api/requests/${requestId}?tenant=${tenantId}`, { method: 'DELETE' })
-        })()
+        apiFetch(`/api/requests/${requestId}?tenant=${tenantId}`, { method: 'DELETE' })
       )
 
       await Promise.all(deletePromises)
-      refetch()
+
+      // Force immediate refetch for instant UI update
+      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
+
       clearSelection()
       alert(`Deleted ${selectedRequests.size} requests`)
     } catch (error) {
+      console.error('❌ Bulk delete failed:', error)
       alert('Failed to delete requests')
     }
   }
@@ -399,8 +408,13 @@ export function RequestsPage() {
     try {
       const { apiFetch } = await import('@/lib/api-config')
       await apiFetch(`/api/requests/${request.id}?tenant=${tenantId}`, { method: 'DELETE' })
-      refetch()
+
+      // Force immediate refetch for instant UI update
+      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
+
+      alert('Request deleted successfully!')
     } catch (error) {
+      console.error('❌ Delete failed:', error)
       alert('Failed to delete request')
     }
   }
