@@ -3,9 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { requireTenant } from '@/lib/server/authz'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
 
-// Cache for requests (same as in main route)
-const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
-
 // PATCH - Update a specific request
 export async function PATCH(
   request: NextRequest,
@@ -82,11 +79,6 @@ export async function PATCH(
       }
     })
 
-    // Invalidate cache for this tenant
-    const cacheKey = `requests-${tenantId}`
-    cache.delete(cacheKey)
-    console.log('🗑️ Requests: Invalidated cache for tenant', tenantId)
-
     // Map to frontend field names
     const mappedRequest = {
       ...updatedRequest,
@@ -152,11 +144,6 @@ export async function DELETE(
         throw error // Re-throw other errors
       }
     }
-
-    // Invalidate cache for this tenant
-    const cacheKey = `requests-${tenantId}`
-    cache.delete(cacheKey)
-    console.log('🗑️ Requests: Invalidated cache for tenant after delete', tenantId)
 
     return NextResponse.json({
       success: true,

@@ -1,18 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { playerService } from '../../../src/modules/players/services/playerService'
 import { PlayerFilters } from '../../../src/modules/players/types/player'
-import crypto from 'crypto'
-
-// Aggressive caching for players
-const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-// Generate ETag from data content for conditional caching
-function generateETag(data: any): string {
-  const hash = crypto.createHash('md5')
-  hash.update(JSON.stringify(data))
-  return `"${hash.digest('hex')}"`
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -64,34 +52,6 @@ export async function GET(request: NextRequest) {
 
     console.log('📋 Filters parsed:', { filters, tenant })
 
-    // Create cache key including tenant and filters
-    const cacheKey = `players-${tenant}-${JSON.stringify(filters)}`
-    const cached = cache.get(cacheKey)
-    const ifNoneMatch = request.headers.get('if-none-match')
-
-    // Check cache and ETag
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-      // 304 Not Modified if ETag matches
-      if (ifNoneMatch && ifNoneMatch === cached.etag) {
-        console.log('⚡ Players: 304 Not Modified (ETag match)')
-        const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-        response.headers.set('ETag', cached.etag)
-        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-        return response
-      }
-
-      console.log('📦 Players: Returning cached data')
-      const response = NextResponse.json({
-        success: true,
-        data: cached.data
-      })
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-      response.headers.set('ETag', cached.etag)
-      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-      return response
-    }
-
     console.log('🔄 Calling playerService.getPlayers...')
     // Use PlayerService to get real data from database
     const players = await playerService.getPlayers(tenant, filters)
@@ -102,20 +62,10 @@ export async function GET(request: NextRequest) {
       samplePlayerIds: players.slice(0, 3).map(p => p.id)
     })
 
-    // Generate ETag and cache
-    const etag = generateETag(players)
-    const timestamp = Date.now()
-    cache.set(cacheKey, { data: players, timestamp, etag })
-
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: players
     })
-    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-    response.headers.set('ETag', etag)
-    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
-
-    return response
   } catch (error) {
     console.error('❌ Players API CRITICAL ERROR:', error)
     console.error('❌ Complete error details:', {
@@ -165,16 +115,6 @@ export async function POST(request: NextRequest) {
 
     // Use PlayerService to create real player in database
     const newPlayer = await playerService.createPlayer(body)
-
-    // Invalidate all caches for this tenant
-    const keysToDelete: string[] = []
-    cache.forEach((_, key) => {
-      if (key.startsWith(`players-${body.tenantId}-`)) {
-        keysToDelete.push(key)
-      }
-    })
-    keysToDelete.forEach(key => cache.delete(key))
-    console.log('🗑️ Players: Invalidated', keysToDelete.length, 'cache entries')
 
     return NextResponse.json({
       success: true,

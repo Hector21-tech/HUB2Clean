@@ -3,18 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
 import { requireTenant } from '@/lib/server/authz'
 import { Logger, createLogContext } from '@/lib/logger'
-import crypto from 'crypto'
-
-// Aggressive caching for requests data
-const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-// Generate ETag from data content for conditional caching
-function generateETag(data: any): string {
-  const hash = crypto.createHash('md5')
-  hash.update(JSON.stringify(data))
-  return `"${hash.digest('hex')}"`
-}
 
 // GET - List all requests for a tenant
 export async function GET(request: NextRequest) {
@@ -67,49 +55,6 @@ export async function GET(request: NextRequest) {
 
     const tenantId = authz.tenantId
 
-    // Check cache first for performance boost
-    const cacheKey = `requests-${tenantId}`
-    const cached = cache.get(cacheKey)
-    const ifNoneMatch = request.headers.get('if-none-match')
-
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-      // 304 Not Modified if ETag matches
-      if (ifNoneMatch && ifNoneMatch === cached.etag) {
-        const duration = timer.end()
-        Logger.info('Requests: 304 Not Modified (ETag match)', {
-          ...baseContext,
-          tenant: tenantSlug,
-          userId,
-          status: 304,
-          duration
-        })
-        const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-        response.headers.set('ETag', cached.etag)
-        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-        return response
-      }
-
-      const duration = timer.end()
-      Logger.info('Requests fetched from cache', {
-        ...baseContext,
-        tenant: tenantSlug,
-        userId,
-        status: 200,
-        duration,
-        details: { cached: true, requestCount: cached.data.length }
-      })
-      const response = NextResponse.json({
-        success: true,
-        data: cached.data,
-        cached: true
-      })
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-      response.headers.set('ETag', cached.etag)
-      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-      return response
-    }
-
     const requests = await prisma.request.findMany({
       where: { tenantId },
       select: {
@@ -148,11 +93,6 @@ export async function GET(request: NextRequest) {
       signOnBonusEUR: req.amountEur
     }))
 
-    // Generate ETag and cache the result
-    const etag = generateETag(mappedRequests)
-    const timestamp = Date.now()
-    cache.set(cacheKey, { data: mappedRequests, timestamp, etag })
-
     const duration = timer.end()
     Logger.success('Requests fetched successfully', {
       ...baseContext,
@@ -160,18 +100,13 @@ export async function GET(request: NextRequest) {
       userId,
       status: 200,
       duration,
-      details: { requestCount: mappedRequests.length, cached: false }
+      details: { requestCount: mappedRequests.length }
     })
 
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: mappedRequests
     })
-    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-    response.headers.set('ETag', etag)
-    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
-
-    return response
   } catch (error) {
     const duration = timer.end()
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -232,11 +167,6 @@ export async function POST(request: NextRequest) {
       windowOpenAt,
       windowCloseAt
     })
-
-    // Invalidate cache for this tenant
-    const cacheKey = `requests-${tenantId}`
-    cache.delete(cacheKey)
-    console.log('🗑️ Requests: Invalidated cache for tenant', tenantId)
 
     // Map our EUR fields to Prisma schema fields
     const { transferFeeMinEUR, transferFeeMaxEUR, loanSalaryEUR, freeAgentSalaryEUR, signOnBonusEUR, dealType: dealTypeStr, ...restBody } = body

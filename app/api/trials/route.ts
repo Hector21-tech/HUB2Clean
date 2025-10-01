@@ -1,20 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import crypto from 'crypto'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-// Aggressive caching for trials
-const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
-
-// Generate ETag from data content for conditional caching
-function generateETag(data: any): string {
-  const hash = crypto.createHash('md5')
-  hash.update(JSON.stringify(data))
-  return `"${hash.digest('hex')}"`
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,34 +25,6 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo')
 
     const statusFilter = statusParam ? statusParam.split(',') : undefined
-
-    // Create cache key including tenant and filters
-    const cacheKey = `trials-${tenant}-${statusParam || ''}-${search || ''}-${playerId || ''}-${requestId || ''}-${dateFrom || ''}-${dateTo || ''}`
-    const cached = cache.get(cacheKey)
-    const ifNoneMatch = request.headers.get('if-none-match')
-
-    // Check cache and ETag
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-      // 304 Not Modified if ETag matches
-      if (ifNoneMatch && ifNoneMatch === cached.etag) {
-        console.log('⚡ Trials: 304 Not Modified (ETag match)')
-        const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-        response.headers.set('ETag', cached.etag)
-        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-        return response
-      }
-
-      console.log('📦 Trials: Returning cached data')
-      const response = NextResponse.json({
-        success: true,
-        data: cached.data
-      })
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-      response.headers.set('ETag', cached.etag)
-      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-      return response
-    }
 
     // Build where clause with filters
     const trials = await prisma.trial.findMany({
@@ -126,20 +86,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Generate ETag and cache
-    const etag = generateETag(trials)
-    const timestamp = Date.now()
-    cache.set(cacheKey, { data: trials, timestamp, etag })
-
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: trials
     })
-    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-    response.headers.set('ETag', etag)
-    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
-
-    return response
   } catch (error) {
     console.error('Trials API error:', error)
     return NextResponse.json(

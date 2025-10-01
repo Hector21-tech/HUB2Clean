@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import crypto from 'crypto'
 
 interface CalendarEventConflict {
   id: string
@@ -20,17 +19,6 @@ interface CreateEventInput {
   recurrence?: string
 }
 
-// Aggressive caching for calendar events
-const cache = new Map<string, { data: any, timestamp: number, etag: string }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes - shorter than dashboard for real-time updates
-
-// Generate ETag from data content for conditional caching
-function generateETag(data: any): string {
-  const hash = crypto.createHash('md5')
-  hash.update(JSON.stringify(data))
-  return `"${hash.digest('hex')}"`
-}
-
 // GET /api/calendar/events - Fetch calendar events
 export async function GET(request: NextRequest) {
   try {
@@ -47,41 +35,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Create cache key including all query params for accurate caching
-    const cacheKey = `events-${tenant}-${start}-${end}-${type || 'all'}`
-    const cached = cache.get(cacheKey)
-
-    // Check conditional caching headers (ETag)
-    const ifNoneMatch = request.headers.get('if-none-match')
-
-    // IMMEDIATE RETURN for cached data (skip tenant check)
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
-      // Check if client has same ETag (304 Not Modified)
-      if (ifNoneMatch && ifNoneMatch === cached.etag) {
-        console.log('⚡ Calendar events: 304 Not Modified (ETag match)')
-        const response = new NextResponse(null, { status: 304 })
-        response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-        response.headers.set('ETag', cached.etag)
-        response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-        return response
-      }
-
-      console.log('📦 Calendar events: Returning cached data (age:', Math.round((Date.now() - cached.timestamp) / 1000), 's)')
-      const response = NextResponse.json({
-        success: true,
-        data: cached.data,
-        cached: true,
-        cacheAge: Math.round((Date.now() - cached.timestamp) / 1000)
-      })
-
-      // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-      response.headers.set('ETag', cached.etag)
-      response.headers.set('Last-Modified', new Date(cached.timestamp).toUTCString())
-      return response
-    }
-
-    // Only verify tenant on cache miss - optimized with minimal select
+    // Verify tenant
     const tenantExists = await prisma.tenant.findFirst({
       where: {
         OR: [
@@ -100,7 +54,6 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantId = tenantExists.id
-    console.log('⚡ Calendar events: Cache miss, fetching fresh data for tenant:', tenantId)
 
     // Build where clause
     const whereClause: any = { tenantId }
@@ -192,25 +145,10 @@ export async function GET(request: NextRequest) {
       } : null
     }))
 
-    // Generate ETag from events data
-    const etag = generateETag(transformedEvents)
-    const timestamp = Date.now()
-
-    // Cache the result for subsequent requests with ETag
-    cache.set(cacheKey, { data: transformedEvents, timestamp, etag })
-    console.log('✅ Calendar events: Cached', transformedEvents.length, 'events for', CACHE_DURATION / 1000, 'seconds')
-
-    const response = NextResponse.json({
+    return NextResponse.json({
       success: true,
       data: transformedEvents
     })
-
-    // HTTP caching headers for browser cache (5 min cache, 10 min stale-while-revalidate)
-    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
-    response.headers.set('ETag', etag)
-    response.headers.set('Last-Modified', new Date(timestamp).toUTCString())
-
-    return response
 
   } catch (error) {
     console.error('Calendar events GET error:', error)
@@ -356,16 +294,6 @@ export async function POST(request: NextRequest) {
       trialId: newEvent.trialId,
       trial: null
     }
-
-    // Invalidate all caches for this tenant (new event created)
-    const keysToDelete: string[] = []
-    cache.forEach((_, key) => {
-      if (key.startsWith(`events-${tenant}-`)) {
-        keysToDelete.push(key)
-      }
-    })
-    keysToDelete.forEach(key => cache.delete(key))
-    console.log('🗑️ Calendar events: Invalidated', keysToDelete.length, 'cache entries after event creation')
 
     return NextResponse.json({
       success: true,
