@@ -293,7 +293,7 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* Row 2: Date Navigation + View Toggle + Today - ALL ON SAME LINE */}
+        {/* Row 2: Date Navigation + View Toggle - ALL ON SAME LINE */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
           {/* Date Navigation */}
           <button
@@ -304,9 +304,14 @@ export function CalendarPage() {
             <ChevronLeft className="w-5 h-5 text-white/70" />
           </button>
 
-          <div className="px-3 py-2 bg-white/5 rounded-lg border border-white/10 min-w-[140px] text-center">
+          <button
+            onClick={navigateToToday}
+            className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 min-w-[140px] text-center transition-colors cursor-pointer"
+            disabled={actualView === 'list'}
+            title="Click to go to today"
+          >
             <span className="text-white font-medium text-sm">{getViewTitle()}</span>
-          </div>
+          </button>
 
           <button
             onClick={navigateToNext}
@@ -378,15 +383,6 @@ export function CalendarPage() {
               <List className="w-4 h-4" />
             </button>
           </div>
-
-          {/* Today Button */}
-          <button
-            onClick={navigateToToday}
-            className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
-            disabled={actualView === 'list'}
-          >
-            Today
-          </button>
         </div>
 
         {/* Search Section */}
