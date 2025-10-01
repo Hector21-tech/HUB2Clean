@@ -263,9 +263,9 @@ export function CalendarPage() {
   return (
     <div className="flex-1 relative">
       <div className="relative p-3 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Calendar Header */}
+      {/* Calendar Header - Compact layout like Requests */}
       <div className="bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border border-white/20 rounded-xl p-4 sm:p-6">
-        {/* Top Row: Title + Action Buttons */}
+        {/* Row 1: Title + Action Buttons */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -274,130 +274,119 @@ export function CalendarPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-white">Calendar</h1>
           </div>
 
-          {/* Action Buttons - Consistent sizing */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleCreateEvent()}
-              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm whitespace-nowrap"
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Event</span>
-              <span className="sm:hidden">New</span>
+              <span className="hidden sm:inline">New</span>
             </button>
 
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-sm whitespace-nowrap"
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export</span>
-              <span className="sm:hidden">Export</span>
             </button>
           </div>
         </div>
 
-        {/* Navigation Row - Same line alignment */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4">
+        {/* Row 2: Date Navigation + View Toggle + Today - ALL ON SAME LINE */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           {/* Date Navigation */}
-          <div className="flex items-center justify-center sm:justify-start gap-2 flex-1">
+          <button
+            onClick={navigateToPrevious}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            disabled={actualView === 'list'}
+          >
+            <ChevronLeft className="w-5 h-5 text-white/70" />
+          </button>
+
+          <div className="px-3 py-2 bg-white/5 rounded-lg border border-white/10 min-w-[140px] text-center">
+            <span className="text-white font-medium text-sm">{getViewTitle()}</span>
+          </div>
+
+          <button
+            onClick={navigateToNext}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            disabled={actualView === 'list'}
+          >
+            <ChevronRight className="w-5 h-5 text-white/70" />
+          </button>
+
+          {/* View Toggle */}
+          <div className="flex items-center bg-white/10 rounded-lg border border-white/20 p-1">
+            {isInSearchMode && (
+              <div className="text-xs text-blue-400 px-2 mr-1 bg-blue-500/20 rounded border border-blue-400/30 whitespace-nowrap">
+                Search
+              </div>
+            )}
             <button
-              onClick={navigateToPrevious}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-              disabled={actualView === 'list'}
+              onClick={() => setView('month')}
+              disabled={isInSearchMode}
+              className={`p-2 rounded-md transition-colors ${
+                view === 'month' && !isInSearchMode
+                  ? 'bg-blue-500/30 text-blue-200'
+                  : isInSearchMode
+                  ? 'text-white/30 cursor-not-allowed'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title="Month"
             >
-              <ChevronLeft className="w-5 h-5 text-white/70" />
+              <Grid className="w-4 h-4" />
             </button>
-
-            <div className="px-3 py-2 bg-white/5 rounded-lg border border-white/10 flex-1 sm:flex-none sm:min-w-32 lg:min-w-48 text-center">
-              <span className="text-white font-medium text-sm sm:text-base">{getViewTitle()}</span>
-            </div>
-
             <button
-              onClick={navigateToNext}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-              disabled={actualView === 'list'}
+              onClick={() => setView('week')}
+              disabled={isInSearchMode}
+              className={`p-2 rounded-md transition-colors ${
+                view === 'week' && !isInSearchMode
+                  ? 'bg-blue-500/30 text-blue-200'
+                  : isInSearchMode
+                  ? 'text-white/30 cursor-not-allowed'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title="Week"
             >
-              <ChevronRight className="w-5 h-5 text-white/70" />
+              <Calendar className="w-4 h-4" />
             </button>
-
             <button
-              onClick={navigateToToday}
-              className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
-              disabled={actualView === 'list'}
+              onClick={() => setView('day')}
+              disabled={isInSearchMode}
+              className={`p-2 rounded-md transition-colors ${
+                view === 'day' && !isInSearchMode
+                  ? 'bg-blue-500/30 text-blue-200'
+                  : isInSearchMode
+                  ? 'text-white/30 cursor-not-allowed'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title="Day"
             >
-              Today
+              <Clock className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setView('list')}
+              disabled={isInSearchMode}
+              className={`p-2 rounded-md transition-colors ${
+                isInSearchMode || view === 'list'
+                  ? 'bg-blue-500/30 text-blue-200'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
+              }`}
+              title="List"
+            >
+              <List className="w-4 h-4" />
             </button>
           </div>
 
-          {/* View Toggle - Better contrast, same line */}
-          <div className="flex items-center justify-center sm:justify-end flex-shrink-0">
-            <div className="flex items-center bg-white/10 rounded-lg border border-white/20 p-1">
-              {isInSearchMode && (
-                <div className="text-xs text-blue-400 px-2 mr-2 bg-blue-500/20 rounded border border-blue-400/30 whitespace-nowrap">
-                  <span className="hidden sm:inline">Search Mode</span>
-                  <span className="sm:hidden">Search</span>
-                </div>
-              )}
-              <button
-                onClick={() => setView('month')}
-                disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
-                  view === 'month' && !isInSearchMode
-                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
-                    : isInSearchMode
-                    ? 'text-white/30 cursor-not-allowed'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Grid className="w-4 h-4" />
-                <span className="text-xs hidden md:inline">Month</span>
-              </button>
-              <button
-                onClick={() => setView('week')}
-                disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
-                  view === 'week' && !isInSearchMode
-                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
-                    : isInSearchMode
-                    ? 'text-white/30 cursor-not-allowed'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Calendar className="w-4 h-4" />
-                <span className="text-xs hidden md:inline">Week</span>
-              </button>
-              <button
-                onClick={() => setView('day')}
-                disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
-                  view === 'day' && !isInSearchMode
-                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
-                    : isInSearchMode
-                    ? 'text-white/30 cursor-not-allowed'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <Clock className="w-4 h-4" />
-                <span className="text-xs hidden md:inline">Day</span>
-              </button>
-              <button
-                onClick={() => setView('list')}
-                disabled={isInSearchMode}
-                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
-                  isInSearchMode
-                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
-                    : view === 'list'
-                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <List className="w-4 h-4" />
-                <span className="text-xs hidden md:inline">
-                  {isInSearchMode ? 'Results' : 'List'}
-                </span>
-              </button>
-            </div>
-          </div>
+          {/* Today Button */}
+          <button
+            onClick={navigateToToday}
+            className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-sm font-medium whitespace-nowrap"
+            disabled={actualView === 'list'}
+          >
+            Today
+          </button>
         </div>
 
         {/* Search Section */}
