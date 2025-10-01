@@ -156,44 +156,41 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // However, cached JWT tokens in browsers will remain valid until they expire (typically 1 hour)
     // The AuthContext auto-logout for orphaned users will handle these cached sessions
     console.log('🔐 Admin: Deleting user from Supabase Auth...')
+    console.log('🔐 Admin: Note - Our Prisma user IDs are CUIDs, not UUIDs. Using email-based lookup.')
     console.log('🔐 Admin: Note - Active JWT tokens will remain valid until expiry, but AuthContext will auto-logout orphaned users')
     let authDeleted = false
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
-    if (authDeleteError) {
-      console.warn('⚠️ Admin: Primary deletion failed via userId:', authDeleteError.message)
-      console.log('🔄 Admin: Attempting email fallback for orphaned user cleanup...')
+    // FIXED: Skip direct userId deletion since our user IDs are CUIDs, not UUIDs
+    // Always use email-based lookup to find the Supabase Auth user (which uses UUID)
+    try {
+      console.log('🔄 Admin: Looking up Supabase Auth user by email:', user.email)
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
 
-      // Fallback: Search for user by email and delete (handles orphaned users)
-      try {
-        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-
-        if (listError) {
-          console.error('❌ Admin: Failed to list users for fallback:', listError.message)
-        } else {
-          const orphanedUser = users.find(u => u.email === user.email)
-
-          if (orphanedUser) {
-            console.log('🎯 Admin: Found orphaned user via email:', orphanedUser.email, '| ID:', orphanedUser.id)
-            const { error: emailDeleteError } = await supabaseAdmin.auth.admin.deleteUser(orphanedUser.id)
-
-            if (!emailDeleteError) {
-              console.log('✅ Admin: Successfully deleted orphaned user via email fallback')
-              authDeleted = true
-            } else {
-              console.error('❌ Admin: Email fallback deletion failed:', emailDeleteError.message)
-            }
-          } else {
-            console.log('ℹ️ Admin: User not found in Supabase Auth (already deleted or never existed)')
-            authDeleted = true // Consider this success - user doesn't exist
-          }
-        }
-      } catch (fallbackError) {
-        console.error('❌ Admin: Email fallback error:', fallbackError)
+      if (listError) {
+        console.error('❌ Admin: Failed to list users:', listError.message)
+        throw new Error(`Failed to list Supabase Auth users: ${listError.message}`)
       }
-    } else {
-      console.log('✅ Admin: Successfully deleted user from Supabase Auth via userId')
-      authDeleted = true
+
+      const authUser = users.find(u => u.email === user.email)
+
+      if (authUser) {
+        console.log('🎯 Admin: Found Supabase Auth user:', authUser.email, '| Auth UUID:', authUser.id, '| Prisma CUID:', userId)
+        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(authUser.id)
+
+        if (!deleteError) {
+          console.log('✅ Admin: Successfully deleted user from Supabase Auth')
+          authDeleted = true
+        } else {
+          console.error('❌ Admin: Failed to delete from Supabase Auth:', deleteError.message)
+          throw new Error(`Failed to delete from Supabase Auth: ${deleteError.message}`)
+        }
+      } else {
+        console.log('ℹ️ Admin: User not found in Supabase Auth (already deleted or never existed)')
+        authDeleted = true // Consider this success - user doesn't exist in Auth
+      }
+    } catch (authError) {
+      console.error('❌ Admin: Supabase Auth deletion error:', authError)
+      // Don't throw - continue with Prisma deletion even if Auth deletion fails
     }
 
     // Step 2: Delete from Prisma database (cascades to memberships)
