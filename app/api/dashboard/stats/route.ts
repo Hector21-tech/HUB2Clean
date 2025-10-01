@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { apiCache, generateCacheKey } from '@/lib/api-cache'
 
 interface DashboardStats {
   overview: {
@@ -103,6 +104,20 @@ export async function GET(request: NextRequest) {
 
     const tenantId = tenantExists.id
 
+    // Try cache first
+    const cacheKey = generateCacheKey('dashboard', tenantId)
+    const cachedData = apiCache.get(cacheKey)
+
+    if (cachedData) {
+      const response = NextResponse.json({
+        success: true,
+        data: cachedData
+      })
+      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      response.headers.set('X-Cache', 'HIT')
+      return response
+    }
+
     // ULTRA-OPTIMIZED: Only 6 essential counts - no aggregations or heavy queries
     const now = new Date()
     const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -196,10 +211,16 @@ export async function GET(request: NextRequest) {
       lastUpdated: now.toISOString()
     }
 
-    return NextResponse.json({
+    // Cache the result
+    apiCache.set(cacheKey, stats)
+
+    const response = NextResponse.json({
       success: true,
       data: stats
     })
+    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    response.headers.set('X-Cache', 'MISS')
+    return response
 
   } catch (error) {
     console.error('Dashboard stats API error:', error)

@@ -94,12 +94,6 @@ export class PlayerService {
     console.log('🏗️ Final where clause:', JSON.stringify(where, null, 2))
 
     try {
-      console.log('🔗 Testing Prisma connection...')
-
-      // Test basic connection first
-      const connectionTest = await prisma.$queryRaw`SELECT 1 as test`
-      console.log('✅ Prisma connection test successful:', connectionTest)
-
       console.log('📊 Executing findMany query...')
       const players = await prisma.player.findMany({
         where,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { apiCache, generateCacheKey } from '@/lib/api-cache'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,6 +26,21 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get('dateTo')
 
     const statusFilter = statusParam ? statusParam.split(',') : undefined
+
+    // Try cache first
+    const cacheFilters = { status: statusParam, search, playerId, requestId, dateFrom, dateTo }
+    const cacheKey = generateCacheKey('trials', tenant, cacheFilters)
+    const cachedData = apiCache.get(cacheKey)
+
+    if (cachedData) {
+      const response = NextResponse.json({
+        success: true,
+        data: cachedData
+      })
+      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      response.headers.set('X-Cache', 'HIT')
+      return response
+    }
 
     // Build where clause with filters
     const trials = await prisma.trial.findMany({
@@ -86,10 +102,16 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({
+    // Cache the result
+    apiCache.set(cacheKey, trials)
+
+    const response = NextResponse.json({
       success: true,
       data: trials
     })
+    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    response.headers.set('X-Cache', 'MISS')
+    return response
   } catch (error) {
     console.error('Trials API error:', error)
     return NextResponse.json(

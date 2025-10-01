@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { playerService } from '../../../src/modules/players/services/playerService'
 import { PlayerFilters } from '../../../src/modules/players/types/player'
+import { apiCache, generateCacheKey } from '@/lib/api-cache'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -52,6 +53,20 @@ export async function GET(request: NextRequest) {
 
     console.log('📋 Filters parsed:', { filters, tenant })
 
+    // Try cache first
+    const cacheKey = generateCacheKey('players', tenant, filters)
+    const cachedData = apiCache.get(cacheKey)
+
+    if (cachedData) {
+      const response = NextResponse.json({
+        success: true,
+        data: cachedData
+      })
+      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      response.headers.set('X-Cache', 'HIT')
+      return response
+    }
+
     console.log('🔄 Calling playerService.getPlayers...')
     // Use PlayerService to get real data from database
     const players = await playerService.getPlayers(tenant, filters)
@@ -62,10 +77,16 @@ export async function GET(request: NextRequest) {
       samplePlayerIds: players.slice(0, 3).map(p => p.id)
     })
 
-    return NextResponse.json({
+    // Cache the result
+    apiCache.set(cacheKey, players)
+
+    const response = NextResponse.json({
       success: true,
       data: players
     })
+    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    response.headers.set('X-Cache', 'MISS')
+    return response
   } catch (error) {
     console.error('❌ Players API CRITICAL ERROR:', error)
     console.error('❌ Complete error details:', {
@@ -116,6 +137,9 @@ export async function POST(request: NextRequest) {
     // Use PlayerService to create real player in database
     const newPlayer = await playerService.createPlayer(body)
 
+    // Invalidate all player caches for this tenant
+    apiCache.invalidatePattern(`players-${body.tenantId}`)
+
     return NextResponse.json({
       success: true,
       data: newPlayer
@@ -146,6 +170,9 @@ export async function PUT(request: NextRequest) {
     // Use PlayerService to update player in database
     const updatedPlayer = await playerService.updatePlayer(playerId, body)
 
+    // Invalidate all player caches (we don't have tenantId in query, so clear all)
+    apiCache.invalidatePattern('players-')
+
     return NextResponse.json({
       success: true,
       data: updatedPlayer
@@ -175,6 +202,9 @@ export async function PATCH(request: NextRequest) {
 
     // Use PlayerService to update player in database
     const updatedPlayer = await playerService.updatePlayer(playerId, body)
+
+    // Invalidate all player caches (we don't have tenantId in query, so clear all)
+    apiCache.invalidatePattern('players-')
 
     return NextResponse.json({
       success: true,
@@ -220,6 +250,9 @@ export async function DELETE(request: NextRequest) {
 
     // Use PlayerService to delete player from database
     await playerService.deletePlayer(playerId)
+
+    // Invalidate all player caches for this tenant
+    apiCache.invalidatePattern(`players-${tenantId}`)
 
     return NextResponse.json({
       success: true,

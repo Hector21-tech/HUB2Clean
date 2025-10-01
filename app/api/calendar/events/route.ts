@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { apiCache, generateCacheKey } from '@/lib/api-cache'
 
 interface CalendarEventConflict {
   id: string
@@ -33,6 +34,21 @@ export async function GET(request: NextRequest) {
         { success: false, error: 'Tenant is required' },
         { status: 400 }
       )
+    }
+
+    // Try cache first
+    const cacheFilters = { start, end, type }
+    const cacheKey = generateCacheKey('events', tenant, cacheFilters)
+    const cachedData = apiCache.get(cacheKey)
+
+    if (cachedData) {
+      const response = NextResponse.json({
+        success: true,
+        data: cachedData
+      })
+      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      response.headers.set('X-Cache', 'HIT')
+      return response
     }
 
     // Verify tenant
@@ -145,10 +161,16 @@ export async function GET(request: NextRequest) {
       } : null
     }))
 
-    return NextResponse.json({
+    // Cache the result
+    apiCache.set(cacheKey, transformedEvents)
+
+    const response = NextResponse.json({
       success: true,
       data: transformedEvents
     })
+    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    response.headers.set('X-Cache', 'MISS')
+    return response
 
   } catch (error) {
     console.error('Calendar events GET error:', error)
@@ -294,6 +316,9 @@ export async function POST(request: NextRequest) {
       trialId: newEvent.trialId,
       trial: null
     }
+
+    // Invalidate all event caches for this tenant
+    apiCache.invalidatePattern(`events-${tenant}`)
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
 import { requireTenant } from '@/lib/server/authz'
 import { Logger, createLogContext } from '@/lib/logger'
+import { apiCache, generateCacheKey } from '@/lib/api-cache'
 
 // GET - List all requests for a tenant
 export async function GET(request: NextRequest) {
@@ -55,6 +56,30 @@ export async function GET(request: NextRequest) {
 
     const tenantId = authz.tenantId
 
+    // Try cache first
+    const cacheKey = generateCacheKey('requests', tenantId)
+    const cachedData = apiCache.get(cacheKey)
+
+    if (cachedData) {
+      const duration = timer.end()
+      Logger.success('Requests fetched from cache', {
+        ...baseContext,
+        tenant: tenantSlug,
+        userId,
+        status: 200,
+        duration,
+        details: { requestCount: cachedData.length, cached: true }
+      })
+
+      const response = NextResponse.json({
+        success: true,
+        data: cachedData
+      })
+      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      response.headers.set('X-Cache', 'HIT')
+      return response
+    }
+
     const requests = await prisma.request.findMany({
       where: { tenantId },
       select: {
@@ -93,6 +118,9 @@ export async function GET(request: NextRequest) {
       signOnBonusEUR: req.amountEur
     }))
 
+    // Cache the result
+    apiCache.set(cacheKey, mappedRequests)
+
     const duration = timer.end()
     Logger.success('Requests fetched successfully', {
       ...baseContext,
@@ -100,13 +128,16 @@ export async function GET(request: NextRequest) {
       userId,
       status: 200,
       duration,
-      details: { requestCount: mappedRequests.length }
+      details: { requestCount: mappedRequests.length, cached: false }
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: mappedRequests
     })
+    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    response.headers.set('X-Cache', 'MISS')
+    return response
   } catch (error) {
     const duration = timer.end()
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
