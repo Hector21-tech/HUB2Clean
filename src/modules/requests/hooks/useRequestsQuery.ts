@@ -18,6 +18,15 @@ export interface Request {
   windowCloseAt?: string | null
   deadline?: string | null
   graceDays?: number
+  dealType?: string
+  // Transfer fees (in EUR)
+  transferFeeMinEUR?: number
+  transferFeeMaxEUR?: number
+  // Loan salary (in EUR)
+  loanSalaryEUR?: number
+  // Free Agent details (in EUR)
+  freeAgentSalaryEUR?: number
+  signOnBonusEUR?: number
 }
 
 // Mock data fallback for when API fails
@@ -76,7 +85,7 @@ export function useRequestsQuery(tenantId: string) {
     queryKey: ['requests', tenantId],
     queryFn: () => fetchRequests(tenantId),
     refetchInterval: 10 * 60 * 1000, // Refetch every 10 minutes (same as dashboard)
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (we use invalidateQueries for manual updates)
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     retry: 0, // No retries - use fallback immediately for speed
     enabled: !!tenantId,

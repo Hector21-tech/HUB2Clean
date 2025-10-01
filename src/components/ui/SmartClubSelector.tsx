@@ -26,6 +26,7 @@ export function SmartClubSelector({
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const clubsByCountry = getClubsByCountry()
   const countries = Object.keys(clubsByCountry).sort()
@@ -82,21 +83,25 @@ export function SmartClubSelector({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Auto-focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [isOpen])
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Main Input */}
+      {/* Main Input - Display only, click to open dropdown */}
       <div className="relative">
         <Building2 className="absolute left-3 top-3 w-5 h-5 text-white/60" />
         <input
           ref={inputRef}
           type="text"
           value={value}
-          onChange={(e) => {
-            onChange(e.target.value)
-            if (!isOpen) setIsOpen(true)
-          }}
-          onFocus={() => setIsOpen(true)}
-          className={`w-full bg-white/10 border rounded-lg pl-11 pr-10 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-200 ${
+          readOnly
+          onClick={() => setIsOpen(true)}
+          className={`w-full bg-white/10 border rounded-lg pl-11 pr-10 py-3 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm transition-all duration-200 cursor-pointer ${
             error
               ? 'border-red-400/50 focus:ring-red-400/20'
               : 'border-white/20 hover:border-white/30'
@@ -128,6 +133,7 @@ export function SmartClubSelector({
             <div className="relative">
               <Search className="absolute left-3 top-2.5 w-4 h-4 text-white/60" />
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => {

@@ -126,16 +126,32 @@ export async function GET(request: NextRequest) {
         windowCloseAt: true,
         deadline: true,
         graceDays: true,
+        dealType: true,
+        // Budget fields (if they exist in schema)
+        feeMin: true,
+        feeMax: true,
+        salaryEur: true,
+        amountEur: true,
         createdAt: true,
         updatedAt: true
       },
       orderBy: { createdAt: 'desc' }
     })
 
+    // Map database fields to frontend field names
+    const mappedRequests = requests.map(req => ({
+      ...req,
+      transferFeeMinEUR: req.feeMin,
+      transferFeeMaxEUR: req.feeMax,
+      loanSalaryEUR: req.salaryEur,
+      freeAgentSalaryEUR: req.salaryEur,
+      signOnBonusEUR: req.amountEur
+    }))
+
     // Generate ETag and cache the result
-    const etag = generateETag(requests)
+    const etag = generateETag(mappedRequests)
     const timestamp = Date.now()
-    cache.set(cacheKey, { data: requests, timestamp, etag })
+    cache.set(cacheKey, { data: mappedRequests, timestamp, etag })
 
     const duration = timer.end()
     Logger.success('Requests fetched successfully', {
@@ -144,12 +160,12 @@ export async function GET(request: NextRequest) {
       userId,
       status: 200,
       duration,
-      details: { requestCount: requests.length, cached: false }
+      details: { requestCount: mappedRequests.length, cached: false }
     })
 
     const response = NextResponse.json({
       success: true,
-      data: requests
+      data: mappedRequests
     })
     response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600, stale-if-error=600')
     response.headers.set('ETag', etag)
@@ -182,7 +198,7 @@ export async function POST(request: NextRequest) {
     // Get tenant from query parameter
     const tenantSlug = request.nextUrl.searchParams.get('tenant')
     const body = await request.json()
-    const { title, description, club, position, country, league } = body
+    const { title, description, club, position, country, league, windowOpenAt, windowCloseAt } = body
 
     // Basic validation
     if (!tenantSlug || !title || !club) {
@@ -212,8 +228,18 @@ export async function POST(request: NextRequest) {
       autoCountry,
       autoLeague,
       providedCountry: country,
-      providedLeague: league
+      providedLeague: league,
+      windowOpenAt,
+      windowCloseAt
     })
+
+    // Invalidate cache for this tenant
+    const cacheKey = `requests-${tenantId}`
+    cache.delete(cacheKey)
+    console.log('🗑️ Requests: Invalidated cache for tenant', tenantId)
+
+    // Map our EUR fields to Prisma schema fields
+    const { transferFeeMinEUR, transferFeeMaxEUR, loanSalaryEUR, freeAgentSalaryEUR, signOnBonusEUR, dealType: dealTypeStr, ...restBody } = body
 
     const newRequest = await prisma.request.create({
       data: {
@@ -225,10 +251,19 @@ export async function POST(request: NextRequest) {
         country: autoCountry,
         league: autoLeague,
         position: position || null,
+        dealType: dealTypeStr || 'BUY',
         // Set owner to authenticated user - using authz result
         ownerId: authz.user?.id || 'anonymous',
         priority: 'MEDIUM',
-        status: 'OPEN'
+        status: 'OPEN',
+        // Transfer window dates
+        windowOpenAt: windowOpenAt ? new Date(windowOpenAt) : null,
+        windowCloseAt: windowCloseAt ? new Date(windowCloseAt) : null,
+        // Budget fields - map to schema
+        feeMin: transferFeeMinEUR || null,
+        feeMax: transferFeeMaxEUR || null,
+        salaryEur: loanSalaryEUR || freeAgentSalaryEUR || null,
+        amountEur: signOnBonusEUR || null
       },
       select: {
         id: true,
@@ -240,6 +275,8 @@ export async function POST(request: NextRequest) {
         position: true,
         status: true,
         priority: true,
+        windowOpenAt: true,
+        windowCloseAt: true,
         createdAt: true,
         updatedAt: true
       }
