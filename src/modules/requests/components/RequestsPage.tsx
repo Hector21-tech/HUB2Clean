@@ -262,12 +262,17 @@ export function RequestsPage() {
         : `/api/requests?tenant=${tenantId}`
       const method = isEditing ? 'PATCH' : 'POST'
 
+      console.log('📤 Submitting request:', { url, method, requestData })
+
       const response = await apiFetch(url, {
         method,
         body: JSON.stringify(requestData)
       })
 
+      console.log('📥 Response status:', response.status)
+
       const result = await response.json()
+      console.log('📥 Response data:', result)
 
       if (result.success) {
         refetch()
@@ -293,10 +298,12 @@ export function RequestsPage() {
         setShowForm(false)
         alert(isEditing ? 'Request updated successfully!' : 'Request created successfully!')
       } else {
+        console.error('❌ Request failed:', result.error)
         alert(`Failed to ${isEditing ? 'update' : 'create'} request: ` + result.error)
       }
     } catch (error) {
-      alert(`Error ${editingRequest ? 'updating' : 'creating'} request`)
+      console.error('❌ Exception during request:', error)
+      alert(`Error ${editingRequest ? 'updating' : 'creating'} request: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
