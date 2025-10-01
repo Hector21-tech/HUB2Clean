@@ -5,11 +5,13 @@ import { useParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTenantSlug } from '@/lib/hooks/useTenantSlug'
 import { useRequestsQuery, type Request } from '../hooks/useRequestsQuery'
-import { Plus, Building2, CheckCircle2, Download, Search, Filter } from 'lucide-react'
+import { Plus, Building2, CheckCircle2, Download, Search, Filter, Sparkles } from 'lucide-react'
 import { SmartClubSelector } from '@/components/ui/SmartClubSelector'
 import { POSITION_MAPPINGS } from '@/lib/positions'
 import { getActiveTransferWindow } from '@/lib/transfer-window/country-windows'
 import dynamic from 'next/dynamic'
+import { ParseWhatsAppModal } from './ParseWhatsAppModal'
+import type { ParsedRequest } from './ParsedRequestsPreview'
 
 // Lazy load CompactListView for better performance
 const CompactListView = dynamic(() => import('@/components/ui/CompactListView').then(mod => ({ default: mod.CompactListView })), {
@@ -33,6 +35,7 @@ export function RequestsPage() {
 
   // Simplified state - only what we need
   const [showForm, setShowForm] = useState(false)
+  const [showParseModal, setShowParseModal] = useState(false)
   const [editingRequest, setEditingRequest] = useState<Request | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
@@ -470,6 +473,84 @@ export function RequestsPage() {
     setShowForm(true)
   }
 
+  // Bulk create requests from WhatsApp parsing
+  const handleBulkCreateFromWhatsApp = async (parsedRequests: ParsedRequest[]) => {
+    if (!tenantId || parsedRequests.length === 0) return
+
+    console.log('🚀 Bulk creating', parsedRequests.length, 'requests from WhatsApp')
+
+    const successfulCreates: Request[] = []
+    const failedCreates: { request: ParsedRequest; error: string }[] = []
+
+    // Create requests sequentially with progress
+    for (let i = 0; i < parsedRequests.length; i++) {
+      const parsed = parsedRequests[i]
+
+      try {
+        console.log(`📝 Creating request ${i + 1}/${parsedRequests.length}:`, parsed.club, parsed.position)
+
+        const { apiFetch } = await import('@/lib/api-config')
+
+        // Convert parsed request to API format
+        const requestData = {
+          title: `${parsed.club} - ${parsed.position}`,
+          description: parsed.notes || '',
+          club: parsed.club,
+          country: parsed.country,
+          league: parsed.league,
+          position: parsed.position,
+          status: parsed.status,
+          priority: parsed.priority,
+          dealType: parsed.dealType,
+          windowCloseAt: parsed.windowCloseAt,
+          // Add age requirements if present
+          ...(parsed.ageMax && { ageMax: parsed.ageMax }),
+          ...(parsed.birthYear && { birthYear: parsed.birthYear })
+        }
+
+        const response = await apiFetch(`/api/requests?tenant=${tenantId}`, {
+          method: 'POST',
+          body: JSON.stringify(requestData)
+        })
+
+        const result = await response.json()
+
+        if (result.success) {
+          successfulCreates.push(result.data)
+          console.log(`✅ Request ${i + 1} created:`, result.data.id)
+        } else {
+          failedCreates.push({ request: parsed, error: result.error })
+          console.error(`❌ Request ${i + 1} failed:`, result.error)
+        }
+      } catch (error) {
+        failedCreates.push({
+          request: parsed,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
+        console.error(`❌ Request ${i + 1} exception:`, error)
+      }
+    }
+
+    // Update cache with all successful creates
+    if (successfulCreates.length > 0) {
+      queryClient.setQueryData(['requests', tenantId], (oldData: Request[] | undefined) => {
+        if (!oldData) return successfulCreates
+        return [...successfulCreates, ...oldData]
+      })
+    }
+
+    // Show results
+    const message = `Created ${successfulCreates.length}/${parsedRequests.length} requests\n` +
+      (failedCreates.length > 0 ? `Failed: ${failedCreates.length}` : '')
+
+    if (failedCreates.length > 0) {
+      console.error('Failed requests:', failedCreates)
+      alert(message + '\n\nSee console for details.')
+    } else {
+      alert(message + ' ✅')
+    }
+  }
+
   // Export to CSV
   const exportToCSV = async () => {
     const timestamp = new Date().toISOString().split('T')[0]
@@ -528,6 +609,13 @@ export function RequestsPage() {
                 >
                   <Download className="w-4 h-4" />
                   Export CSV
+                </button>
+                <button
+                  onClick={() => setShowParseModal(true)}
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Parse WhatsApp
                 </button>
                 <button
                   onClick={() => {
@@ -1006,6 +1094,14 @@ export function RequestsPage() {
           />
         </div>
       </div>
+
+      {/* Parse WhatsApp Modal */}
+      <ParseWhatsAppModal
+        isOpen={showParseModal}
+        onClose={() => setShowParseModal(false)}
+        onCreateRequests={handleBulkCreateFromWhatsApp}
+        existingRequests={requests}
+      />
     </div>
   )
 }
