@@ -217,7 +217,7 @@ export function CompactListView({
     )
   }
 
-  // Render individual request card
+  // Render individual request card - Mobile Optimized
   const renderRequestCard = (request: Request) => (
     <div
       key={request.id}
@@ -231,73 +231,106 @@ export function CompactListView({
       onClick={() => onRequestSelect(request.id)}
     >
       <div className="p-3">
-        {/* Main Content Row */}
-        <div className="flex items-center gap-3">
-          {/* Checkbox */}
-          <div className="flex-shrink-0">
-            <input
-              type="checkbox"
-              checked={selectedRequests.has(request.id)}
-              onChange={(e) => {
-                e.stopPropagation()
-                onRequestSelect(request.id)
-              }}
-              className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-blue-500 focus:ring-2"
-            />
-          </div>
-
-          {/* Title */}
-          <div className="flex-1 min-w-0">
-            <div className="mb-1">
-              <h3 className="font-semibold text-white text-sm truncate group-hover:text-blue-200 transition-colors">
-                {request.title}
-              </h3>
+        {/* Mobile: Stack vertically, Desktop: Horizontal */}
+        <div className="flex flex-col md:flex-row md:items-center gap-3">
+          {/* Top Row: Checkbox + Title + Action Buttons (Mobile & Desktop) */}
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {/* Checkbox */}
+            <div className="flex-shrink-0 mt-0.5">
+              <input
+                type="checkbox"
+                checked={selectedRequests.has(request.id)}
+                onChange={(e) => {
+                  e.stopPropagation()
+                  onRequestSelect(request.id)
+                }}
+                className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-blue-500 focus:ring-2"
+              />
             </div>
 
-            {/* Budget Info - each on separate line */}
-            {getBudgetInfo(request).length > 0 && (
-              <div className="mb-2 space-y-0.5">
-                {getBudgetInfo(request).map((budgetLine, idx) => (
-                  <div key={idx} className="flex items-center gap-1 text-xs text-green-400/80">
-                    <Euro className="w-3 h-3" />
-                    <span className="font-medium">{budgetLine}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Compact Info Row */}
-            <div className="flex items-center gap-4 text-xs text-white/60">
-              <div className="flex items-center gap-1">
-                <Building2 className="w-3 h-3" />
-                <span className="truncate max-w-32">{request.club}</span>
+            {/* Title & Info Column */}
+            <div className="flex-1 min-w-0">
+              <div className="mb-1">
+                <h3 className="font-semibold text-white text-sm group-hover:text-blue-200 transition-colors">
+                  {request.title}
+                </h3>
               </div>
 
-              {request.position && (
-                <div className="flex items-center gap-1">
-                  <Target className="w-3 h-3" />
-                  <span>{request.position}</span>
+              {/* Budget Info */}
+              {getBudgetInfo(request).length > 0 && (
+                <div className="mb-2 space-y-0.5">
+                  {getBudgetInfo(request).map((budgetLine, idx) => (
+                    <div key={idx} className="flex items-center gap-1 text-xs text-green-400/80">
+                      <Euro className="w-3 h-3" />
+                      <span className="font-medium">{budgetLine}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 
-              <div className="flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                <span>{formatDate(request.createdAt)}</span>
+              {/* Compact Info Row - Wrap on mobile */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-white/60">
+                <div className="flex items-center gap-1">
+                  <Building2 className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate max-w-[120px] sm:max-w-[200px]">{request.club}</span>
+                </div>
+
+                {request.position && (
+                  <div className="flex items-center gap-1">
+                    <Target className="w-3 h-3 flex-shrink-0" />
+                    <span>{request.position}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3 flex-shrink-0" />
+                  <span>{formatDate(request.createdAt)}</span>
+                </div>
               </div>
+            </div>
+
+            {/* Action Buttons - Visible on desktop hover, always on mobile */}
+            <div className="flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(request)
+                  }}
+                  className="p-1.5 md:p-2 text-white/40 hover:text-blue-400 transition-colors"
+                  title="Edit request"
+                >
+                  <Edit className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(request)
+                  }}
+                  className="p-1.5 md:p-2 text-red-400/70 hover:text-red-400 transition-colors"
+                  title="Delete request"
+                >
+                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Status and Priority */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm ${getStatusColor(request.status)}`}>
+          {/* Bottom Row: Status, Priority, Window Badge (Mobile: Wrap, Desktop: Inline) */}
+          <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:flex-shrink-0 pl-7 md:pl-0">
+            {/* Status */}
+            <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm whitespace-nowrap ${getStatusColor(request.status)}`}>
               {getStatusLabel(request.status)}
             </span>
 
+            {/* Priority */}
             <div className="flex items-center gap-1">
               {request.priority === 'URGENT' && (
                 <AlertTriangle className="w-3 h-3 text-red-400" />
               )}
-              <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm ${
+              <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm whitespace-nowrap ${
                 request.priority === 'URGENT' ? 'bg-red-500/20 text-red-300 border border-red-400/30' :
                 request.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' :
                 request.priority === 'MEDIUM' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' :
@@ -306,10 +339,8 @@ export function CompactListView({
                 {getPriorityLabel(request.priority)}
               </span>
             </div>
-          </div>
 
-          {/* Window Badge */}
-          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Window Badge */}
             {(request.windowOpenAt || request.windowCloseAt) && (
               <WindowBadge
                 windowOpenAt={request.windowOpenAt}
@@ -317,34 +348,6 @@ export function CompactListView({
                 graceDays={request.graceDays}
                 size="sm"
               />
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            {onEdit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onEdit(request)
-                }}
-                className="p-2 text-white/40 hover:text-blue-400 transition-colors"
-                title="Edit request"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
-            )}
-            {onDelete && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onDelete(request)
-                }}
-                className="p-2 text-red-400/70 hover:text-red-400 transition-colors"
-                title="Delete request"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
             )}
           </div>
         </div>
@@ -360,36 +363,36 @@ export function CompactListView({
 
         return (
           <div key={country} className="space-y-2">
-            {/* Country Header */}
+            {/* Country Header - Mobile Optimized */}
             <button
               onClick={() => toggleCountry(country)}
-              className="w-full flex items-center justify-between px-3 py-1.5 bg-white/[0.12] backdrop-blur-sm border border-white/20 rounded hover:bg-white/[0.16] transition-all duration-200 group"
+              className="w-full flex items-center justify-between px-2 md:px-3 py-1.5 bg-white/[0.12] backdrop-blur-sm border border-white/20 rounded hover:bg-white/[0.16] transition-all duration-200 group"
             >
               <div className="flex items-center gap-2">
                 {isExpanded ? (
-                  <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                  <ChevronDown className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-white/50" />
+                  <ChevronRight className="w-3.5 h-3.5 text-white/50 flex-shrink-0" />
                 )}
-                <h3 className="font-medium text-sm text-white/80 group-hover:text-white transition-colors">
+                <h3 className="font-medium text-xs md:text-sm text-white/80 group-hover:text-white transition-colors">
                   {country}
                 </h3>
                 {country === 'Unknown' && (
-                  <span className="text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 rounded">
+                  <span className="text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 rounded whitespace-nowrap">
                     ⚠️ Unknown
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-white/50">
+                <span className="text-xs text-white/50 whitespace-nowrap">
                   {countryRequests.length} request{countryRequests.length !== 1 ? 's' : ''}
                 </span>
               </div>
             </button>
 
-            {/* Country Requests */}
+            {/* Country Requests - Mobile: Less indent, Desktop: More indent */}
             {isExpanded && (
-              <div className="ml-6 space-y-2">
+              <div className="ml-3 md:ml-6 space-y-2">
                 {countryRequests.map(renderRequestCard)}
               </div>
             )}
