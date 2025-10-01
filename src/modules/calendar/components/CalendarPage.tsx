@@ -296,13 +296,13 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* Navigation Row */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+        {/* Navigation Row - Same line alignment */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4">
           {/* Date Navigation */}
-          <div className="flex items-center justify-center sm:justify-start gap-2">
+          <div className="flex items-center justify-center sm:justify-start gap-2 flex-1">
             <button
               onClick={navigateToPrevious}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
               disabled={actualView === 'list'}
             >
               <ChevronLeft className="w-5 h-5 text-white/70" />
@@ -314,7 +314,7 @@ export function CalendarPage() {
 
             <button
               onClick={navigateToNext}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
               disabled={actualView === 'list'}
             >
               <ChevronRight className="w-5 h-5 text-white/70" />
@@ -322,15 +322,15 @@ export function CalendarPage() {
 
             <button
               onClick={navigateToToday}
-              className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-xs sm:text-sm font-medium"
+              className="px-3 py-2 bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap"
               disabled={actualView === 'list'}
             >
               Today
             </button>
           </div>
 
-          {/* View Toggle - Better contrast */}
-          <div className="flex items-center justify-center sm:justify-end">
+          {/* View Toggle - Better contrast, same line */}
+          <div className="flex items-center justify-center sm:justify-end flex-shrink-0">
             <div className="flex items-center bg-white/10 rounded-lg border border-white/20 p-1">
               {isInSearchMode && (
                 <div className="text-xs text-blue-400 px-2 mr-2 bg-blue-500/20 rounded border border-blue-400/30 whitespace-nowrap">
