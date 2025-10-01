@@ -126,53 +126,51 @@ export async function GET(request: NextRequest) {
       tenantId = tenantExists.id
     }
 
-    // ULTRA-OPTIMIZED: Only 3 queries with groupBy - faster than 6 separate counts
+    // HYPER-OPTIMIZED: Only 2 parallel queries using $transaction for atomicity
     const now = new Date()
     const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
 
     const startTime = Date.now()
 
+    // Execute all queries in a single transaction for better connection reuse
     const [
-      totalPlayers,
-      requestsByStatus,
-      trialsByStatus
-    ] = await Promise.all([
-      // Query 1: Simple count
-      prisma.player.count({ where: { tenantId } }),
+      countsData,
+      upcomingTrialsCount
+    ] = await prisma.$transaction([
+      // Query 1: Get all counts in parallel using aggregate (FASTEST method)
+      prisma.$queryRaw<Array<{ entity: string; total: number }>>`
+        SELECT 'players' as entity, COUNT(*)::int as total FROM players WHERE "tenantId" = ${tenantId}
+        UNION ALL
+        SELECT 'requests' as entity, COUNT(*)::int as total FROM requests WHERE "tenantId" = ${tenantId}
+        UNION ALL
+        SELECT 'requests_open' as entity, COUNT(*)::int as total FROM requests WHERE "tenantId" = ${tenantId} AND status = 'OPEN'
+        UNION ALL
+        SELECT 'trials' as entity, COUNT(*)::int as total FROM trials WHERE "tenantId" = ${tenantId}
+        UNION ALL
+        SELECT 'trials_completed' as entity, COUNT(*)::int as total FROM trials WHERE "tenantId" = ${tenantId} AND status = 'COMPLETED'
+      `,
 
-      // Query 2: Group requests by status (replaces 2 separate counts)
-      prisma.request.groupBy({
-        by: ['status'],
-        where: { tenantId },
-        _count: { status: true }
-      }),
-
-      // Query 3: Group trials by status + scheduled filter (replaces 3 separate counts)
-      prisma.trial.groupBy({
-        by: ['status'],
-        where: { tenantId },
-        _count: { status: true }
+      // Query 2: Upcoming trials with optimized index usage
+      prisma.trial.count({
+        where: {
+          tenantId,
+          status: 'SCHEDULED',
+          scheduledAt: { gte: now, lte: next7Days }
+        }
       })
     ])
 
-    // Extract counts from grouped results
-    const totalRequests = requestsByStatus.reduce((sum, r) => sum + r._count.status, 0)
-    const activeRequests = requestsByStatus.find(r => r.status === 'OPEN')?._count.status || 0
-
-    const totalTrials = trialsByStatus.reduce((sum, t) => sum + t._count.status, 0)
-    const completedTrials = trialsByStatus.find(t => t.status === 'COMPLETED')?._count.status || 0
-
-    // For upcoming trials, we need a separate optimized query with date filter
-    const upcomingTrials = await prisma.trial.count({
-      where: {
-        tenantId,
-        status: 'SCHEDULED',
-        scheduledAt: { gte: now, lte: next7Days }
-      }
-    })
+    // Extract counts from raw query results
+    const countsMap = new Map(countsData.map(row => [row.entity, row.total]))
+    const totalPlayers = countsMap.get('players') || 0
+    const totalRequests = countsMap.get('requests') || 0
+    const activeRequests = countsMap.get('requests_open') || 0
+    const totalTrials = countsMap.get('trials') || 0
+    const completedTrials = countsMap.get('trials_completed') || 0
+    const upcomingTrials = upcomingTrialsCount
 
     const queryDuration = Date.now() - startTime
-    console.log('⚡ Dashboard stats: 4 queries completed in', queryDuration, 'ms (optimized from 6)')
+    console.log('⚡ Dashboard stats: 2 queries completed in', queryDuration, 'ms (HYPER-OPTIMIZED with raw SQL)')
 
     // Simple success rate calculation (no additional queries needed)
     const successRate = completedTrials > 0 ? Math.round((completedTrials / totalTrials) * 100) : 0
