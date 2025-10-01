@@ -184,97 +184,97 @@ export default function AdminTenants() {
   }), { users: 0, players: 0, requests: 0, trials: 0, events: 0 })
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Page Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-gray-900">Tenant Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl sm:text-2xl font-medium text-gray-900">Tenant Management</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage organizations and their settings • {tenants.length} total tenants
           </p>
         </div>
         <button
           onClick={fetchTenants}
-          className="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors"
+          className="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors text-sm sm:text-base whitespace-nowrap self-start sm:self-auto"
         >
           Refresh
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div className="bg-white border border-gray-200 rounded p-6">
+      {/* Stats Cards - Mobile Optimized */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Shield className="w-5 h-5 text-gray-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Total Tenants</p>
+            <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Tenants</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {tenants.length}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded p-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Users className="w-5 h-5 text-blue-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Total Users</p>
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Users</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {totalStats.users}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded p-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Target className="w-5 h-5 text-green-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Total Players</p>
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Players</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {totalStats.players}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded p-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <FileText className="w-5 h-5 text-orange-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Total Requests</p>
+            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Requests</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {totalStats.requests}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded p-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Calendar className="w-5 h-5 text-purple-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Total Events</p>
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Events</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {totalStats.events}
           </p>
         </div>
       </div>
 
-      {/* Tenants Table */}
-      <div className="bg-white border border-gray-200 rounded">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">All Tenants</h2>
+      {/* Tenants Table - Mobile Scrollable */}
+      <div className="bg-white border border-gray-200 rounded overflow-hidden">
+        <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-medium text-gray-900">All Tenants</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[800px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Organization
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Slug
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Members
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Data
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Created
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -282,24 +282,24 @@ export default function AdminTenants() {
             <tbody className="divide-y divide-gray-200">
               {tenants.map((tenant) => (
                 <tr key={tenant.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     <div>
-                      <div className="font-medium text-gray-900">{tenant.name}</div>
+                      <div className="font-medium text-gray-900 text-sm">{tenant.name}</div>
                       {tenant.description && (
-                        <div className="text-sm text-gray-500">{tenant.description}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{tenant.description}</div>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 font-mono">{tenant.slug}</div>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div className="text-xs sm:text-sm text-gray-600 font-mono">{tenant.slug}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-mono">{tenant.stats.users}</div>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div className="text-xs sm:text-sm text-gray-900 font-mono">{tenant.stats.users}</div>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {tenant.members.slice(0, 3).map((member, idx) => (
                         <span
                           key={idx}
-                          className={`inline-flex px-2 py-1 text-xs rounded-full ${getRoleColor(member.role)}`}
+                          className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full ${getRoleColor(member.role)}`}
                         >
                           {member.role}
                         </span>
@@ -309,23 +309,23 @@ export default function AdminTenants() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div className="text-xs sm:text-sm text-gray-900">
                       <div>👥 {tenant.stats.players} players</div>
                       <div>📋 {tenant.stats.requests} requests</div>
                       <div>🎯 {tenant.stats.trials} trials</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatDate(tenant.createdAt)}</div>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div className="text-xs sm:text-sm text-gray-900">{formatDate(tenant.createdAt)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                     <button
                       onClick={() => handleDeleteTenant(tenant)}
                       disabled={deletingTenant === tenant.id}
                       className="text-red-600 hover:text-red-700 disabled:text-red-400 flex items-center gap-1"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       {deletingTenant === tenant.id ? 'Deleting...' : 'Delete'}
                     </button>
                   </td>

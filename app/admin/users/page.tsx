@@ -499,29 +499,30 @@ export default function AdminUsers() {
   const pendingInvitations = invitations.filter(inv => inv.status === 'PENDING')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Toaster />
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+      {/* Page Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-medium text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-xl sm:text-2xl font-medium text-gray-900">User Management</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
             Manage users and team invitations • {users.length} users • {pendingInvitations.length} pending invites
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            className="px-3 sm:px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm whitespace-nowrap"
           >
             Refresh
           </button>
           <button
             onClick={() => setShowInviteModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
           >
-            <UserPlus className="w-4 h-4" />
-            Invite User
+            <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Invite User</span>
+            <span className="sm:hidden">Invite</span>
           </button>
         </div>
       </div>
@@ -563,57 +564,57 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-gray-200 rounded p-6">
+      {/* Stats - Mobile Optimized */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Users className="w-5 h-5 text-blue-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Total Users</p>
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Total Users</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {users.length}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded p-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Building2 className="w-5 h-5 text-green-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Organizations</p>
+            <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Organizations</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {tenants.length}
           </p>
         </div>
-        <div className="bg-white border border-gray-200 rounded p-6">
+        <div className="bg-white border border-gray-200 rounded p-3 sm:p-6">
           <div className="flex items-center">
-            <Mail className="w-5 h-5 text-purple-600 mr-2" />
-            <p className="text-sm font-medium text-gray-600">Active Memberships</p>
+            <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mr-1 sm:mr-2" />
+            <p className="text-xs sm:text-sm font-medium text-gray-600">Active Memberships</p>
           </div>
-          <p className="text-2xl font-mono font-medium text-gray-900 mt-1">
+          <p className="text-xl sm:text-2xl font-mono font-medium text-gray-900 mt-1">
             {users.reduce((acc, user) => acc + user.memberships.length, 0)}
           </p>
         </div>
       </div>
 
-      {/* Users Table */}
+      {/* Users Table - Mobile Scrollable */}
       {activeTab === 'users' && (
-        <div className="bg-white border border-gray-200 rounded">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">All Users</h2>
+        <div className="bg-white border border-gray-200 rounded overflow-hidden">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900">All Users</h2>
           </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[700px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Memberships
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Joined
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -621,13 +622,13 @@ export default function AdminUsers() {
             <tbody className="divide-y divide-gray-200">
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                     <div>
-                      <div className="font-medium text-gray-900">{getUserDisplayName(user)}</div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="font-medium text-gray-900 text-sm">{getUserDisplayName(user)}</div>
+                      <div className="text-xs sm:text-sm text-gray-500">{user.email}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
                     <div className="flex flex-wrap gap-2">
                       {user.memberships.map((membership, idx) => (
                         <div key={idx} className="flex flex-col">
@@ -635,7 +636,7 @@ export default function AdminUsers() {
                             value={membership.role}
                             onChange={(e) => handleChangeRole(user, membership, e.target.value)}
                             disabled={actionLoading === `role-${user.id}`}
-                            className={`inline-flex px-2 py-1 text-xs rounded-full border-0 cursor-pointer ${getRoleColor(membership.role)}`}
+                            className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full border-0 cursor-pointer ${getRoleColor(membership.role)}`}
                           >
                             <option value="OWNER">OWNER</option>
                             <option value="ADMIN">ADMIN</option>
@@ -649,21 +650,21 @@ export default function AdminUsers() {
                         </div>
                       ))}
                       {user.memberships.length === 0 && (
-                        <span className="text-sm text-gray-400">No memberships</span>
+                        <span className="text-xs sm:text-sm text-gray-400">No memberships</span>
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{formatDate(user.createdAt)}</div>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div className="text-xs sm:text-sm text-gray-900">{formatDate(user.createdAt)}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleViewUser(user)}
                         disabled={actionLoading === `view-${user.id}`}
                         className="text-blue-600 hover:text-blue-700 disabled:text-blue-400 flex items-center gap-1"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                         {actionLoading === `view-${user.id}` ? 'Loading...' : 'View'}
                       </button>
                       <button
@@ -672,8 +673,9 @@ export default function AdminUsers() {
                         className="text-red-600 hover:text-red-700 disabled:text-red-400 flex items-center gap-1 font-medium"
                         title="Permanently delete user from database"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        {actionLoading === `delete-${user.id}` ? 'Deleting...' : 'Delete User'}
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">{actionLoading === `delete-${user.id}` ? 'Deleting...' : 'Delete User'}</span>
+                        <span className="sm:hidden">{actionLoading === `delete-${user.id}` ? '...' : 'Delete'}</span>
                       </button>
                     </div>
                   </td>
@@ -690,32 +692,32 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* Invitations Table */}
+      {/* Invitations Table - Mobile Scrollable */}
       {activeTab === 'invitations' && (
-        <div className="bg-white border border-gray-200 rounded">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">All Invitations</h2>
+        <div className="bg-white border border-gray-200 rounded overflow-hidden">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg font-medium text-gray-900">All Invitations</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[800px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Organization
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Expires
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -728,38 +730,38 @@ export default function AdminUsers() {
 
                     return (
                       <tr key={invitation.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                            <span className="font-medium text-gray-900">{invitation.email}</span>
+                            <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1 sm:mr-2" />
+                            <span className="font-medium text-gray-900 text-sm">{invitation.email}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <Building2 className="w-4 h-4 text-gray-400 mr-2" />
-                            <span className="text-sm text-gray-900">{invitation.tenant.name}</span>
+                            <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-1 sm:mr-2" />
+                            <span className="text-xs sm:text-sm text-gray-900">{invitation.tenant.name}</span>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getRoleColor(invitation.role)}`}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full ${getRoleColor(invitation.role)}`}>
                             {invitation.role}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeColor(displayStatus)}`}>
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                          <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs rounded-full ${getStatusBadgeColor(displayStatus)}`}>
                             {displayStatus}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                           <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             {formatDate(invitation.expiresAt)}
                           </div>
                           {expired && invitation.status === 'PENDING' && (
                             <span className="text-xs text-red-600 mt-1 block">Expired</span>
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                           <div className="flex items-center gap-2">
                             {invitation.status === 'PENDING' && !expired && (
                               <>

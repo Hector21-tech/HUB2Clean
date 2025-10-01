@@ -3,7 +3,8 @@
 import { useAuth } from '@/lib/auth/AuthContext'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
+import { Menu, X } from 'lucide-react'
 
 interface AdminLayoutProps {
   children: ReactNode
@@ -35,6 +36,7 @@ const adminMenuItems = [
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const { user, loading, userTenants, currentTenant } = useAuth()
   const pathname = usePathname()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Get tenant slug for "Back to App" link
   const tenantData = userTenants.find(t => t.tenantId === currentTenant)
@@ -69,30 +71,52 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
+      {/* Top Header - Mobile Optimized */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+        <div className="px-3 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-medium text-gray-900">Scout Hub Admin</h1>
-              <span className="text-sm text-gray-500">System Administration</span>
+            {/* Left: Menu button (mobile) + Title */}
+            <div className="flex items-center gap-3">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                <h1 className="text-lg sm:text-xl font-medium text-gray-900">Scout Hub Admin</h1>
+                <span className="text-xs sm:text-sm text-gray-500">System Administration</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user?.email}</span>
+
+            {/* Right: User email + Back link - Hidden on small mobile */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="hidden md:block text-xs sm:text-sm text-gray-600 truncate max-w-[150px]">{user?.email}</span>
               <Link
                 href={backUrl}
-                className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors whitespace-nowrap"
               >
-                ← Back to App
+                <span className="hidden sm:inline">← Back to App</span>
+                <span className="sm:hidden">← Back</span>
               </Link>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <nav className="w-64 bg-white border-r border-gray-200 min-h-[calc(100vh-73px)]">
+      <div className="flex relative">
+        {/* Sidebar - Desktop: Always visible, Mobile: Overlay */}
+        <nav className={`
+          fixed lg:static inset-y-0 left-0 z-30
+          w-64 bg-white border-r border-gray-200
+          transform transition-transform duration-200 ease-in-out
+          lg:transform-none
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          top-[57px] sm:top-[65px] lg:top-0
+          min-h-[calc(100vh-57px)] sm:min-h-[calc(100vh-65px)] lg:min-h-[calc(100vh-73px)]
+        `}>
           <div className="p-4">
             <ul className="space-y-1">
               {adminMenuItems.map((item) => {
@@ -104,6 +128,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
                       className={`block px-3 py-2 rounded text-sm font-medium transition-colors ${
                         isActive
                           ? 'bg-gray-900 text-white'
@@ -119,8 +144,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </nav>
 
+        {/* Mobile Overlay */}
+        {mobileMenuOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden top-[57px] sm:top-[65px]"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
         {/* Main Content */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-3 sm:p-6 w-full min-w-0">
           {children}
         </main>
       </div>
