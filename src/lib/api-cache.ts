@@ -132,8 +132,11 @@ class ApiCache {
   }
 }
 
-// Export singleton instance with 30s TTL
+// Export singleton instance with 30s TTL (for real-time data: players, requests, trials)
 export const apiCache = new ApiCache(30)
+
+// Export separate cache for dashboard with longer 5min TTL (less critical for real-time)
+export const dashboardCache = new ApiCache(300) // 5 minutes
 
 // Helper function to generate consistent cache keys
 export function generateCacheKey(

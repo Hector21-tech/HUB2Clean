@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { apiCache, generateCacheKey } from '@/lib/api-cache'
+import { dashboardCache, generateCacheKey } from '@/lib/api-cache'
 
 interface DashboardStats {
   overview: {
@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const tenant = searchParams.get('tenant')
+    const fastMode = searchParams.get('fast') === '1'
 
     if (!tenant) {
       return NextResponse.json(
@@ -84,38 +85,45 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Verify tenant
-    const tenantExists = await prisma.tenant.findFirst({
-      where: {
-        OR: [
-          { id: tenant },
-          { slug: tenant }
-        ]
-      },
-      select: { id: true } // Minimal select for speed
-    })
+    // FAST MODE: Skip tenant verification, use ID directly for cache check
+    let tenantId = tenant
 
-    if (!tenantExists) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant not found' },
-        { status: 404 }
-      )
-    }
-
-    const tenantId = tenantExists.id
-
-    // Try cache first
+    // Try cache first (BEFORE tenant verification for speed)
     const cacheKey = generateCacheKey('dashboard', tenantId)
-    const cachedData = apiCache.get(cacheKey)
+    const cachedData = dashboardCache.get(cacheKey)
 
     if (cachedData) {
       const response = NextResponse.json({
         success: true,
         data: cachedData
       })
-      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      // Extended cache headers: 5min browser cache, 5min edge cache
+      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
       response.headers.set('X-Cache', 'HIT')
+      response.headers.set('X-Cache-Time', cachedData.lastUpdated)
       return response
+    }
+
+    // ONLY verify tenant if cache miss and not already an ID
+    if (!fastMode || !tenant.startsWith('cmf')) {
+      const tenantExists = await prisma.tenant.findFirst({
+        where: {
+          OR: [
+            { id: tenant },
+            { slug: tenant }
+          ]
+        },
+        select: { id: true } // Minimal select for speed
+      })
+
+      if (!tenantExists) {
+        return NextResponse.json(
+          { success: false, error: 'Tenant not found' },
+          { status: 404 }
+        )
+      }
+
+      tenantId = tenantExists.id
     }
 
     // ULTRA-OPTIMIZED: Only 3 queries with groupBy - faster than 6 separate counts
@@ -233,15 +241,17 @@ export async function GET(request: NextRequest) {
       lastUpdated: now.toISOString()
     }
 
-    // Cache the result
-    apiCache.set(cacheKey, stats)
+    // Cache the result for 5 minutes
+    dashboardCache.set(cacheKey, stats)
 
     const response = NextResponse.json({
       success: true,
       data: stats
     })
-    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    // Extended cache headers: 5min browser cache, 5min edge cache, 10min stale-while-revalidate
+    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
     response.headers.set('X-Cache', 'MISS')
+    response.headers.set('X-Query-Duration', `${queryDuration}ms`)
     return response
 
   } catch (error) {
