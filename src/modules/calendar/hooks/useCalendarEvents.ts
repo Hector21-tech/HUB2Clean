@@ -20,7 +20,10 @@ interface ApiResponse<T> {
 
 // Fetch calendar events
 async function fetchCalendarEvents({ tenantId, start, end, type }: FetchEventsParams): Promise<CalendarEvent[]> {
-  const params = new URLSearchParams({ tenant: tenantId })
+  const params = new URLSearchParams({
+    tenant: tenantId,
+    fast: '1' // Enable fast mode for instant cache hits
+  })
   if (start) params.append('start', start)
   if (end) params.append('end', end)
   if (type) params.append('type', type)

@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     const start = searchParams.get('start')
     const end = searchParams.get('end')
     const type = searchParams.get('type')
+    const fastMode = searchParams.get('fast') === '1'
 
     if (!tenant) {
       return NextResponse.json(
@@ -36,9 +37,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Try cache first
+    // FAST MODE: Use tenant ID directly for cache check
+    let tenantId = tenant
+
+    // Try cache FIRST (before tenant verification for speed)
     const cacheFilters = { start, end, type }
-    const cacheKey = generateCacheKey('events', tenant, cacheFilters)
+    const cacheKey = generateCacheKey('events', tenantId, cacheFilters)
     const cachedData = apiCache.get(cacheKey)
 
     if (cachedData) {
@@ -51,25 +55,27 @@ export async function GET(request: NextRequest) {
       return response
     }
 
-    // Verify tenant
-    const tenantExists = await prisma.tenant.findFirst({
-      where: {
-        OR: [
-          { id: tenant },
-          { slug: tenant }
-        ]
-      },
-      select: { id: true } // Minimal select for speed
-    })
+    // ONLY verify tenant if cache miss and not fast mode with ID
+    if (!fastMode || !tenant.startsWith('cmf')) {
+      const tenantExists = await prisma.tenant.findFirst({
+        where: {
+          OR: [
+            { id: tenant },
+            { slug: tenant }
+          ]
+        },
+        select: { id: true } // Minimal select for speed
+      })
 
-    if (!tenantExists) {
-      return NextResponse.json(
-        { success: false, error: 'Tenant not found' },
-        { status: 404 }
-      )
+      if (!tenantExists) {
+        return NextResponse.json(
+          { success: false, error: 'Tenant not found' },
+          { status: 404 }
+        )
+      }
+
+      tenantId = tenantExists.id
     }
-
-    const tenantId = tenantExists.id
 
     // Build where clause
     const whereClause: any = { tenantId }
@@ -106,12 +112,32 @@ export async function GET(request: NextRequest) {
       whereClause.type = type
     }
 
-    // Fetch events with related trial data
+    // OPTIMIZED: Fetch events with minimal trial data, avoid deep nesting
+    const startTime = Date.now()
     const events = await prisma.calendarEvent.findMany({
       where: whereClause,
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        trialId: true,
+        title: true,
+        description: true,
+        startTime: true,
+        endTime: true,
+        location: true,
+        type: true,
+        isAllDay: true,
+        recurrence: true,
+        createdAt: true,
+        updatedAt: true,
+        // Optimized: Select only needed trial fields, avoid deep nesting
         trial: {
-          include: {
+          select: {
+            id: true,
+            status: true,
+            rating: true,
+            playerId: true,
+            requestId: true,
             player: {
               select: {
                 id: true,
@@ -136,6 +162,9 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { startTime: 'asc' }
     })
+
+    const queryDuration = Date.now() - startTime
+    console.log(`⚡ Calendar events: ${events.length} events fetched in ${queryDuration}ms`)
 
     // Transform events to match frontend interface
     const transformedEvents = events.map(event => ({
