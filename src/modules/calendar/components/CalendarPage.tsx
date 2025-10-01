@@ -329,9 +329,9 @@ export function CalendarPage() {
             </button>
           </div>
 
-          {/* View Toggle - Consistent sizing */}
+          {/* View Toggle - Better contrast */}
           <div className="flex items-center justify-center sm:justify-end">
-            <div className="flex items-center bg-white/5 rounded-lg border border-white/10 p-1">
+            <div className="flex items-center bg-white/10 rounded-lg border border-white/20 p-1">
               {isInSearchMode && (
                 <div className="text-xs text-blue-400 px-2 mr-2 bg-blue-500/20 rounded border border-blue-400/30 whitespace-nowrap">
                   <span className="hidden sm:inline">Search Mode</span>
@@ -343,10 +343,10 @@ export function CalendarPage() {
                 disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   view === 'month' && !isInSearchMode
-                    ? 'bg-blue-500/20 text-blue-300'
+                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
                     : isInSearchMode
                     ? 'text-white/30 cursor-not-allowed'
-                    : 'text-white/60 hover:text-white/80 hover:bg-white/5'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Grid className="w-4 h-4" />
@@ -357,10 +357,10 @@ export function CalendarPage() {
                 disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   view === 'week' && !isInSearchMode
-                    ? 'bg-blue-500/20 text-blue-300'
+                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
                     : isInSearchMode
                     ? 'text-white/30 cursor-not-allowed'
-                    : 'text-white/60 hover:text-white/80 hover:bg-white/5'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Calendar className="w-4 h-4" />
@@ -371,10 +371,10 @@ export function CalendarPage() {
                 disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   view === 'day' && !isInSearchMode
-                    ? 'bg-blue-500/20 text-blue-300'
+                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
                     : isInSearchMode
                     ? 'text-white/30 cursor-not-allowed'
-                    : 'text-white/60 hover:text-white/80 hover:bg-white/5'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <Clock className="w-4 h-4" />
@@ -385,10 +385,10 @@ export function CalendarPage() {
                 disabled={isInSearchMode}
                 className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   isInSearchMode
-                    ? 'bg-blue-500/20 text-blue-300'
+                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
                     : view === 'list'
-                    ? 'bg-blue-500/20 text-blue-300'
-                    : 'text-white/60 hover:text-white/80 hover:bg-white/5'
+                    ? 'bg-blue-500/30 text-blue-200 border border-blue-400/30'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 <List className="w-4 h-4" />
