@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, Target, Calendar, Clock, AlertTriangle, MoreVertical, MapPin, ChevronDown, ChevronRight } from 'lucide-react'
+import { Building2, Target, Calendar, Clock, AlertTriangle, MoreVertical, MapPin, ChevronDown, ChevronRight, Euro, Edit, Trash2 } from 'lucide-react'
 import { WindowBadge } from './WindowBadge'
 import { getCountryByClub } from '@/lib/club-country-mapping'
 
@@ -21,12 +21,23 @@ interface Request {
   windowCloseAt?: string | null
   deadline?: string | null
   graceDays?: number
+  dealType?: string
+  // Transfer fees (in EUR)
+  transferFeeMinEUR?: number
+  transferFeeMaxEUR?: number
+  // Loan salary (in EUR)
+  loanSalaryEUR?: number
+  // Free Agent details (in EUR)
+  freeAgentSalaryEUR?: number
+  signOnBonusEUR?: number
 }
 
 interface CompactListViewProps {
   requests: Request[]
   onRequestSelect: (requestId: string) => void
   selectedRequests: Set<string>
+  onEdit?: (request: Request) => void
+  onDelete?: (request: Request) => void
   className?: string
 }
 
@@ -34,6 +45,8 @@ export function CompactListView({
   requests,
   onRequestSelect,
   selectedRequests,
+  onEdit,
+  onDelete,
   className = ''
 }: CompactListViewProps) {
   // Group requests by country first to determine which countries to show
@@ -62,13 +75,13 @@ export function CompactListView({
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case 'open': return 'bg-blue-500/20 text-blue-300 border-blue-400/30'
-      case 'in_progress': return 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30'
-      case 'offer_sent': return 'bg-orange-500/20 text-orange-300 border-orange-400/30'
-      case 'agreement': return 'bg-purple-500/20 text-purple-300 border-purple-400/30'
-      case 'completed': return 'bg-green-500/20 text-green-300 border-green-400/30'
-      case 'cancelled': return 'bg-red-500/20 text-red-300 border-red-400/30'
-      default: return 'bg-gray-500/20 text-gray-300 border-gray-400/30'
+      case 'open': return 'bg-blue-500/20 text-blue-300 border border-blue-400/30'
+      case 'in_progress': return 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/30'
+      case 'offer_sent': return 'bg-orange-500/20 text-orange-300 border border-orange-400/30'
+      case 'agreement': return 'bg-purple-500/20 text-purple-300 border border-purple-400/30'
+      case 'completed': return 'bg-green-500/20 text-green-300 border border-green-400/30'
+      case 'cancelled': return 'bg-red-500/20 text-red-300 border border-red-400/30'
+      default: return 'bg-gray-500/20 text-gray-300 border border-gray-400/30'
     }
   }
 
@@ -89,6 +102,62 @@ export function CompactListView({
       case 'CANCELLED': return 'Lost'
       default: return status
     }
+  }
+
+  const getPriorityLabel = (priority: string) => {
+    switch (priority) {
+      case 'URGENT': return 'Urgent'
+      case 'HIGH': return 'High'
+      case 'MEDIUM': return 'Medium'
+      case 'LOW': return 'Low'
+      default: return priority
+    }
+  }
+
+  // Format EUR amount in compact form (e.g., 2.5M, 50K)
+  const formatEURCompact = (amount: number | undefined): string => {
+    if (!amount || amount === 0) return ''
+
+    if (amount >= 1000000) {
+      const millions = amount / 1000000
+      return `${millions.toFixed(1)}M €`
+    } else if (amount >= 1000) {
+      const thousands = amount / 1000
+      return `${thousands.toFixed(0)}K €`
+    }
+    return `${amount.toFixed(0)} €`
+  }
+
+  // Get budget/salary info for request card with Deal Type
+  const getBudgetInfo = (request: Request): string[] => {
+    const dealTypes = request.dealType?.split(',') || []
+    const results: string[] = []
+
+    if (dealTypes.includes('TRANSFER')) {
+      if (request.transferFeeMinEUR && request.transferFeeMaxEUR) {
+        results.push(`Transfer → ${formatEURCompact(request.transferFeeMinEUR)} - ${formatEURCompact(request.transferFeeMaxEUR)}`)
+      } else {
+        results.push('Transfer')
+      }
+    }
+
+    if (dealTypes.includes('LOAN')) {
+      if (request.loanSalaryEUR) {
+        results.push(`Loan → ${formatEURCompact(request.loanSalaryEUR)}/wk`)
+      } else {
+        results.push('Loan')
+      }
+    }
+
+    if (dealTypes.includes('FREE_AGENT')) {
+      if (request.freeAgentSalaryEUR) {
+        results.push(`Free Agent → ${formatEURCompact(request.freeAgentSalaryEUR)}/wk`)
+      } else {
+        results.push('Free Agent')
+      }
+    }
+
+    return results
   }
 
   // Country flag mapping
@@ -152,18 +221,18 @@ export function CompactListView({
   const renderRequestCard = (request: Request) => (
     <div
       key={request.id}
-      className={`bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-sm border border-white/10 rounded-lg transition-all duration-200 cursor-pointer border-l-4 group ${
+      className={`bg-gradient-to-r from-white/5 via-white/3 to-white/5 backdrop-blur-sm border rounded-lg transition-all duration-200 cursor-pointer border-l-4 group ${
         getPriorityColor(request.priority)
       } ${
         selectedRequests.has(request.id)
-          ? 'ring-2 ring-blue-400/50 shadow-blue-500/20 shadow-lg bg-blue-500/10'
-          : 'hover:bg-white/10 hover:border-white/20'
+          ? 'ring-2 ring-blue-400/70 border-blue-400/50 shadow-lg shadow-blue-500/30 bg-blue-500/20'
+          : 'border-white/10 hover:bg-white/10 hover:border-white/20'
       }`}
       onClick={() => onRequestSelect(request.id)}
     >
-      <div className="p-4">
+      <div className="p-3">
         {/* Main Content Row */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Checkbox */}
           <div className="flex-shrink-0">
             <input
@@ -177,21 +246,25 @@ export function CompactListView({
             />
           </div>
 
-          {/* Title and Window Badge */}
+          {/* Title */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-1">
+            <div className="mb-1">
               <h3 className="font-semibold text-white text-sm truncate group-hover:text-blue-200 transition-colors">
                 {request.title}
               </h3>
-              {(request.windowOpenAt || request.windowCloseAt) && (
-                <WindowBadge
-                  windowOpenAt={request.windowOpenAt}
-                  windowCloseAt={request.windowCloseAt}
-                  graceDays={request.graceDays}
-                  size="sm"
-                />
-              )}
             </div>
+
+            {/* Budget Info - each on separate line */}
+            {getBudgetInfo(request).length > 0 && (
+              <div className="mb-2 space-y-0.5">
+                {getBudgetInfo(request).map((budgetLine, idx) => (
+                  <div key={idx} className="flex items-center gap-1 text-xs text-green-400/80">
+                    <Euro className="w-3 h-3" />
+                    <span className="font-medium">{budgetLine}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Compact Info Row */}
             <div className="flex items-center gap-4 text-xs text-white/60">
@@ -216,7 +289,7 @@ export function CompactListView({
 
           {/* Status and Priority */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={`text-xs px-2 py-1 rounded border backdrop-blur-sm ${getStatusColor(request.status)}`}>
+            <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm ${getStatusColor(request.status)}`}>
               {getStatusLabel(request.status)}
             </span>
 
@@ -224,30 +297,56 @@ export function CompactListView({
               {request.priority === 'URGENT' && (
                 <AlertTriangle className="w-3 h-3 text-red-400" />
               )}
-              <span className={`text-xs px-2 py-1 rounded backdrop-blur-sm ${
-                request.priority === 'URGENT' ? 'bg-red-500/20 text-red-300' :
-                request.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-300' :
-                request.priority === 'MEDIUM' ? 'bg-blue-500/20 text-blue-300' :
-                'bg-gray-500/20 text-gray-300'
+              <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm ${
+                request.priority === 'URGENT' ? 'bg-red-500/20 text-red-300 border border-red-400/30' :
+                request.priority === 'HIGH' ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' :
+                request.priority === 'MEDIUM' ? 'bg-blue-500/20 text-blue-300 border border-blue-400/30' :
+                'bg-gray-500/20 text-gray-300 border border-gray-400/30'
               }`}>
-                {request.priority}
+                {getPriorityLabel(request.priority)}
               </span>
             </div>
           </div>
 
-          {/* Last Updated */}
-          <div className="flex items-center gap-1 text-xs text-white/40 flex-shrink-0">
-            <Clock className="w-3 h-3" />
-            <span>{formatDate(request.updatedAt)}</span>
+          {/* Window Badge */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {(request.windowOpenAt || request.windowCloseAt) && (
+              <WindowBadge
+                windowOpenAt={request.windowOpenAt}
+                windowCloseAt={request.windowCloseAt}
+                graceDays={request.graceDays}
+                size="sm"
+              />
+            )}
           </div>
 
-          {/* More Actions */}
-          <button
-            className="p-1 hover:bg-white/10 rounded transition-colors opacity-0 group-hover:opacity-100"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreVertical className="w-4 h-4 text-white/60" />
-          </button>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            {onEdit && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onEdit(request)
+                }}
+                className="p-2 text-white/40 hover:text-blue-400 transition-colors"
+                title="Edit request"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDelete(request)
+                }}
+                className="p-2 text-red-400/70 hover:text-red-400 transition-colors"
+                title="Delete request"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -264,30 +363,25 @@ export function CompactListView({
             {/* Country Header */}
             <button
               onClick={() => toggleCountry(country)}
-              className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-sm border border-white/20 rounded-lg hover:bg-white/15 transition-all duration-200 group"
+              className="w-full flex items-center justify-between px-3 py-1.5 bg-white/[0.12] backdrop-blur-sm border border-white/20 rounded hover:bg-white/[0.16] transition-all duration-200 group"
             >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-white/60" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-white/60" />
-                  )}
-                  <span className="text-lg">{getCountryFlag(country)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-white group-hover:text-blue-200 transition-colors">
-                    {country}
-                  </h3>
-                  {country === 'Unknown' && (
-                    <span className="text-xs px-2 py-1 bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 rounded">
-                      ⚠️ Unknown
-                    </span>
-                  )}
-                </div>
+              <div className="flex items-center gap-2">
+                {isExpanded ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-white/50" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-white/50" />
+                )}
+                <h3 className="font-medium text-sm text-white/80 group-hover:text-white transition-colors">
+                  {country}
+                </h3>
+                {country === 'Unknown' && (
+                  <span className="text-xs px-1.5 py-0.5 bg-yellow-500/20 text-yellow-300 border border-yellow-400/30 rounded">
+                    ⚠️ Unknown
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white/60">
+                <span className="text-xs text-white/50">
                   {countryRequests.length} request{countryRequests.length !== 1 ? 's' : ''}
                 </span>
               </div>
