@@ -112,8 +112,7 @@ export function useCalendarEvents(params: FetchEventsParams) {
     queryKey: ['calendar-events', params.tenantId, params],
     queryFn: () => fetchCalendarEvents(params),
     enabled: !!params.tenantId,
-    staleTime: 30000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    // Use global defaults: staleTime 5min, gcTime 10min
   })
 }
 
@@ -124,8 +123,17 @@ export function useCreateEvent(tenantId: string) {
   return useMutation({
     mutationFn: (input: CreateEventInput) => createCalendarEvent(tenantId, input),
     onSuccess: () => {
-      // Invalidate and refetch calendar events
-      queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] })
+      // SMART INVALIDATION: Invalidate ALL calendar-event queries for this tenant
+      queryClient.invalidateQueries({
+        queryKey: ['calendar-events', tenantId],
+        refetchType: 'active' // Only refetch active queries (visible on screen)
+      })
+
+      // Also invalidate dashboard if events affect stats
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId],
+        refetchType: 'none' // Don't refetch, just mark stale
+      })
     }
   })
 }
@@ -137,7 +145,17 @@ export function useUpdateEvent(tenantId: string) {
   return useMutation({
     mutationFn: (input: UpdateEventInput) => updateCalendarEvent(tenantId, input),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendar-events', tenantId] })
+      // SMART INVALIDATION: Invalidate ALL calendar-event queries for this tenant
+      queryClient.invalidateQueries({
+        queryKey: ['calendar-events', tenantId],
+        refetchType: 'active'
+      })
+
+      // Also invalidate dashboard
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId],
+        refetchType: 'none'
+      })
     }
   })
 }
@@ -176,6 +194,13 @@ export function useDeleteEvent(tenantId: string) {
       }
       // Force refetch to ensure fresh data
       queryClient.refetchQueries({ queryKey: ['calendar-events', tenantId], type: 'active' })
+    },
+    onSuccess: () => {
+      // SMART INVALIDATION: Also invalidate dashboard after successful delete
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId],
+        refetchType: 'none'
+      })
     }
   })
 }

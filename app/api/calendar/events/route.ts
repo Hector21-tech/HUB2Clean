@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: cachedData
       })
-      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
       response.headers.set('X-Cache', 'HIT')
       return response
     }
@@ -112,8 +112,10 @@ export async function GET(request: NextRequest) {
       whereClause.type = type
     }
 
-    // OPTIMIZED: Fetch events with minimal trial data, avoid deep nesting
+    // HYPER-OPTIMIZED: Fetch events with minimal data, avoid deep JOINs
     const startTime = Date.now()
+
+    // Query 1: Get events WITHOUT trial details (fast)
     const events = await prisma.calendarEvent.findMany({
       where: whereClause,
       select: {
@@ -129,66 +131,78 @@ export async function GET(request: NextRequest) {
         isAllDay: true,
         recurrence: true,
         createdAt: true,
-        updatedAt: true,
-        // Optimized: Select only needed trial fields, avoid deep nesting
-        trial: {
-          select: {
-            id: true,
-            status: true,
-            rating: true,
-            playerId: true,
-            requestId: true,
-            player: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                position: true,
-                club: true,
-                avatarPath: true,
-                avatarUrl: true
-              }
-            },
-            request: {
-              select: {
-                id: true,
-                title: true,
-                club: true,
-                position: true
-              }
-            }
-          }
-        }
+        updatedAt: true
       },
       orderBy: { startTime: 'asc' }
     })
 
+    // Query 2: ONLY fetch trial details if events have trials (conditional)
+    const eventTrialIds = events.filter(e => e.trialId).map(e => e.trialId as string)
+    let trialsMap = new Map()
+
+    if (eventTrialIds.length > 0) {
+      const trials = await prisma.trial.findMany({
+        where: { id: { in: eventTrialIds } },
+        select: {
+          id: true,
+          status: true,
+          rating: true,
+          playerId: true,
+          requestId: true,
+          player: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              position: true,
+              club: true,
+              avatarPath: true,
+              avatarUrl: true
+            }
+          },
+          request: {
+            select: {
+              id: true,
+              title: true,
+              club: true,
+              position: true
+            }
+          }
+        }
+      })
+      trialsMap = new Map(trials.map(t => [t.id, t]))
+    }
+
     const queryDuration = Date.now() - startTime
-    console.log(`⚡ Calendar events: ${events.length} events fetched in ${queryDuration}ms`)
+    console.log(`⚡ Calendar events: ${events.length} events (${eventTrialIds.length} with trials) fetched in ${queryDuration}ms`)
 
     // Transform events to match frontend interface
-    const transformedEvents = events.map(event => ({
-      id: event.id,
-      tenantId: event.tenantId,
-      title: event.title,
-      description: event.description,
-      startTime: event.startTime.toISOString(),
-      endTime: event.endTime.toISOString(),
-      location: event.location,
-      type: event.type,
-      isAllDay: event.isAllDay,
-      recurrence: event.recurrence,
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString(),
-      trialId: event.trialId,
-      trial: event.trial ? {
-        id: event.trial.id,
-        status: event.trial.status,
-        rating: event.trial.rating,
-        player: event.trial.player,
-        request: event.trial.request
-      } : null
-    }))
+    const transformedEvents = events.map(event => {
+      const trial = event.trialId ? trialsMap.get(event.trialId) : null
+
+      return {
+        id: event.id,
+        tenantId: event.tenantId,
+        title: event.title,
+        description: event.description,
+        startTime: event.startTime.toISOString(),
+        endTime: event.endTime.toISOString(),
+        location: event.location,
+        type: event.type,
+        isAllDay: event.isAllDay,
+        recurrence: event.recurrence,
+        createdAt: event.createdAt.toISOString(),
+        updatedAt: event.updatedAt.toISOString(),
+        trialId: event.trialId,
+        trial: trial ? {
+          id: trial.id,
+          status: trial.status,
+          rating: trial.rating,
+          player: trial.player,
+          request: trial.request
+        } : null
+      }
+    })
 
     // Cache the result
     apiCache.set(cacheKey, transformedEvents)
@@ -197,8 +211,9 @@ export async function GET(request: NextRequest) {
       success: true,
       data: transformedEvents
     })
-    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
     response.headers.set('X-Cache', 'MISS')
+    response.headers.set('X-Query-Duration', `${queryDuration}ms`)
     return response
 
   } catch (error) {
