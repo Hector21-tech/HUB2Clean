@@ -577,16 +577,16 @@ export function RequestsPage() {
 
   return (
     <div className="flex-1 relative">
-      <div className="relative p-6">
+      <div className="relative p-3 sm:p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 md:mb-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
               <div>
-                <h1 className="text-3xl font-bold text-white mb-2">Scout Requests</h1>
-                <div className="flex items-center gap-4 text-sm text-white/70">
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Scout Requests</h1>
+                <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-white/70">
                   <div className="flex items-center gap-2">
-                    <Building2 className="w-4 h-4" />
+                    <Building2 className="w-3 h-3 md:w-4 md:h-4" />
                     <span>{filteredRequests.length} requests</span>
                     {(searchTerm || statusFilter !== 'ALL' || dealTypeFilter !== 'ALL' || positionFilter !== 'ALL') && filteredRequests.length !== requests.length && (
                       <span className="text-xs text-white/50">of {requests.length}</span>
@@ -594,28 +594,30 @@ export function RequestsPage() {
                   </div>
                   {selectedRequests.size > 0 && (
                     <div className="flex items-center gap-2 text-blue-400">
-                      <CheckCircle2 className="w-4 h-4" />
+                      <CheckCircle2 className="w-3 h-3 md:w-4 md:h-4" />
                       <span>{selectedRequests.size} selected</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
+              {/* Action Buttons - Mobile: Stack vertically, Desktop: Horizontal */}
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <button
                   onClick={exportToCSV}
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm"
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-3 md:px-4 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-xs md:text-sm"
                 >
-                  <Download className="w-4 h-4" />
-                  Export CSV
+                  <Download className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Export CSV</span>
+                  <span className="sm:hidden">Export</span>
                 </button>
                 <button
                   onClick={() => setShowParseModal(true)}
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-sm"
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 md:px-4 py-2 rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 text-xs md:text-sm"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  Parse WhatsApp
+                  <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">Parse WhatsApp</span>
+                  <span className="sm:hidden">WhatsApp</span>
                 </button>
                 <button
                   onClick={() => {
@@ -627,75 +629,78 @@ export function RequestsPage() {
                       setShowForm(true)
                     }
                   }}
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm"
+                  className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-3 md:px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-xs md:text-sm"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3 h-3 md:w-4 md:h-4" />
                   {showForm ? 'Cancel' : 'Add Request'}
                 </button>
               </div>
             </div>
 
-            {/* Filter Bar */}
-            <div className="flex gap-3 flex-wrap">
-              <div className="flex-1 min-w-[200px] relative">
+            {/* Filter Bar - Mobile: Stack vertically, Desktop: Horizontal */}
+            <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
+              <div className="flex-1 min-w-0 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                 <input
                   type="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search requests..."
-                  className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-2 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm"
+                  className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-2 text-sm md:text-base text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent backdrop-blur-sm"
                 />
               </div>
 
-              {/* Deal Type Filter */}
-              <select
-                value={dealTypeFilter}
-                onChange={(e) => setDealTypeFilter(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
-              >
-                <option value="ALL" className="bg-slate-800 text-white">All Deal Types</option>
-                <option value="TRANSFER" className="bg-slate-800 text-white">Transfer</option>
-                <option value="LOAN" className="bg-slate-800 text-white">Loan</option>
-                <option value="FREE_AGENT" className="bg-slate-800 text-white">Free Agent</option>
-              </select>
+              {/* Filters - Mobile: Grid 2 columns, Desktop: Inline */}
+              <div className="grid grid-cols-2 sm:flex gap-2 md:gap-3">
+                {/* Deal Type Filter */}
+                <select
+                  value={dealTypeFilter}
+                  onChange={(e) => setDealTypeFilter(e.target.value)}
+                  className="bg-white/10 border border-white/20 rounded-lg px-2 md:px-4 py-2 text-xs md:text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
+                >
+                  <option value="ALL" className="bg-slate-800 text-white">All Deals</option>
+                  <option value="TRANSFER" className="bg-slate-800 text-white">Transfer</option>
+                  <option value="LOAN" className="bg-slate-800 text-white">Loan</option>
+                  <option value="FREE_AGENT" className="bg-slate-800 text-white">Free</option>
+                </select>
 
-              {/* Position Filter */}
-              <select
-                value={positionFilter}
-                onChange={(e) => setPositionFilter(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
-              >
-                <option value="ALL" className="bg-slate-800 text-white">All Positions</option>
-                {Object.entries(POSITION_MAPPINGS).map(([abbr, full]) => (
-                  <option key={abbr} value={abbr} className="bg-slate-800 text-white">
-                    {abbr} - {full}
-                  </option>
-                ))}
-              </select>
+                {/* Position Filter */}
+                <select
+                  value={positionFilter}
+                  onChange={(e) => setPositionFilter(e.target.value)}
+                  className="bg-white/10 border border-white/20 rounded-lg px-2 md:px-4 py-2 text-xs md:text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
+                >
+                  <option value="ALL" className="bg-slate-800 text-white">All Pos</option>
+                  {Object.entries(POSITION_MAPPINGS).map(([abbr, full]) => (
+                    <option key={abbr} value={abbr} className="bg-slate-800 text-white">
+                      {abbr} - {full}
+                    </option>
+                  ))}
+                </select>
 
-              {/* Status Filter */}
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
-              >
-                <option value="ALL" className="bg-slate-800 text-white">All Status</option>
-                <option value="OPEN" className="bg-slate-800 text-white">New</option>
-                <option value="IN_PROGRESS" className="bg-slate-800 text-white">In Progress</option>
-                <option value="OFFER_SENT" className="bg-slate-800 text-white">Offer Sent</option>
-                <option value="AGREEMENT" className="bg-slate-800 text-white">Agreement</option>
-                <option value="COMPLETED" className="bg-slate-800 text-white">Won</option>
-                <option value="CANCELLED" className="bg-slate-800 text-white">Lost</option>
-              </select>
+                {/* Status Filter */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="col-span-2 sm:col-span-1 bg-white/10 border border-white/20 rounded-lg px-2 md:px-4 py-2 text-xs md:text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
+                >
+                  <option value="ALL" className="bg-slate-800 text-white">All Status</option>
+                  <option value="OPEN" className="bg-slate-800 text-white">New</option>
+                  <option value="IN_PROGRESS" className="bg-slate-800 text-white">In Progress</option>
+                  <option value="OFFER_SENT" className="bg-slate-800 text-white">Offer Sent</option>
+                  <option value="AGREEMENT" className="bg-slate-800 text-white">Agreement</option>
+                  <option value="COMPLETED" className="bg-slate-800 text-white">Won</option>
+                  <option value="CANCELLED" className="bg-slate-800 text-white">Lost</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {/* Add/Edit Request Form */}
+          {/* Add/Edit Request Form - Mobile Optimized */}
           {showForm && (
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6 mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-white">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-4 md:p-6 mb-4 md:mb-6">
+              <div className="flex items-center justify-between mb-4 md:mb-6">
+                <h2 className="text-lg md:text-xl font-semibold text-white">
                   {editingRequest ? 'Edit Request' : 'Create New Request'}
                 </h2>
                 <button
@@ -704,12 +709,12 @@ export function RequestsPage() {
                     setShowForm(false)
                     setEditingRequest(null)
                   }}
-                  className="text-white/60 hover:text-white transition-colors"
+                  className="text-white/60 hover:text-white transition-colors text-xl md:text-2xl"
                 >
                   ✕
                 </button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
                 {/* Position */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Position *</label>
@@ -783,10 +788,10 @@ export function RequestsPage() {
                   />
                 </div>
 
-                {/* Deal Type */}
+                {/* Deal Type - Mobile: Stack vertically, Desktop: Horizontal */}
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Deal Type *</label>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     {[
                       { value: 'TRANSFER', label: 'Transfer' },
                       { value: 'LOAN', label: 'Loan' },
@@ -794,11 +799,11 @@ export function RequestsPage() {
                     ].map((dealType) => (
                       <label
                         key={dealType.value}
-                        className={`cursor-pointer transition-all duration-200 ${
+                        className={`cursor-pointer transition-all duration-200 flex-1 text-center ${
                           formData.dealTypes.includes(dealType.value)
                             ? 'bg-blue-600/30 border-blue-400/50 text-white'
                             : 'bg-white/5 border-white/20 text-white/70 hover:bg-white/10 hover:border-white/30 hover:text-white'
-                        } border rounded-lg px-4 py-2`}
+                        } border rounded-lg px-3 md:px-4 py-2`}
                       >
                         <input
                           type="checkbox"
@@ -811,7 +816,7 @@ export function RequestsPage() {
                           }}
                           className="sr-only"
                         />
-                        <span className="text-sm font-medium">{dealType.label}</span>
+                        <span className="text-xs md:text-sm font-medium">{dealType.label}</span>
                       </label>
                     ))}
                   </div>
@@ -820,11 +825,11 @@ export function RequestsPage() {
                   )}
                 </div>
 
-                {/* Transfer-specific fields: Min-Max Fee */}
+                {/* Transfer-specific fields: Min-Max Fee - Mobile: Stack vertically */}
                 {formData.dealTypes.includes('TRANSFER') && (
-                  <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-white mb-3">Transfer Details (all amounts in EUR)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-blue-500/10 border border-blue-400/30 rounded-lg p-3 md:p-4">
+                    <h3 className="text-xs md:text-sm font-semibold text-white mb-3">Transfer Details (all amounts in EUR)</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                       <div>
                         <label className="block text-sm font-medium text-white mb-2">Min Fee</label>
                         <div className="flex gap-2">
@@ -895,8 +900,8 @@ export function RequestsPage() {
 
                 {/* Loan-specific fields: Salary */}
                 {formData.dealTypes.includes('LOAN') && (
-                  <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-white mb-3">Loan Details (all amounts in EUR)</h3>
+                  <div className="bg-green-500/10 border border-green-400/30 rounded-lg p-3 md:p-4">
+                    <h3 className="text-xs md:text-sm font-semibold text-white mb-3">Loan Details (all amounts in EUR)</h3>
                     <div>
                       <label className="block text-sm font-medium text-white mb-2">Salary</label>
                       <div className="flex gap-2">
@@ -933,11 +938,11 @@ export function RequestsPage() {
                   </div>
                 )}
 
-                {/* Free Agent-specific fields: Salary + Sign-on Bonus */}
+                {/* Free Agent-specific fields: Salary + Sign-on Bonus - Mobile: Stack vertically */}
                 {formData.dealTypes.includes('FREE_AGENT') && (
-                  <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-4">
-                    <h3 className="text-sm font-semibold text-white mb-3">Free Agent Details (all amounts in EUR)</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-purple-500/10 border border-purple-400/30 rounded-lg p-3 md:p-4">
+                    <h3 className="text-xs md:text-sm font-semibold text-white mb-3">Free Agent Details (all amounts in EUR)</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                       <div>
                         <label className="block text-sm font-medium text-white mb-2">Salary</label>
                         <div className="flex gap-2">
@@ -1017,10 +1022,11 @@ export function RequestsPage() {
                     placeholder="Detailed requirements and preferences..."
                   />
                 </div>
-                <div className="flex gap-3 pt-4">
+                {/* Submit Buttons - Mobile: Full width stack, Desktop: Inline */}
+                <div className="flex flex-col sm:flex-row gap-2 md:gap-3 pt-2 md:pt-4">
                   <button
                     type="submit"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg"
+                    className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg text-sm md:text-base"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     Create Request
@@ -1028,7 +1034,7 @@ export function RequestsPage() {
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="inline-flex items-center gap-2 bg-white/10 text-white px-6 py-3 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20"
+                    className="inline-flex items-center justify-center gap-2 bg-white/10 text-white px-4 md:px-6 py-2.5 md:py-3 rounded-lg hover:bg-white/20 transition-all duration-200 border border-white/20 text-sm md:text-base"
                   >
                     Cancel
                   </button>
@@ -1037,22 +1043,22 @@ export function RequestsPage() {
             </div>
           )}
 
-          {/* Bulk Actions Toolbar */}
+          {/* Bulk Actions Toolbar - Mobile: Stack vertically, Desktop: Horizontal */}
           {selectedRequests.size > 0 && (
-            <div className="bg-blue-600/20 backdrop-blur-sm rounded-xl border border-blue-400/30 p-4 mb-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-white font-medium">
+            <div className="bg-blue-600/20 backdrop-blur-sm rounded-xl border border-blue-400/30 p-3 md:p-4 mb-4 md:mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-3 md:gap-4">
+                  <span className="text-white font-medium text-sm md:text-base">
                     {selectedRequests.size} request{selectedRequests.size !== 1 ? 's' : ''} selected
                   </span>
                   <button
                     onClick={clearSelection}
-                    className="text-blue-300 hover:text-white text-sm transition-colors"
+                    className="text-blue-300 hover:text-white text-xs md:text-sm transition-colors"
                   >
-                    Clear selection
+                    Clear
                   </button>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 md:gap-3">
                   <select
                     value={bulkStatusValue}
                     onChange={(e) => {
@@ -1063,7 +1069,7 @@ export function RequestsPage() {
                         bulkUpdateStatus(newStatus)
                       }
                     }}
-                    className="bg-blue-700/50 border border-blue-400/30 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className="flex-1 sm:flex-none bg-blue-700/50 border border-blue-400/30 rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-white text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="">Change status...</option>
                     <option value="OPEN">New</option>
@@ -1075,9 +1081,9 @@ export function RequestsPage() {
                   </select>
                   <button
                     onClick={bulkDelete}
-                    className="bg-red-600/80 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                    className="bg-red-600/80 hover:bg-red-600 text-white px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs md:text-sm transition-colors whitespace-nowrap"
                   >
-                    Delete Selected
+                    Delete
                   </button>
                 </div>
               </div>
