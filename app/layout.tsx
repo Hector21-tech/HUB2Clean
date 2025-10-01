@@ -10,7 +10,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: 'HUB2 Clean - Scout Hub',
+  title: 'Scout Hub',
   description: 'Enterprise-grade multi-tenant scouting platform built with Next.js and Vercel Platforms'
 };
 
