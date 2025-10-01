@@ -229,12 +229,20 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   } catch (error) {
     console.error('❌ Admin delete user error:', error)
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+    console.error('❌ Error type:', error instanceof Error ? error.constructor.name : typeof error)
+
+    // Check if it's a Prisma error
+    let errorDetails = error instanceof Error ? error.message : 'Unknown error'
+    if (error && typeof error === 'object' && 'code' in error) {
+      errorDetails += ` (Prisma error code: ${(error as any).code})`
+    }
 
     return NextResponse.json({
       success: false,
       error: 'Failed to delete user',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      hint: 'Check that SUPABASE_SERVICE_ROLE_KEY is set in environment variables',
+      details: errorDetails,
+      hint: 'Check server logs for full error details. Ensure SUPABASE_SERVICE_ROLE_KEY is set in environment variables.',
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }

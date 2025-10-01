@@ -286,7 +286,19 @@ export default function AdminUsers() {
         )
         await fetchData() // Refresh data
       } else {
-        alert(`❌ Failed to delete user: ${result.error}`)
+        // Show detailed error message with all available information
+        let errorMessage = `❌ Failed to delete user: ${result.error}`
+
+        if (result.details) {
+          errorMessage += `\n\nDetails: ${result.details}`
+        }
+
+        if (result.hint) {
+          errorMessage += `\n\n💡 Hint: ${result.hint}`
+        }
+
+        console.error('❌ Delete user error response:', result)
+        alert(errorMessage)
       }
     } catch (err) {
       console.error('❌ Delete user error:', err)
