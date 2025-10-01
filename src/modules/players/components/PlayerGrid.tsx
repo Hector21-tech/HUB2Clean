@@ -26,12 +26,12 @@ export function PlayerGrid({ players, loading, onPlayerSelect, viewMode }: Playe
   if (players.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <div className="w-16 h-16 bg-gradient-to-br from-blue-400/10 to-blue-400/5 rounded-full flex items-center justify-center mb-4">
-          <div className="w-8 h-8 border-2 border-blue-400/30 border-dashed rounded-full"></div>
+        <div className="w-16 h-16 bg-gradient-to-br from-blue-500/20 to-blue-400/10 rounded-full flex items-center justify-center mb-4">
+          <User className="w-8 h-8 text-blue-400/60" />
         </div>
-        <h3 className="text-lg font-medium text-white/90 mb-2">No players found</h3>
+        <h3 className="text-xl font-semibold text-white mb-2">Add your first player</h3>
         <p className="text-white/60 text-sm max-w-md">
-          Try adjusting your search criteria or filters to find players, or add new players to your database.
+          Start building your scouting database by adding players to track their progress and performance.
         </p>
       </div>
     )
