@@ -102,20 +102,20 @@ export function CalendarListView({
   }
 
   return (
-    <div className="p-6 space-y-8">
+    <div className="p-3 sm:p-6 space-y-6 sm:space-y-8">
       {Object.entries(groupedEvents).map(([monthKey, { monthLabel, events: monthEvents }]) => (
-        <div key={monthKey} className="space-y-4">
-          {/* Month Header */}
-          <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-            <div className="w-1 h-6 bg-blue-400 rounded-full"></div>
-            <h2 className="text-xl font-semibold text-white">{monthLabel}</h2>
-            <span className="text-sm text-white/60 bg-white/10 px-2 py-1 rounded-full">
+        <div key={monthKey} className="space-y-3 sm:space-y-4">
+          {/* Month Header - Mobile Optimized */}
+          <div className="flex items-center gap-2 sm:gap-3 pb-2 sm:pb-3 border-b border-white/10">
+            <div className="w-1 h-5 sm:h-6 bg-blue-400 rounded-full flex-shrink-0"></div>
+            <h2 className="text-lg sm:text-xl font-semibold text-white">{monthLabel}</h2>
+            <span className="text-xs sm:text-sm text-white/60 bg-white/10 px-2 py-0.5 sm:py-1 rounded-full whitespace-nowrap">
               {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
             </span>
           </div>
 
-          {/* Events for this month */}
-          <div className="space-y-3">
+          {/* Events for this month - Mobile Optimized */}
+          <div className="space-y-2 sm:space-y-3">
             {monthEvents.map(event => {
               const eventDate = new Date(event.startTime)
               const endDate = new Date(event.endTime)
@@ -128,42 +128,48 @@ export function CalendarListView({
                   key={event.id}
                   onClick={() => onEventClick(event)}
                   className={`
-                    bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border rounded-xl p-4
+                    bg-gradient-to-r from-white/10 via-white/5 to-white/10 backdrop-blur-xl border rounded-xl p-3 sm:p-4
                     hover:bg-white/15 transition-all duration-200 cursor-pointer group
                     ${typeConfig.borderColor}
                     ${isToday ? 'ring-2 ring-blue-400/50' : ''}
                     ${isPast ? 'opacity-75' : ''}
                   `}
                 >
-                  <div className="flex items-start gap-4">
-                    {/* Event Type Icon */}
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-xl ${typeConfig.bgColor}`}>
-                      {typeConfig.icon}
+                  {/* Mobile: Stack vertically, Desktop: Horizontal */}
+                  <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                    {/* Event Type Icon & Type Badge (Mobile: Row, Desktop: Icon left) */}
+                    <div className="flex sm:flex-col items-center sm:items-start gap-3 sm:gap-0 w-full sm:w-auto">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center text-lg sm:text-xl flex-shrink-0 ${typeConfig.bgColor}`}>
+                        {typeConfig.icon}
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded-full ${typeConfig.bgColor} ${typeConfig.color} border ${typeConfig.borderColor} whitespace-nowrap sm:hidden`}>
+                        {typeConfig.label}
+                      </span>
                     </div>
 
                     {/* Event Details */}
-                    <div className="flex-1 min-w-0">
-                      {/* Title and type */}
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-medium text-white group-hover:text-blue-300 transition-colors">
+                    <div className="flex-1 min-w-0 w-full">
+                      {/* Title and type (Desktop only badge) */}
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h3 className="font-medium text-sm sm:text-base text-white group-hover:text-blue-300 transition-colors">
                           {event.title}
                         </h3>
-                        <span className={`text-xs px-2 py-1 rounded-full ${typeConfig.bgColor} ${typeConfig.color} border ${typeConfig.borderColor}`}>
+                        <span className={`hidden sm:inline-block text-xs px-2 py-1 rounded-full ${typeConfig.bgColor} ${typeConfig.color} border ${typeConfig.borderColor} whitespace-nowrap flex-shrink-0`}>
                           {typeConfig.label}
                         </span>
                       </div>
 
-                      {/* Date and time */}
-                      <div className="flex items-center gap-4 text-sm text-white/70 mb-2">
+                      {/* Date and time - Wrap on mobile */}
+                      <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm text-white/70 mb-2">
                         <div className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" />
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                           <span>{dateUtils.formatDate(eventDate)}</span>
                           {isToday && <span className="text-blue-400 font-medium">(Today)</span>}
                         </div>
                         {!event.isAllDay && (
                           <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{dateUtils.formatTime(eventDate)} - {dateUtils.formatTime(endDate)}</span>
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">{dateUtils.formatTime(eventDate)} - {dateUtils.formatTime(endDate)}</span>
                           </div>
                         )}
                         {event.isAllDay && (
@@ -173,26 +179,26 @@ export function CalendarListView({
 
                       {/* Location */}
                       {event.location && (
-                        <div className="flex items-center gap-1 text-sm text-white/60 mb-2">
-                          <MapPin className="w-4 h-4" />
-                          <span>{event.location}</span>
+                        <div className="flex items-center gap-1 text-xs sm:text-sm text-white/60 mb-2">
+                          <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                          <span className="truncate">{event.location}</span>
                         </div>
                       )}
 
                       {/* Description */}
                       {event.description && (
-                        <p className="text-sm text-white/60 mb-3 line-clamp-2">
+                        <p className="text-xs sm:text-sm text-white/60 mb-2 sm:mb-3 line-clamp-2">
                           {event.description}
                         </p>
                       )}
 
-                      {/* Trial specific info */}
+                      {/* Trial specific info - Wrap on mobile */}
                       {event.trial && (
-                        <div className="flex items-center gap-4 text-sm">
+                        <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm">
                           {event.trial.player && (
                             <div className="flex items-center gap-1 text-white/70">
-                              <User className="w-4 h-4" />
-                              <span>
+                              <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                              <span className="truncate">
                                 {event.trial.player.firstName} {event.trial.player.lastName}
                                 {event.trial.player.position && (
                                   <span className="text-white/50"> ({event.trial.player.position})</span>
@@ -202,12 +208,12 @@ export function CalendarListView({
                           )}
                           {event.trial.request && (
                             <div className="flex items-center gap-1 text-white/70">
-                              <Building2 className="w-4 h-4" />
-                              <span>{event.trial.request.club}</span>
+                              <Building2 className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                              <span className="truncate">{event.trial.request.club}</span>
                             </div>
                           )}
                           {event.trial.rating && (
-                            <div className="text-yellow-400 text-xs">
+                            <div className="text-yellow-400 text-xs whitespace-nowrap">
                               Rating: {event.trial.rating}/10
                             </div>
                           )}

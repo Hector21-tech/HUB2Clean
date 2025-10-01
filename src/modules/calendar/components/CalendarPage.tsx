@@ -274,11 +274,11 @@ export function CalendarPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-white">Calendar</h1>
           </div>
 
-          {/* Mobile: Stack buttons vertically, Desktop: horizontal */}
-          <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3">
+          {/* Action Buttons - Consistent sizing */}
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handleCreateEvent()}
-              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm"
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium text-sm whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">New Event</span>
@@ -287,10 +287,10 @@ export function CalendarPage() {
 
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-sm"
+              className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-sm whitespace-nowrap"
             >
               <Download className="w-4 h-4" />
-              <span className="hidden sm:inline">Export Calendar</span>
+              <span className="hidden sm:inline">Export</span>
               <span className="sm:hidden">Export</span>
             </button>
           </div>
@@ -329,12 +329,11 @@ export function CalendarPage() {
             </button>
           </div>
 
-          {/* View Toggle */}
+          {/* View Toggle - Consistent sizing */}
           <div className="flex items-center justify-center sm:justify-end">
-            {/* View Toggle */}
             <div className="flex items-center bg-white/5 rounded-lg border border-white/10 p-1">
               {isInSearchMode && (
-                <div className="text-xs text-blue-400 px-1 sm:px-2 mr-1 sm:mr-2 bg-blue-500/20 rounded border border-blue-400/30">
+                <div className="text-xs text-blue-400 px-2 mr-2 bg-blue-500/20 rounded border border-blue-400/30 whitespace-nowrap">
                   <span className="hidden sm:inline">Search Mode</span>
                   <span className="sm:hidden">Search</span>
                 </div>
@@ -342,7 +341,7 @@ export function CalendarPage() {
               <button
                 onClick={() => setView('month')}
                 disabled={isInSearchMode}
-                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
+                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   view === 'month' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : isInSearchMode
@@ -350,13 +349,13 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <Grid className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm hidden sm:inline">Month</span>
+                <Grid className="w-4 h-4" />
+                <span className="text-xs hidden md:inline">Month</span>
               </button>
               <button
                 onClick={() => setView('week')}
                 disabled={isInSearchMode}
-                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
+                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   view === 'week' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : isInSearchMode
@@ -364,13 +363,13 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm hidden sm:inline">Week</span>
+                <Calendar className="w-4 h-4" />
+                <span className="text-xs hidden md:inline">Week</span>
               </button>
               <button
                 onClick={() => setView('day')}
                 disabled={isInSearchMode}
-                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
+                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   view === 'day' && !isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : isInSearchMode
@@ -378,13 +377,13 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm hidden sm:inline">Day</span>
+                <Clock className="w-4 h-4" />
+                <span className="text-xs hidden md:inline">Day</span>
               </button>
               <button
                 onClick={() => setView('list')}
                 disabled={isInSearchMode}
-                className={`p-1.5 sm:p-2 rounded-md transition-colors flex items-center gap-1 sm:gap-2 ${
+                className={`p-2 rounded-md transition-colors flex items-center justify-center gap-1.5 min-w-[2.5rem] ${
                   isInSearchMode
                     ? 'bg-blue-500/20 text-blue-300'
                     : view === 'list'
@@ -392,9 +391,9 @@ export function CalendarPage() {
                     : 'text-white/60 hover:text-white/80 hover:bg-white/5'
                 }`}
               >
-                <List className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="text-xs sm:text-sm hidden sm:inline">
-                  {isInSearchMode ? 'Search Results' : 'List'}
+                <List className="w-4 h-4" />
+                <span className="text-xs hidden md:inline">
+                  {isInSearchMode ? 'Results' : 'List'}
                 </span>
               </button>
             </div>
