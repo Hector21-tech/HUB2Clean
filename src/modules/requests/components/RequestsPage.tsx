@@ -275,7 +275,8 @@ export function RequestsPage() {
       console.log('📥 Response data:', result)
 
       if (result.success) {
-        // Force immediate refetch for instant UI update
+        // Invalidate cache first (marks as stale), then refetch for instant UI update
+        await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
         await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
 
         // If editing and status was changed, reset filter to show all requests
@@ -356,7 +357,8 @@ export function RequestsPage() {
       await Promise.all(updatePromises)
       console.log('✅ All PATCH requests completed, refetching data...')
 
-      // Refetch queries - actively fetches new data and updates UI immediately
+      // Invalidate cache first (marks as stale), then refetch for instant UI update
+      await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
       await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
       console.log('✅ Refetch completed, UI updated')
 
@@ -381,20 +383,31 @@ export function RequestsPage() {
     if (!confirmed) return
 
     try {
+      // INSTANT UI UPDATE: Remove selected requests from cache immediately
+      const selectedIds = Array.from(selectedRequests)
+      queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
+        if (!oldData) return oldData
+        return oldData.filter((r: any) => !selectedIds.includes(r.id))
+      })
+
+      clearSelection()
+
+      // Then make API calls in background
       const { apiFetch } = await import('@/lib/api-config')
-      const deletePromises = Array.from(selectedRequests).map(requestId =>
+      const deletePromises = selectedIds.map(requestId =>
         apiFetch(`/api/requests/${requestId}?tenant=${tenantId}`, { method: 'DELETE' })
       )
 
       await Promise.all(deletePromises)
 
-      // Force immediate refetch for instant UI update
-      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
-
-      clearSelection()
-      alert(`Deleted ${selectedRequests.size} requests`)
+      alert(`Deleted ${selectedIds.length} requests`)
     } catch (error) {
       console.error('❌ Bulk delete failed:', error)
+
+      // ROLLBACK: Refetch to restore if delete failed
+      await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
+      await queryClient.refetchQueries({ queryKey: ['requests', tenantId], type: 'active' })
+
       alert('Failed to delete requests')
     }
   }
@@ -406,15 +419,24 @@ export function RequestsPage() {
     if (!confirmed) return
 
     try {
+      // INSTANT UI UPDATE: Remove from cache immediately
+      queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
+        if (!oldData) return oldData
+        return oldData.filter((r: any) => r.id !== request.id)
+      })
+
+      // Then make API call in background
       const { apiFetch } = await import('@/lib/api-config')
       await apiFetch(`/api/requests/${request.id}?tenant=${tenantId}`, { method: 'DELETE' })
-
-      // Force immediate refetch for instant UI update
-      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
 
       alert('Request deleted successfully!')
     } catch (error) {
       console.error('❌ Delete failed:', error)
+
+      // ROLLBACK: Refetch to restore if delete failed
+      await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
+      await queryClient.refetchQueries({ queryKey: ['requests', tenantId], type: 'active' })
+
       alert('Failed to delete request')
     }
   }
