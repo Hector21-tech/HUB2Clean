@@ -278,6 +278,8 @@ export function RequestsPage() {
           country: '',
           league: '',
           position: '',
+          status: 'OPEN' as 'OPEN' | 'IN_PROGRESS' | 'OFFER_SENT' | 'AGREEMENT' | 'COMPLETED' | 'CANCELLED',
+          priority: 'MEDIUM' as 'URGENT' | 'HIGH' | 'MEDIUM' | 'LOW',
           dealTypes: [],
           transferFeeMin: { value: '', unit: 'MILLION' },
           transferFeeMax: { value: '', unit: 'MILLION' },
