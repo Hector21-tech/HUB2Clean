@@ -409,8 +409,12 @@ export function RequestsPage() {
     if (!confirmed) return
 
     try {
-      // INSTANT UI UPDATE: Remove selected requests from cache immediately
       const selectedIds = Array.from(selectedRequests)
+
+      // Clear old cache first
+      queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
+
+      // INSTANT UI UPDATE: Remove selected requests from cache immediately
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.filter((r: any) => !selectedIds.includes(r.id))
@@ -425,14 +429,24 @@ export function RequestsPage() {
       )
 
       await Promise.all(deletePromises)
+      console.log('✅ All backend deletes completed')
+
+      // Force fresh fetch from server (ignore stale cache)
+      await queryClient.refetchQueries({
+        queryKey: ['requests', tenantId],
+        type: 'active'
+      })
+      console.log('✅ Fresh data loaded from server')
 
       alert(`Deleted ${selectedIds.length} requests`)
     } catch (error) {
       console.error('❌ Bulk delete failed:', error)
 
       // ROLLBACK: Refetch to restore if delete failed
-      await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
-      await queryClient.refetchQueries({ queryKey: ['requests', tenantId], type: 'active' })
+      await queryClient.refetchQueries({
+        queryKey: ['requests', tenantId],
+        type: 'active'
+      })
 
       alert('Failed to delete requests')
     }
@@ -445,6 +459,9 @@ export function RequestsPage() {
     if (!confirmed) return
 
     try {
+      // Clear old cache first
+      queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
+
       // INSTANT UI UPDATE: Remove from cache immediately
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
@@ -454,14 +471,24 @@ export function RequestsPage() {
       // Then make API call in background
       const { apiFetch } = await import('@/lib/api-config')
       await apiFetch(`/api/requests/${request.id}?tenant=${tenantId}`, { method: 'DELETE' })
+      console.log('✅ Backend delete completed')
+
+      // Force fresh fetch from server (ignore stale cache)
+      await queryClient.refetchQueries({
+        queryKey: ['requests', tenantId],
+        type: 'active'
+      })
+      console.log('✅ Fresh data loaded from server')
 
       alert('Request deleted successfully!')
     } catch (error) {
       console.error('❌ Delete failed:', error)
 
       // ROLLBACK: Refetch to restore if delete failed
-      await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
-      await queryClient.refetchQueries({ queryKey: ['requests', tenantId], type: 'active' })
+      await queryClient.refetchQueries({
+        queryKey: ['requests', tenantId],
+        type: 'active'
+      })
 
       alert('Failed to delete request')
     }
