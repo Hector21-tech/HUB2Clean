@@ -360,27 +360,26 @@ export function RequestsPage() {
       setStatusFilter('ALL')
       setBulkStatusValue('')
 
-      // Then update backend in background (user already sees the change)
-      const updatePromises = selectedIds.map(requestId =>
-        fetch(`/api/requests/${requestId}?tenant=${tenantId}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ status: newStatus }),
-          credentials: 'include'
-        }).then(res => {
-          if (!res.ok) {
-            throw new Error(`Failed to update request ${requestId}: ${res.status}`)
-          }
-          console.log(`✅ Backend updated for request ${requestId}`)
-          return res
-        })
-      )
+      // Use BULK endpoint (single API call instead of many)
+      const response = await fetch(`/api/requests/bulk?tenant=${tenantId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'update_status',
+          requestIds: selectedIds,
+          status: newStatus
+        }),
+        credentials: 'include'
+      })
 
-      // Wait for ALL backend updates to complete
-      await Promise.all(updatePromises)
-      console.log('✅ All backend updates completed')
+      if (!response.ok) {
+        throw new Error(`Bulk update failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Bulk backend update completed:', result.data)
 
       // Force fresh fetch from server (ignore stale cache)
       await queryClient.refetchQueries({
@@ -422,14 +421,25 @@ export function RequestsPage() {
 
       clearSelection()
 
-      // Then make API calls in background
-      const { apiFetch } = await import('@/lib/api-config')
-      const deletePromises = selectedIds.map(requestId =>
-        apiFetch(`/api/requests/${requestId}?tenant=${tenantId}`, { method: 'DELETE' })
-      )
+      // Use BULK endpoint (single API call instead of many)
+      const response = await fetch(`/api/requests/bulk?tenant=${tenantId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'delete',
+          requestIds: selectedIds
+        }),
+        credentials: 'include'
+      })
 
-      await Promise.all(deletePromises)
-      console.log('✅ All backend deletes completed')
+      if (!response.ok) {
+        throw new Error(`Bulk delete failed: ${response.status}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Bulk backend delete completed:', result.data)
 
       // Force fresh fetch from server (ignore stale cache)
       await queryClient.refetchQueries({
