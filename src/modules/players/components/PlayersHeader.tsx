@@ -281,6 +281,7 @@ export function PlayersHeader({
                 <option value="expiring" className="bg-slate-800 text-white">⚠️ Expiring Soon</option>
                 <option value="active" className="bg-slate-800 text-white">✅ Active Contract</option>
                 <option value="free_agent" className="bg-slate-800 text-white">🟡 Free Agent</option>
+                <option value="mandate" className="bg-slate-800 text-white">📄 Has Mandate</option>
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +363,8 @@ export function PlayersHeader({
                 Contract: {
                   filters.contractStatus === 'expiring' ? '⚠️ Expiring Soon' :
                   filters.contractStatus === 'active' ? '✅ Active' :
-                  filters.contractStatus === 'free_agent' ? '🟡 Free Agent' : ''
+                  filters.contractStatus === 'free_agent' ? '🟡 Free Agent' :
+                  filters.contractStatus === 'mandate' ? '📄 Has Mandate' : ''
                 }
                 <button
                   onClick={() => handleFilterChange('contractStatus', undefined)}

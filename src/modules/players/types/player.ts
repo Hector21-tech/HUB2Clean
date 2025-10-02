@@ -28,6 +28,12 @@ export interface Player {
   salary?: number // per week
   agent?: string
 
+  // Mandate Information
+  hasMandate?: boolean // Does agent have mandate to represent player
+  mandateExpiry?: Date // When mandate expires
+  mandateClubs?: string // Clubs covered by mandate
+  mandateNotes?: string // Additional mandate information
+
   // Technical Skills (1-10 scale)
   shooting?: number
   passing?: number
@@ -75,7 +81,7 @@ export interface PlayerFilters {
   position?: string
   nationality?: string
   club?: string
-  contractStatus?: 'expiring' | 'active' | 'free_agent'
+  contractStatus?: 'expiring' | 'active' | 'free_agent' | 'mandate'
   ageMin?: number
   ageMax?: number
   ratingMin?: number

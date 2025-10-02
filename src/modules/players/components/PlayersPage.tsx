@@ -84,6 +84,9 @@ export function PlayersPage() {
           case 'active':
             // Players with club (not free agent) are considered active, even without explicit contract expiry
             return !isFreeAgent && (!player.contractExpiry || !isContractExpiring)
+          case 'mandate':
+            // Players with active mandate (hasMandate === true)
+            return player.hasMandate === true
           default:
             return true
         }
