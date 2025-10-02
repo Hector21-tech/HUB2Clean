@@ -21,12 +21,10 @@ export interface CountryWindows {
 }
 
 /**
- * Transfer Window Dates for 2025-2026 Season
+ * Transfer Window Dates for 2025 Season
  *
- * Sources:
- * - FIFA Transfer Matching System (TMS)
- * - UEFA Regulations
- * - National Football Associations
+ * Source: https://fotbolltransfers.com/nyheter/nar-oppnar-och-stanger-transferfonstret/1468
+ * Updated: October 2025
  */
 export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
   'Sweden': {
@@ -34,13 +32,13 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
     windows: {
       summer: {
         name: 'summer',
-        openDate: '2025-04-01',
-        closeDate: '2025-08-31'
+        openDate: '2025-07-08',
+        closeDate: '2025-08-29'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-03-31'
+        openDate: '2025-01-29',
+        closeDate: '2025-03-25'
       }
     }
   },
@@ -49,13 +47,13 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
     windows: {
       summer: {
         name: 'summer',
-        openDate: '2025-06-14',
+        openDate: '2025-06-16',
         closeDate: '2025-09-01'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-03'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-02'
       }
     }
   },
@@ -65,12 +63,12 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       summer: {
         name: 'summer',
         openDate: '2025-07-01',
-        closeDate: '2025-09-02'
+        closeDate: '2025-09-01'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-03'
+        openDate: '2025-01-02',
+        closeDate: '2025-02-02'
       }
     }
   },
@@ -84,8 +82,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-01'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-02'
       }
     }
   },
@@ -99,8 +97,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-02',
-        closeDate: '2026-02-01'
+        openDate: '2025-01-02',
+        closeDate: '2025-02-02'
       }
     }
   },
@@ -109,13 +107,13 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
     windows: {
       summer: {
         name: 'summer',
-        openDate: '2025-06-10',
-        closeDate: '2025-09-02'
+        openDate: '2025-06-16',
+        closeDate: '2025-09-01'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-03'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-02'
       }
     }
   },
@@ -124,13 +122,13 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
     windows: {
       summer: {
         name: 'summer',
-        openDate: '2025-03-01',
-        closeDate: '2025-08-31'
+        openDate: '2025-06-16',
+        closeDate: '2025-09-01'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-03-31'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-02'
       }
     }
   },
@@ -139,13 +137,13 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
     windows: {
       summer: {
         name: 'summer',
-        openDate: '2025-03-15',
-        closeDate: '2025-08-31'
+        openDate: '2025-07-11',
+        closeDate: '2025-09-02'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-03-31'
+        openDate: '2025-01-30',
+        closeDate: '2025-03-27'
       }
     }
   },
@@ -154,13 +152,13 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
     windows: {
       summer: {
         name: 'summer',
-        openDate: '2025-03-01',
-        closeDate: '2025-08-31'
+        openDate: '2025-07-01',
+        closeDate: '2025-08-25'
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-03-31'
+        openDate: '2025-02-05',
+        closeDate: '2025-04-01'
       }
     }
   },
@@ -174,8 +172,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-03'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-03'
       }
     }
   },
@@ -189,8 +187,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-07'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-07'
       }
     }
   },
@@ -204,8 +202,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-06',
-        closeDate: '2026-02-14'
+        openDate: '2025-01-06',
+        closeDate: '2025-02-14'
       }
     }
   },
@@ -219,8 +217,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-28'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-28'
       }
     }
   },
@@ -234,8 +232,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-02-28'
+        openDate: '2025-01-01',
+        closeDate: '2025-02-28'
       }
     }
   },
@@ -249,8 +247,8 @@ export const TRANSFER_WINDOWS_2025_2026: Record<string, CountryWindows> = {
       },
       winter: {
         name: 'winter',
-        openDate: '2026-01-01',
-        closeDate: '2026-03-31'
+        openDate: '2025-01-01',
+        closeDate: '2025-03-31'
       }
     }
   }
