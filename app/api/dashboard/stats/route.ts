@@ -143,7 +143,9 @@ export async function GET(request: NextRequest) {
         UNION ALL
         SELECT 'requests' as entity, COUNT(*)::int as total FROM requests WHERE "tenantId" = ${tenantId}
         UNION ALL
-        SELECT 'requests_open' as entity, COUNT(*)::int as total FROM requests WHERE "tenantId" = ${tenantId} AND status = 'OPEN'
+        SELECT 'requests_active' as entity, COUNT(*)::int as total FROM requests
+        WHERE "tenantId" = ${tenantId}
+        AND status NOT IN ('COMPLETED', 'CANCELLED')
         UNION ALL
         SELECT 'trials' as entity, COUNT(*)::int as total FROM trials WHERE "tenantId" = ${tenantId}
         UNION ALL
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest) {
     const countsMap = new Map(countsData.map(row => [row.entity, row.total]))
     const totalPlayers = countsMap.get('players') || 0
     const totalRequests = countsMap.get('requests') || 0
-    const activeRequests = countsMap.get('requests_open') || 0
+    const activeRequests = countsMap.get('requests_active') || 0
     const totalTrials = countsMap.get('trials') || 0
     const completedTrials = countsMap.get('trials_completed') || 0
     const upcomingTrials = upcomingTrialsCount
