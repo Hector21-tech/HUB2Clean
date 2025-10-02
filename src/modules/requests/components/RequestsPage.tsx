@@ -278,9 +278,22 @@ export function RequestsPage() {
       console.log('📥 Response data:', result)
 
       if (result.success) {
-        // Invalidate cache first (marks as stale), then refetch for instant UI update
-        await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
-        await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
+        // OPTIMISTIC UPDATE: Use API response data to update cache instantly
+        const savedRequest = result.data
+
+        if (isEditing) {
+          // UPDATE: Replace existing request in cache
+          queryClient.setQueryData(['requests', tenantId], (oldData: Request[] | undefined) => {
+            if (!oldData) return [savedRequest]
+            return oldData.map((r) => (r.id === savedRequest.id ? savedRequest : r))
+          })
+        } else {
+          // CREATE: Add new request to start of list
+          queryClient.setQueryData(['requests', tenantId], (oldData: Request[] | undefined) => {
+            if (!oldData) return [savedRequest]
+            return [savedRequest, ...oldData]
+          })
+        }
 
         // If editing and status was changed, reset filter to show all requests
         if (isEditing && editingRequest && formData.status !== editingRequest.status) {
@@ -307,7 +320,8 @@ export function RequestsPage() {
         })
         setEditingRequest(null)
         setShowForm(false)
-        // ✅ NO ALERT NEEDED - form closes and request appears in list instantly
+        // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
+        console.log(`✅ Request ${isEditing ? 'updated' : 'created'} (optimistic cache update)`, savedRequest.id)
       } else {
         console.error('❌ Request failed:', result.error)
         alert(`Failed to ${isEditing ? 'update' : 'create'} request: ` + result.error)
@@ -377,16 +391,10 @@ export function RequestsPage() {
       }
 
       const result = await response.json()
-      console.log('✅ Bulk backend update completed:', result.data)
+      console.log(`✅ Bulk update completed: ${selectedIds.length} requests → ${newStatus} (optimistic + backend)`)
 
-      // Force fresh fetch from server (ignore stale cache)
-      await queryClient.refetchQueries({
-        queryKey: ['requests', tenantId],
-        type: 'active'
-      })
-      console.log('✅ Fresh data loaded from server')
-
-      // ✅ NO ALERT NEEDED - status changes visible instantly via optimistic update
+      // ✅ NO REFETCH NEEDED - optimistic update is enough!
+      // Refetch would overwrite optimistic update with stale data from DB before it commits
     } catch (error) {
       console.error('❌ Bulk update failed:', error)
       // Revert optimistic update on error - force fresh fetch
