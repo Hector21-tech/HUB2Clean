@@ -341,10 +341,8 @@ export function RequestsPage() {
     try {
       const selectedIds = Array.from(selectedRequests)
 
-      // Clear old cache first
-      queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
-
       // INSTANT UI UPDATE: Update status in cache immediately (before API call)
+      // DON'T invalidate before optimistic update - let it work on fresh cache
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.map((r: any) =>
@@ -410,10 +408,8 @@ export function RequestsPage() {
     try {
       const selectedIds = Array.from(selectedRequests)
 
-      // Clear old cache first
-      queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
-
       // INSTANT UI UPDATE: Remove selected requests from cache immediately
+      // DON'T invalidate before optimistic update - let it work on fresh cache
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.filter((r: any) => !selectedIds.includes(r.id))
@@ -469,10 +465,8 @@ export function RequestsPage() {
     if (!confirmed) return
 
     try {
-      // Clear old cache first
-      queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
-
       // INSTANT UI UPDATE: Remove from cache immediately
+      // DON'T invalidate before optimistic update - let it work on fresh cache
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.filter((r: any) => r.id !== request.id)
