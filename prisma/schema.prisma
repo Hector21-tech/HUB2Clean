@@ -121,6 +121,13 @@ model Player {
   rating                Float? // Overall rating 1-10
   avatarUrl             String? // Legacy: Player avatar/photo URL (deprecated)
   avatarPath            String? // New: Storage path for avatar in Supabase Storage
+
+  // Mandate Information
+  hasMandate            Boolean?  // Does agent have mandate to represent player
+  mandateExpiry         DateTime? // When mandate expires
+  mandateClubs          String?   // Clubs covered by mandate
+  mandateNotes          String?   // Additional mandate information
+
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
