@@ -307,7 +307,7 @@ export function RequestsPage() {
         })
         setEditingRequest(null)
         setShowForm(false)
-        alert(isEditing ? 'Request updated successfully!' : 'Request created successfully!')
+        // ✅ NO ALERT NEEDED - form closes and request appears in list instantly
       } else {
         console.error('❌ Request failed:', result.error)
         alert(`Failed to ${isEditing ? 'update' : 'create'} request: ` + result.error)
@@ -386,7 +386,7 @@ export function RequestsPage() {
       })
       console.log('✅ Fresh data loaded from server')
 
-      alert(`Updated ${selectedIds.length} requests to ${newStatus}`)
+      // ✅ NO ALERT NEEDED - status changes visible instantly via optimistic update
     } catch (error) {
       console.error('❌ Bulk update failed:', error)
       // Revert optimistic update on error - force fresh fetch
@@ -409,7 +409,6 @@ export function RequestsPage() {
       const selectedIds = Array.from(selectedRequests)
 
       // INSTANT UI UPDATE: Remove selected requests from cache immediately
-      // DON'T invalidate before optimistic update - let it work on fresh cache
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.filter((r: any) => !selectedIds.includes(r.id))
@@ -435,16 +434,10 @@ export function RequestsPage() {
       }
 
       const result = await response.json()
-      console.log('✅ Bulk backend delete completed:', result.data)
+      console.log(`✅ Bulk delete completed: ${selectedIds.length} requests (optimistic + backend)`)
 
-      // Force fresh fetch from server (ignore stale cache)
-      await queryClient.refetchQueries({
-        queryKey: ['requests', tenantId],
-        type: 'active'
-      })
-      console.log('✅ Fresh data loaded from server')
-
-      alert(`Deleted ${selectedIds.length} requests`)
+      // ✅ NO REFETCH NEEDED - optimistic update is enough!
+      // Cache stays updated since delete succeeded. No popup needed - UI already updated.
     } catch (error) {
       console.error('❌ Bulk delete failed:', error)
 
@@ -466,25 +459,18 @@ export function RequestsPage() {
 
     try {
       // INSTANT UI UPDATE: Remove from cache immediately
-      // DON'T invalidate before optimistic update - let it work on fresh cache
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.filter((r: any) => r.id !== request.id)
       })
 
-      // Then make API call in background
+      // Make API call in background (no await needed - fire and forget)
       const { apiFetch } = await import('@/lib/api-config')
       await apiFetch(`/api/requests/${request.id}?tenant=${tenantId}`, { method: 'DELETE' })
-      console.log('✅ Backend delete completed')
 
-      // Force fresh fetch from server (ignore stale cache)
-      await queryClient.refetchQueries({
-        queryKey: ['requests', tenantId],
-        type: 'active'
-      })
-      console.log('✅ Fresh data loaded from server')
-
-      alert('Request deleted successfully!')
+      // ✅ NO REFETCH NEEDED - optimistic update is enough!
+      // Cache stays updated since delete succeeded. No popup needed - UI already updated.
+      console.log('✅ Request deleted (optimistic + backend)')
     } catch (error) {
       console.error('❌ Delete failed:', error)
 
