@@ -114,10 +114,6 @@ model Player {
   club                  String?
   contractExpiry        DateTime? // Contract expiry with CLUB (no FIFA limit)
   agencyContractExpiry  DateTime? // Contract expiry with AGENCY (max 2 years FIFA rule)
-  hasMandate            Boolean?  // Does agent have mandate to represent player
-  mandateExpiry         DateTime? // When mandate expires
-  mandateClubs          String?   // Clubs covered by mandate
-  mandateNotes          String?   // Additional mandate information
   nationality           String?
   height                Int? // cm
   notes                 String?
