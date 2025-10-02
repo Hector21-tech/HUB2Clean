@@ -295,12 +295,12 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         club: formData.club === 'Free Agent' ? null : formData.club,
         // Convert positions array to single position string for Prisma compatibility
         position: formData.positions && formData.positions.length > 0 ? formData.positions[0] : undefined,
-        // Remove mandate fields and positions array to avoid sending invalid fields to backend
+        // Keep hasMandate field for filtering, but remove internal mandate fields
         positions: undefined,
-        hasMandate: undefined,
-        mandateExpiry: undefined,
-        mandateClubs: undefined,
-        mandateNotes: undefined
+        hasMandate: formData.hasMandate, // Keep this so filter works!
+        mandateExpiry: formData.mandateExpiry ? new Date(formData.mandateExpiry) : undefined,
+        mandateClubs: formData.mandateClubs || undefined,
+        mandateNotes: formData.mandateNotes || undefined
       }
 
       await onSave(playerData)

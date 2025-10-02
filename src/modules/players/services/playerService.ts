@@ -181,7 +181,8 @@ export class PlayerService {
       const validFields = [
         'firstName', 'lastName', 'dateOfBirth', 'position', 'club',
         'contractExpiry', 'agencyContractExpiry', 'nationality', 'height', 'notes', 'tags',
-        'rating', 'avatarUrl', 'avatarPath'
+        'rating', 'avatarUrl', 'avatarPath',
+        'hasMandate', 'mandateExpiry', 'mandateClubs', 'mandateNotes' // Mandate fields for filtering
       ]
 
       const filteredData: Record<string, any> = {}
