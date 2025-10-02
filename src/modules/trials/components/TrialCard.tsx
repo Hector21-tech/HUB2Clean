@@ -64,6 +64,25 @@ export function TrialCard({ trial, onEdit, onDelete, onEvaluate, onClick }: Tria
     }).format(date)
   }
 
+  // Calculate days until trial
+  const getDaysUntilTrial = (trialDate: Date): string => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const trial = new Date(trialDate.getFullYear(), trialDate.getMonth(), trialDate.getDate())
+
+    const diffTime = trial.getTime() - today.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Idag'
+    if (diffDays === 1) return 'Imorgon'
+    if (diffDays === -1) return 'Igår'
+    if (diffDays > 0) return `om ${diffDays} dagar`
+    if (diffDays < 0) return `${Math.abs(diffDays)} dagar sedan`
+    return ''
+  }
+
+  const daysCountdown = getDaysUntilTrial(trialDate)
+
   const handleCardClick = () => {
     onClick?.(trial)
   }
@@ -162,7 +181,7 @@ export function TrialCard({ trial, onEdit, onDelete, onEvaluate, onClick }: Tria
 
       {/* Content */}
       <div className="p-4 space-y-3">
-        {/* Date & Time */}
+        {/* Date & Time with Countdown */}
         <div className="flex items-center gap-2 text-sm">
           <Calendar className="w-4 h-4 text-white/40" />
           <span className={`
@@ -171,11 +190,10 @@ export function TrialCard({ trial, onEdit, onDelete, onEvaluate, onClick }: Tria
           `}>
             {formatDate(trialDate)}
           </span>
-          {isUpcoming && (
-            <span className="text-xs text-blue-300 bg-blue-600/20 px-2 py-1 rounded-full">
-              Upcoming
-            </span>
-          )}
+          {/* Countdown - small and subtle */}
+          <span className="text-xs text-white/50">
+            ({daysCountdown})
+          </span>
         </div>
 
         {/* Location */}
