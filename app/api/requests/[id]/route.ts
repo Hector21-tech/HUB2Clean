@@ -35,27 +35,51 @@ export async function PATCH(
     // Map EUR fields to Prisma schema fields (same as POST)
     const { transferFeeMinEUR, transferFeeMaxEUR, loanSalaryEUR, freeAgentSalaryEUR, signOnBonusEUR, dealType: dealTypeStr, windowOpenAt, windowCloseAt, ...restBody } = body
 
-    // Auto-populate country and league if not provided
-    const autoCountry = body.country || getCountryByClub(body.club) || ''
-    const autoLeague = body.league || getLeagueByClub(body.club) || ''
+    // Auto-populate country and league ONLY if provided in body
+    const updateData: any = {
+      ...restBody,
+      updatedAt: new Date()
+    }
+
+    // Only update country/league if provided
+    if (body.country !== undefined) {
+      updateData.country = body.country || getCountryByClub(body.club) || ''
+    }
+    if (body.league !== undefined) {
+      updateData.league = body.league || getLeagueByClub(body.club) || ''
+    }
+
+    // Only update dealType if provided
+    if (dealTypeStr !== undefined) {
+      updateData.dealType = dealTypeStr
+    }
+
+    // Only update window dates if provided (prevent NULL overwrite)
+    if (windowOpenAt !== undefined) {
+      updateData.windowOpenAt = windowOpenAt ? new Date(windowOpenAt) : null
+    }
+    if (windowCloseAt !== undefined) {
+      updateData.windowCloseAt = windowCloseAt ? new Date(windowCloseAt) : null
+    }
+
+    // Only update EUR fields if provided
+    if (transferFeeMinEUR !== undefined) {
+      updateData.feeMin = transferFeeMinEUR || null
+    }
+    if (transferFeeMaxEUR !== undefined) {
+      updateData.feeMax = transferFeeMaxEUR || null
+    }
+    if (loanSalaryEUR !== undefined || freeAgentSalaryEUR !== undefined) {
+      updateData.salaryEur = loanSalaryEUR || freeAgentSalaryEUR || null
+    }
+    if (signOnBonusEUR !== undefined) {
+      updateData.amountEur = signOnBonusEUR || null
+    }
 
     // Update the request
     const updatedRequest = await prisma.request.update({
       where: { id, tenantId }, // Ensure tenant isolation
-      data: {
-        ...restBody,
-        country: autoCountry,
-        league: autoLeague,
-        dealType: dealTypeStr,
-        windowOpenAt: windowOpenAt ? new Date(windowOpenAt) : null,
-        windowCloseAt: windowCloseAt ? new Date(windowCloseAt) : null,
-        // Map EUR fields to schema
-        feeMin: transferFeeMinEUR || null,
-        feeMax: transferFeeMaxEUR || null,
-        salaryEur: loanSalaryEUR || freeAgentSalaryEUR || null,
-        amountEur: signOnBonusEUR || null,
-        updatedAt: new Date()
-      },
+      data: updateData,
       select: {
         id: true,
         title: true,

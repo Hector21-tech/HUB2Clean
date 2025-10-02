@@ -339,8 +339,12 @@ export function RequestsPage() {
     console.log('🔄 Bulk update status:', { newStatus, count: selectedRequests.size, tenantId })
 
     try {
-      // INSTANT UI UPDATE: Update status in cache immediately (before API call)
       const selectedIds = Array.from(selectedRequests)
+
+      // Clear old cache first
+      queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
+
+      // INSTANT UI UPDATE: Update status in cache immediately (before API call)
       queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
         if (!oldData) return oldData
         return oldData.map((r: any) =>
@@ -357,7 +361,7 @@ export function RequestsPage() {
       setBulkStatusValue('')
 
       // Then update backend in background (user already sees the change)
-      const updatePromises = Array.from(selectedRequests).map(requestId =>
+      const updatePromises = selectedIds.map(requestId =>
         fetch(`/api/requests/${requestId}?tenant=${tenantId}`, {
           method: 'PATCH',
           headers: {
@@ -374,17 +378,25 @@ export function RequestsPage() {
         })
       )
 
+      // Wait for ALL backend updates to complete
       await Promise.all(updatePromises)
       console.log('✅ All backend updates completed')
 
-      // Final refetch to sync any server-side changes
-      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
+      // Force fresh fetch from server (ignore stale cache)
+      await queryClient.refetchQueries({
+        queryKey: ['requests', tenantId],
+        type: 'active'
+      })
+      console.log('✅ Fresh data loaded from server')
 
-      alert(`Updated ${selectedRequests.size} requests to ${newStatus}`)
+      alert(`Updated ${selectedIds.length} requests to ${newStatus}`)
     } catch (error) {
       console.error('❌ Bulk update failed:', error)
-      // Revert optimistic update on error
-      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
+      // Revert optimistic update on error - force fresh fetch
+      await queryClient.refetchQueries({
+        queryKey: ['requests', tenantId],
+        type: 'active'
+      })
       alert(`Failed to update requests: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setBulkStatusValue('')
     }
