@@ -288,37 +288,9 @@ export function CompactListView({
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons - Visible on desktop hover, always on mobile */}
-            <div className="flex items-center gap-1 flex-shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-              {onEdit && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEdit(request)
-                  }}
-                  className="p-1.5 md:p-2 text-white/40 hover:text-blue-400 transition-colors"
-                  title="Edit request"
-                >
-                  <Edit className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                </button>
-              )}
-              {onDelete && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDelete(request)
-                  }}
-                  className="p-1.5 md:p-2 text-red-400/70 hover:text-red-400 transition-colors"
-                  title="Delete request"
-                >
-                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                </button>
-              )}
-            </div>
           </div>
 
-          {/* Bottom Row: Status, Priority, Window Badge (Mobile: Wrap, Desktop: Inline) */}
+          {/* Bottom Row: Status, Priority, Window Badge + Action Buttons (Mobile: Wrap, Desktop: Inline) */}
           <div className="flex flex-wrap md:flex-nowrap items-center gap-2 md:flex-shrink-0 pl-7 md:pl-0">
             {/* Status */}
             <span className={`text-xs px-2 py-0.5 rounded backdrop-blur-sm whitespace-nowrap ${getStatusColor(request.status)}`}>
@@ -349,6 +321,34 @@ export function CompactListView({
                 size="sm"
               />
             )}
+
+            {/* Action Buttons - Show on hover (desktop) or always (mobile) */}
+            <div className="flex items-center gap-1 ml-auto md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+              {onEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onEdit(request)
+                  }}
+                  className="p-1.5 md:p-2 text-white/40 hover:text-blue-400 transition-colors"
+                  title="Edit request"
+                >
+                  <Edit className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete(request)
+                  }}
+                  className="p-1.5 md:p-2 text-red-400/70 hover:text-red-400 transition-colors"
+                  title="Delete request"
+                >
+                  <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
