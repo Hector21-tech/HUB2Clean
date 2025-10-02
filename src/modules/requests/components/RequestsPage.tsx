@@ -339,7 +339,24 @@ export function RequestsPage() {
     console.log('🔄 Bulk update status:', { newStatus, count: selectedRequests.size, tenantId })
 
     try {
-      // Use raw fetch - don't parse JSON response, just check status
+      // INSTANT UI UPDATE: Update status in cache immediately (before API call)
+      const selectedIds = Array.from(selectedRequests)
+      queryClient.setQueryData(['requests', tenantId], (oldData: any) => {
+        if (!oldData) return oldData
+        return oldData.map((r: any) =>
+          selectedIds.includes(r.id)
+            ? { ...r, status: newStatus } // Keep all fields (windowCloseAt, etc), just update status
+            : r
+        )
+      })
+      console.log('✅ UI updated instantly (optimistic)')
+
+      // Clear selection and reset UI immediately (user sees instant feedback)
+      clearSelection()
+      setStatusFilter('ALL')
+      setBulkStatusValue('')
+
+      // Then update backend in background (user already sees the change)
       const updatePromises = Array.from(selectedRequests).map(requestId =>
         fetch(`/api/requests/${requestId}?tenant=${tenantId}`, {
           method: 'PATCH',
@@ -352,29 +369,23 @@ export function RequestsPage() {
           if (!res.ok) {
             throw new Error(`Failed to update request ${requestId}: ${res.status}`)
           }
-          console.log(`✅ Updated request ${requestId} to ${newStatus}`)
-          return res // Don't parse JSON - just return response
+          console.log(`✅ Backend updated for request ${requestId}`)
+          return res
         })
       )
 
       await Promise.all(updatePromises)
-      console.log('✅ All PATCH requests completed, refetching data...')
+      console.log('✅ All backend updates completed')
 
-      // Invalidate cache first (marks as stale), then refetch for instant UI update
-      await queryClient.invalidateQueries({ queryKey: ['requests', tenantId] })
+      // Final refetch to sync any server-side changes
       await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
-      console.log('✅ Refetch completed, UI updated')
 
-      clearSelection()
-      // Reset filter to show all requests after status change
-      setStatusFilter('ALL')
-      // Reset dropdown to placeholder
-      setBulkStatusValue('')
       alert(`Updated ${selectedRequests.size} requests to ${newStatus}`)
     } catch (error) {
       console.error('❌ Bulk update failed:', error)
+      // Revert optimistic update on error
+      await queryClient.refetchQueries({ queryKey: ['requests', tenantId] })
       alert(`Failed to update requests: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      // Reset dropdown even on error
       setBulkStatusValue('')
     }
   }
