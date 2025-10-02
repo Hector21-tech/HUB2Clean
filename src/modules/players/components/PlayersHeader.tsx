@@ -3,6 +3,7 @@
 import { Search, Filter, Users, Grid, List } from 'lucide-react'
 import { PlayerFilters } from '../types/player'
 import { Player } from '../types/player'
+import { POSITION_MAPPINGS } from '@/lib/positions'
 
 interface PlayersHeaderProps {
   filters: PlayerFilters
@@ -154,12 +155,12 @@ export function PlayersHeader({
                   appearance-none w-full
                 "
               >
-              <option value="" className="bg-slate-800 text-white">All Positions</option>
-              <option value="Goalkeeper" className="bg-slate-800 text-white">Goalkeeper</option>
-              <option value="Defender" className="bg-slate-800 text-white">Defender</option>
-              <option value="Midfielder" className="bg-slate-800 text-white">Midfielder</option>
-              <option value="Forward" className="bg-slate-800 text-white">Forward</option>
-              <option value="Striker" className="bg-slate-800 text-white">Striker</option>
+                <option value="" className="bg-slate-800 text-white">All Positions</option>
+                {Object.entries(POSITION_MAPPINGS).map(([abbr, full]) => (
+                  <option key={abbr} value={abbr} className="bg-slate-800 text-white">
+                    {abbr} - {full}
+                  </option>
+                ))}
               </select>
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg className="w-4 h-4 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">

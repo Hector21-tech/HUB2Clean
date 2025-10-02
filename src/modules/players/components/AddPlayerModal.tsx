@@ -7,6 +7,7 @@ import { AvatarUpload } from '@/components/ui/AvatarUpload'
 import { searchCountries, getAllCountryNames } from '@/lib/countries'
 import { searchClubs, getAllClubNames } from '@/lib/football-clubs'
 import { useAvatarUrl } from '../hooks/useAvatarUrl'
+import { POSITION_MAPPINGS } from '@/lib/positions'
 
 interface AddPlayerModalProps {
   isOpen: boolean
@@ -75,18 +76,11 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
     return baseOptions
   }, [editingPlayer?.club])
 
-  const POSITION_OPTIONS = [
-    { value: 'GK', label: 'GK (Goalkeeper)' },
-    { value: 'LB', label: 'LB (Left Back)' },
-    { value: 'LCB', label: 'LCB (Left Centre Back)' },
-    { value: 'RCB', label: 'RCB (Right Centre Back)' },
-    { value: 'RB', label: 'RB (Right Back)' },
-    { value: 'DMF', label: 'DMF (Defensive Midfielder)' },
-    { value: 'MF', label: 'MF (Midfielder)' },
-    { value: 'LW', label: 'LW (Left Winger)' },
-    { value: 'RW', label: 'RW (Right Winger)' },
-    { value: 'ST', label: 'ST (Striker)' }
-  ]
+  // Generate position options from centralized POSITION_MAPPINGS
+  const POSITION_OPTIONS = Object.entries(POSITION_MAPPINGS).map(([abbr, full]) => ({
+    value: abbr,
+    label: `${abbr} (${full})`
+  }))
 
   // Populate form when editing a player
   useEffect(() => {
