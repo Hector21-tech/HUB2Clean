@@ -667,60 +667,50 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                     <FileCheck className="w-5 h-5 text-purple-400" />
                     <h4 className="text-base font-semibold text-white">Mandate</h4>
                   </div>
-                  {(() => {
-                    // Parse mandate info from notes
-                    const notes = player.notes || ''
-                    const mandateMatch = notes.match(/MANDATE:\s*Clubs:\s*([^\n]*)\s*Valid until:\s*([^\n]*)\s*Description:\s*([\s\S]*)/)
-
-                    if (mandateMatch) {
-                      const clubs = mandateMatch[1]?.trim()
-                      const expiryDate = mandateMatch[2]?.trim()
-                      const description = mandateMatch[3]?.trim()
-
-                      return (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-sm font-medium text-white/60">Status</label>
-                            <p className="text-lg font-semibold text-purple-400">
-                              ✅ We have mandate
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-white/60">Clubs</label>
-                            <p className="text-base text-white">
-                              {clubs || 'Not specified'}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-white/60">Valid until</label>
-                            <p className="text-base text-white">
-                              {expiryDate || 'Not specified'}
-                            </p>
-                          </div>
-                          {description && description !== 'Not specified' && (
-                            <div>
-                              <label className="text-sm font-medium text-white/60">Description</label>
-                              <p className="text-sm text-white/80">
-                                {description}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    } else {
-                      return (
+                  {player.hasMandate ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium text-white/60">Status</label>
+                        <p className="text-lg font-semibold text-purple-400">
+                          ✅ We have mandate
+                        </p>
+                      </div>
+                      {player.mandateClubs && (
                         <div>
-                          <label className="text-sm font-medium text-white/60">Status</label>
-                          <p className="text-base text-white/60">
-                            No mandate registered
-                          </p>
-                          <p className="text-xs text-white/40 mt-2">
-                            Add mandate via "Edit player"
+                          <label className="text-sm font-medium text-white/60">Clubs</label>
+                          <p className="text-base text-white">
+                            {player.mandateClubs}
                           </p>
                         </div>
-                      )
-                    }
-                  })()}
+                      )}
+                      {player.mandateExpiry && (
+                        <div>
+                          <label className="text-sm font-medium text-white/60">Valid until</label>
+                          <p className="text-base text-white">
+                            {new Date(player.mandateExpiry).toLocaleDateString('sv-SE')}
+                          </p>
+                        </div>
+                      )}
+                      {player.mandateNotes && (
+                        <div>
+                          <label className="text-sm font-medium text-white/60">Description</label>
+                          <p className="text-sm text-white/80">
+                            {player.mandateNotes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-sm font-medium text-white/60">Status</label>
+                      <p className="text-base text-white/60">
+                        No mandate registered
+                      </p>
+                      <p className="text-xs text-white/40 mt-2">
+                        Add mandate via "Edit player"
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -955,17 +945,11 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                   />
                 ) : (
                   <div className="min-h-[100px] p-4 bg-white/5 rounded-lg border border-white/10">
-                    {(() => {
-                      // Remove mandate section from display notes
-                      const notes = player.notes || ''
-                      const displayNotes = notes.replace(/MANDATE:[\s\S]*$/, '').trim()
-
-                      return displayNotes ? (
-                        <p className="text-white leading-relaxed whitespace-pre-wrap">{displayNotes}</p>
-                      ) : (
-                        <p className="text-white/40 italic">No notes yet. Click "Edit" to add.</p>
-                      )
-                    })()}
+                    {player.notes ? (
+                      <p className="text-white leading-relaxed whitespace-pre-wrap">{player.notes}</p>
+                    ) : (
+                      <p className="text-white/40 italic">No notes yet. Click "Edit" to add.</p>
+                    )}
                   </div>
                 )}
               </div>

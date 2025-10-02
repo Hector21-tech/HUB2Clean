@@ -93,10 +93,6 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         lastName: editingPlayer.lastName
       })
 
-      // Parse notes to extract mandate info if it exists
-      const notes = editingPlayer.notes || ''
-      const mandateMatch = notes.match(/MANDATE:\s*Clubs:\s*([^\n]*)\s*Valid until:\s*([^\n]*)\s*Description:\s*([\s\S]*)/)
-
       setFormData({
         firstName: editingPlayer.firstName || '',
         lastName: editingPlayer.lastName || '',
@@ -110,13 +106,14 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         agencyContractExpiry: editingPlayer.agencyContractExpiry ?
           new Date(editingPlayer.agencyContractExpiry).toISOString().split('T')[0] : '',
         height: editingPlayer.height ? String(editingPlayer.height) : '',
-        notes: mandateMatch ? notes.replace(/MANDAT:[\s\S]*$/, '').trim() : notes,
+        notes: editingPlayer.notes || '',
         rating: editingPlayer.rating ? String(editingPlayer.rating) : '',
         avatarPath: editingPlayer.avatarPath || '',
-        hasMandate: !!mandateMatch,
-        mandateExpiry: mandateMatch?.[2]?.trim() || '',
-        mandateClubs: mandateMatch?.[1]?.trim() || '',
-        mandateNotes: mandateMatch?.[3]?.trim() || ''
+        hasMandate: editingPlayer.hasMandate || false,
+        mandateExpiry: editingPlayer.mandateExpiry ?
+          new Date(editingPlayer.mandateExpiry).toISOString().split('T')[0] : '',
+        mandateClubs: editingPlayer.mandateClubs || '',
+        mandateNotes: editingPlayer.mandateNotes || ''
       })
     } else {
       // Reset form for new player
@@ -274,13 +271,6 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
 
     setIsSubmitting(true)
     try {
-      // Build notes with mandate info if applicable
-      let finalNotes = formData.notes.trim()
-      if (formData.hasMandate && formData.mandateClubs && formData.mandateExpiry) {
-        const mandateSection = `\n\nMANDATE:\nClubs: ${formData.mandateClubs}\nValid until: ${formData.mandateExpiry}\nDescription: ${formData.mandateNotes || 'Not specified'}`
-        finalNotes = finalNotes + mandateSection
-      }
-
       const playerData = {
         ...formData,
         tenantId,
@@ -290,7 +280,7 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         height: Number(formData.height),
         rating: formData.rating ? Number(formData.rating) : undefined,
         tags: [], // Default empty tags
-        notes: finalNotes || undefined,
+        notes: formData.notes.trim() || undefined,
         // Clear club if Free Agent is selected (use null for consistency)
         club: formData.club === 'Free Agent' ? null : formData.club,
         // Convert positions array to single position string for Prisma compatibility

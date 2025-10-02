@@ -73,11 +73,11 @@ export function TrialCard({ trial, onEdit, onDelete, onEvaluate, onClick }: Tria
     const diffTime = trial.getTime() - today.getTime()
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    if (diffDays === 0) return 'Idag'
-    if (diffDays === 1) return 'Imorgon'
-    if (diffDays === -1) return 'Igår'
-    if (diffDays > 0) return `om ${diffDays} dagar`
-    if (diffDays < 0) return `${Math.abs(diffDays)} dagar sedan`
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Tomorrow'
+    if (diffDays === -1) return 'Yesterday'
+    if (diffDays > 0) return `in ${diffDays} days`
+    if (diffDays < 0) return `${Math.abs(diffDays)} days ago`
     return ''
   }
 
