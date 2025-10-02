@@ -27,9 +27,13 @@ export function useCreateTrial(tenantId: string) {
 
       return result.data
     },
-    onSuccess: () => {
-      // Invalidate and refetch trials
-      queryClient.invalidateQueries({ queryKey: ['trials', tenantId] })
+    onSuccess: (newTrial) => {
+      // OPTIMISTIC UPDATE: Add new trial to cache using API response
+      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
+        if (!old) return [newTrial]
+        return [newTrial, ...old]
+      })
+      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
     }
   })
 }
@@ -54,10 +58,14 @@ export function useUpdateTrial(tenantId: string) {
       return result.data
     },
     onSuccess: (updatedTrial) => {
-      // Invalidate trials list
-      queryClient.invalidateQueries({ queryKey: ['trials', tenantId] })
+      // OPTIMISTIC UPDATE: Replace trial in cache using API response
+      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
+        if (!old) return [updatedTrial]
+        return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
+      })
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
+      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
     }
   })
 }
@@ -133,10 +141,14 @@ export function useEvaluateTrial(tenantId: string) {
       return result.data
     },
     onSuccess: (updatedTrial) => {
-      // Invalidate trials list
-      queryClient.invalidateQueries({ queryKey: ['trials', tenantId] })
+      // OPTIMISTIC UPDATE: Replace trial in cache using API response
+      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
+        if (!old) return [updatedTrial]
+        return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
+      })
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
+      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
     }
   })
 }
@@ -161,10 +173,14 @@ export function useUpdateTrialStatus(tenantId: string) {
       return result.data
     },
     onSuccess: (updatedTrial) => {
-      // Invalidate trials list
-      queryClient.invalidateQueries({ queryKey: ['trials', tenantId] })
+      // OPTIMISTIC UPDATE: Replace trial in cache using API response
+      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
+        if (!old) return [updatedTrial]
+        return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
+      })
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
+      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
     }
   })
 }
