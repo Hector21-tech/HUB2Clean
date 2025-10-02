@@ -53,7 +53,23 @@ export function PlayersHeader({
     return Array.from(nationalities).sort()
   }
 
+  // Get unique positions from existing players only
+  const getUsedPositions = (players: Player[]): string[] => {
+    const positions = new Set<string>()
+    players.forEach(player => {
+      if (player.positions && player.positions.length > 0) {
+        player.positions.forEach(pos => {
+          if (pos && pos.trim()) {
+            positions.add(pos.trim())
+          }
+        })
+      }
+    })
+    return Array.from(positions).sort()
+  }
+
   const usedNationalities = getUsedNationalities(players)
+  const usedPositions = getUsedPositions(players)
 
   return (
     <div className="relative z-40 bg-gradient-to-r from-[#020617]/60 via-[#0c1532]/50 via-[#1e3a8a]/40 to-[#0f1b3e]/60 border-b border-[#3B82F6]/40 backdrop-blur-xl">
@@ -156,9 +172,9 @@ export function PlayersHeader({
                 "
               >
                 <option value="" className="bg-slate-800 text-white">All Positions</option>
-                {Object.entries(POSITION_MAPPINGS).map(([abbr, full]) => (
-                  <option key={abbr} value={abbr} className="bg-slate-800 text-white">
-                    {abbr} - {full}
+                {usedPositions.map(pos => (
+                  <option key={pos} value={pos} className="bg-slate-800 text-white">
+                    {pos} - {POSITION_MAPPINGS[pos] || pos}
                   </option>
                 ))}
               </select>
