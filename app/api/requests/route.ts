@@ -238,14 +238,31 @@ export async function POST(request: NextRequest) {
         priority: true,
         windowOpenAt: true,
         windowCloseAt: true,
+        deadline: true,
+        graceDays: true,
+        dealType: true,
+        feeMin: true,
+        feeMax: true,
+        salaryEur: true,
+        amountEur: true,
         createdAt: true,
         updatedAt: true
       }
     })
 
+    // Map to frontend field names (same as GET endpoint)
+    const mappedRequest = {
+      ...newRequest,
+      transferFeeMinEUR: newRequest.feeMin,
+      transferFeeMaxEUR: newRequest.feeMax,
+      loanSalaryEUR: newRequest.salaryEur,
+      freeAgentSalaryEUR: newRequest.salaryEur,
+      signOnBonusEUR: newRequest.amountEur
+    }
+
     return NextResponse.json({
       success: true,
-      data: newRequest
+      data: mappedRequest
     })
   } catch (error) {
     console.error('Failed to create request:', error)
