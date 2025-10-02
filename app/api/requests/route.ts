@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
 import { requireTenant } from '@/lib/server/authz'
 import { Logger, createLogContext } from '@/lib/logger'
-import { apiCache, generateCacheKey } from '@/lib/api-cache'
+import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
 
 // GET - List all requests for a tenant
 export async function GET(request: NextRequest) {
@@ -259,6 +259,10 @@ export async function POST(request: NextRequest) {
       freeAgentSalaryEUR: newRequest.salaryEur,
       signOnBonusEUR: newRequest.amountEur
     }
+
+    // Invalidate both requests cache AND dashboard cache
+    apiCache.invalidatePattern(`requests-${tenantId}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenantId))
 
     return NextResponse.json({
       success: true,

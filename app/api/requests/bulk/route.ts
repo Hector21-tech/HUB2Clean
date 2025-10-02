@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireTenant } from '@/lib/server/authz'
-import { apiCache } from '@/lib/api-cache'
+import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
 
 /**
  * Bulk operations for requests
@@ -102,8 +102,9 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    // Invalidate cache for this tenant
+    // Invalidate both requests cache AND dashboard cache
     apiCache.invalidatePattern(`requests-${tenantId}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenantId))
 
     return NextResponse.json({
       success: true,

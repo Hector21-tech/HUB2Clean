@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -83,6 +84,10 @@ export async function POST(
         // Don't fail the entire evaluation if calendar deletion fails
       }
     }
+
+    // Invalidate both trials cache AND dashboard cache (evaluation changes stats)
+    apiCache.invalidatePattern(`trials-${tenant}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({
       success: true,

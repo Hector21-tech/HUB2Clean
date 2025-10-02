@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { apiCache, generateCacheKey } from '@/lib/api-cache'
+import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -202,6 +202,10 @@ export async function POST(request: NextRequest) {
 
       return newTrial
     })
+
+    // Invalidate both trials cache AND dashboard cache
+    apiCache.invalidatePattern(`trials-${tenant}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({
       success: true,

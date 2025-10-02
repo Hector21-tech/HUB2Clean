@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireTenant } from '@/lib/server/authz'
 import { getCountryByClub, getLeagueByClub } from '@/lib/club-country-mapping'
-import { apiCache } from '@/lib/api-cache'
+import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
 
 // PATCH - Update a specific request
 export async function PATCH(
@@ -104,8 +104,9 @@ export async function PATCH(
       }
     })
 
-    // Invalidate cache for this tenant
+    // Invalidate both requests cache AND dashboard cache
     apiCache.invalidatePattern(`requests-${tenantId}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenantId))
 
     // Map to frontend field names
     const mappedRequest = {
@@ -173,8 +174,9 @@ export async function DELETE(
       }
     }
 
-    // Invalidate cache for this tenant
+    // Invalidate both requests cache AND dashboard cache
     apiCache.invalidatePattern(`requests-${tenantId}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenantId))
 
     return NextResponse.json({
       success: true,
