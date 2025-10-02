@@ -279,16 +279,20 @@ export function getActiveTransferWindow(
   }
 
   // No active window - find the next upcoming window
-  // Determine which window comes next
-  if (date < summerOpen) {
-    // Before summer - summer is next
+  // Compare dates to determine which window comes first
+  if (date < summerOpen && date < winterOpen) {
+    // Both windows are upcoming - return whichever is sooner
+    return summerOpen < winterOpen
+      ? { window: summer, isActive: false }
+      : { window: winter, isActive: false }
+  } else if (date < summerOpen) {
+    // Only summer is upcoming
     return { window: summer, isActive: false }
-  } else if (date > summerClose && date < winterOpen) {
-    // Between summer and winter - winter is next
+  } else if (date < winterOpen) {
+    // Only winter is upcoming
     return { window: winter, isActive: false }
   } else {
-    // After winter close - next summer
-    // Recalculate with next year to get upcoming summer
+    // After both windows - need next year's summer
     const nextYearWindows = getCountryWindows(country, new Date(date.getFullYear() + 1, 6, 1))
     if (nextYearWindows) {
       return { window: nextYearWindows.windows.summer, isActive: false }
