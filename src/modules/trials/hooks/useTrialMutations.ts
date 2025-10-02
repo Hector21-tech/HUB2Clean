@@ -28,12 +28,15 @@ export function useCreateTrial(tenantId: string) {
       return result.data
     },
     onSuccess: (newTrial) => {
-      // OPTIMISTIC UPDATE: Add new trial to cache using API response
-      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
-        if (!old) return [newTrial]
-        return [newTrial, ...old]
-      })
-      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
+      // OPTIMISTIC UPDATE: Add new trial to ALL matching caches (with any filters)
+      queryClient.setQueriesData(
+        { queryKey: ['trials', tenantId] },
+        (old: Trial[] | undefined) => {
+          if (!old) return [newTrial]
+          return [newTrial, ...old]
+        }
+      )
+      // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
     }
   })
 }
@@ -58,14 +61,17 @@ export function useUpdateTrial(tenantId: string) {
       return result.data
     },
     onSuccess: (updatedTrial) => {
-      // OPTIMISTIC UPDATE: Replace trial in cache using API response
-      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
-        if (!old) return [updatedTrial]
-        return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
-      })
+      // OPTIMISTIC UPDATE: Replace trial in ALL matching caches (with any filters)
+      queryClient.setQueriesData(
+        { queryKey: ['trials', tenantId] },
+        (old: Trial[] | undefined) => {
+          if (!old) return [updatedTrial]
+          return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
+        }
+      )
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
-      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
+      // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
     }
   })
 }
@@ -141,14 +147,17 @@ export function useEvaluateTrial(tenantId: string) {
       return result.data
     },
     onSuccess: (updatedTrial) => {
-      // OPTIMISTIC UPDATE: Replace trial in cache using API response
-      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
-        if (!old) return [updatedTrial]
-        return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
-      })
+      // OPTIMISTIC UPDATE: Replace trial in ALL matching caches (with any filters)
+      queryClient.setQueriesData(
+        { queryKey: ['trials', tenantId] },
+        (old: Trial[] | undefined) => {
+          if (!old) return [updatedTrial]
+          return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
+        }
+      )
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
-      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
+      // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
     }
   })
 }
@@ -173,14 +182,17 @@ export function useUpdateTrialStatus(tenantId: string) {
       return result.data
     },
     onSuccess: (updatedTrial) => {
-      // OPTIMISTIC UPDATE: Replace trial in cache using API response
-      queryClient.setQueryData(['trials', tenantId], (old: Trial[] | undefined) => {
-        if (!old) return [updatedTrial]
-        return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
-      })
+      // OPTIMISTIC UPDATE: Replace trial in ALL matching caches (with any filters)
+      queryClient.setQueriesData(
+        { queryKey: ['trials', tenantId] },
+        (old: Trial[] | undefined) => {
+          if (!old) return [updatedTrial]
+          return old.map(t => t.id === updatedTrial.id ? updatedTrial : t)
+        }
+      )
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
-      // ✅ NO REFETCH NEEDED - cache updated with API response data instantly
+      // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
     }
   })
 }
