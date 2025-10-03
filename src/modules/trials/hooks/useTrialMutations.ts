@@ -177,6 +177,12 @@ export function useEvaluateTrial(tenantId: string) {
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
+
+      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend deleted calendar event
+      queryClient.invalidateQueries({
+        queryKey: ['calendar-events', tenantId],
+        refetchType: 'active'
+      })
     }
   })
 }

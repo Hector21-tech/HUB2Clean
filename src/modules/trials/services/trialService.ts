@@ -188,30 +188,36 @@ export class TrialService {
       }
     })
 
-    // 🔄 SYNC CALENDAR EVENT: Update corresponding calendar event if trial details changed
+    // 🔄 SYNC CALENDAR EVENT: Update or delete corresponding calendar event if trial changed
     try {
       const existingEvent = await calendarService.getEventByTrialId(trial.id, tenantId)
 
       if (existingEvent) {
-        // Check if we need to update the calendar event (time, location, or player changed)
-        const shouldUpdate = data.scheduledAt || data.location || data.playerId
+        // If status changed to COMPLETED, CANCELLED, or NO_SHOW → Delete calendar event
+        if (data.status && ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(data.status)) {
+          await calendarService.deleteEventByTrialId(trial.id, tenantId)
+        }
+        // Otherwise, update calendar event if trial details changed
+        else {
+          const shouldUpdate = data.scheduledAt || data.location || data.playerId
 
-        if (shouldUpdate) {
-          const eventData = calendarService.createTrialEvent(tenantId, {
-            id: trial.id,
-            scheduledAt: trial.scheduledAt,
-            location: trial.location,
-            player: trial.player
-          })
+          if (shouldUpdate) {
+            const eventData = calendarService.createTrialEvent(tenantId, {
+              id: trial.id,
+              scheduledAt: trial.scheduledAt,
+              location: trial.location,
+              player: trial.player
+            })
 
-          await calendarService.updateEvent(existingEvent.id, tenantId, {
-            id: existingEvent.id,
-            title: eventData.title,
-            description: eventData.description,
-            startTime: eventData.startTime,
-            endTime: eventData.endTime,
-            location: eventData.location
-          })
+            await calendarService.updateEvent(existingEvent.id, tenantId, {
+              id: existingEvent.id,
+              title: eventData.title,
+              description: eventData.description,
+              startTime: eventData.startTime,
+              endTime: eventData.endTime,
+              location: eventData.location
+            })
+          }
         }
       }
     } catch (error) {
@@ -254,6 +260,14 @@ export class TrialService {
         }
       }
     })
+
+    // 🗑️ DELETE CALENDAR EVENT: Remove calendar event when trial is completed
+    try {
+      await calendarService.deleteEventByTrialId(id, tenantId)
+    } catch (error) {
+      // Log error but don't fail evaluation if calendar deletion fails
+      console.warn(`Failed to delete calendar event for completed trial ${id}:`, error)
+    }
 
     return trial as Trial
   }
