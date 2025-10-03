@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trial, CreateTrialInput, UpdateTrialInput, TrialEvaluationInput } from '../types/trial'
 import { apiFetch } from '@/lib/api-config'
+import { CalendarEvent } from '@/modules/calendar/types/calendar'
 
 interface TrialResponse {
   success: boolean
@@ -38,7 +39,40 @@ export function useCreateTrial(tenantId: string) {
       )
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
 
-      // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
+      // 🗓️ INSTANT CALENDAR SYNC: Add optimistic calendar event immediately
+      const optimisticCalendarEvent: CalendarEvent = {
+        id: `temp-${newTrial.id}`, // Temporary ID
+        tenantId: newTrial.tenantId,
+        title: newTrial.player
+          ? `Trial: ${newTrial.player.firstName} ${newTrial.player.lastName}`
+          : 'Trial',
+        description: newTrial.notes || undefined,
+        startTime: new Date(newTrial.scheduledAt).toISOString(),
+        endTime: new Date(new Date(newTrial.scheduledAt).getTime() + 2 * 60 * 60 * 1000).toISOString(), // +2 hours
+        location: newTrial.location || undefined,
+        type: 'TRIAL',
+        isAllDay: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        trialId: newTrial.id,
+        trial: {
+          id: newTrial.id,
+          status: newTrial.status,
+          rating: newTrial.rating,
+          player: newTrial.player || null,
+          request: newTrial.request || null
+        }
+      }
+
+      queryClient.setQueriesData(
+        { queryKey: ['calendar-events', tenantId] },
+        (old: CalendarEvent[] | undefined) => {
+          if (!old) return [optimisticCalendarEvent]
+          return [optimisticCalendarEvent, ...old]
+        }
+      )
+
+      // Then force refetch to get real data from backend (with real event ID)
       queryClient.invalidateQueries({
         queryKey: ['calendar-events', tenantId]
       })
@@ -107,9 +141,11 @@ export function useDeleteTrial(tenantId: string | null) {
 
       // Cancel outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: ['trials', tenantId] })
+      await queryClient.cancelQueries({ queryKey: ['calendar-events', tenantId] })
 
       // Snapshot previous values for rollback
       const previousTrials = queryClient.getQueryData(['trials', tenantId])
+      const previousEvents = queryClient.getQueryData(['calendar-events', tenantId])
 
       // Optimistically update trials list
       queryClient.setQueriesData(
@@ -120,19 +156,32 @@ export function useDeleteTrial(tenantId: string | null) {
         }
       )
 
+      // 🗓️ INSTANT CALENDAR UPDATE: Remove calendar event with this trialId
+      queryClient.setQueriesData(
+        { queryKey: ['calendar-events', tenantId] },
+        (old: CalendarEvent[] | undefined) => {
+          if (!old) return old
+          return old.filter(event => event.trialId !== trialId)
+        }
+      )
+
       // Remove single trial from cache
       queryClient.removeQueries({ queryKey: ['trial', trialId, tenantId] })
 
       // Return context for rollback
-      return { previousTrials }
+      return { previousTrials, previousEvents }
     },
     onError: (err, trialId, context) => {
       // ROLLBACK: Restore previous data on error
       if (context?.previousTrials) {
         queryClient.setQueryData(['trials', tenantId], context.previousTrials)
       }
+      if (context?.previousEvents) {
+        queryClient.setQueryData(['calendar-events', tenantId], context.previousEvents)
+      }
       // Force refetch to ensure fresh data
       queryClient.refetchQueries({ queryKey: ['trials', tenantId], type: 'active' })
+      queryClient.refetchQueries({ queryKey: ['calendar-events', tenantId], type: 'active' })
     },
     onSuccess: () => {
       // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
