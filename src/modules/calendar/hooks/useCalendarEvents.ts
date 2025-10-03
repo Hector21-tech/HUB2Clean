@@ -122,12 +122,16 @@ export function useCreateEvent(tenantId: string) {
 
   return useMutation({
     mutationFn: (input: CreateEventInput) => createCalendarEvent(tenantId, input),
-    onSuccess: () => {
-      // SMART INVALIDATION: Invalidate ALL calendar-event queries for this tenant
-      queryClient.invalidateQueries({
-        queryKey: ['calendar-events', tenantId],
-        refetchType: 'active' // Only refetch active queries (visible on screen)
-      })
+    onSuccess: (result) => {
+      // OPTIMISTIC UPDATE: Add new event to ALL matching caches (with any filters)
+      queryClient.setQueriesData(
+        { queryKey: ['calendar-events', tenantId] },
+        (old: CalendarEvent[] | undefined) => {
+          if (!old) return [result.event]
+          return [result.event, ...old]
+        }
+      )
+      // ✅ Updates ALL queries: ['calendar-events', tenantId, params] etc
 
       // Also invalidate dashboard if events affect stats
       queryClient.invalidateQueries({
@@ -144,12 +148,16 @@ export function useUpdateEvent(tenantId: string) {
 
   return useMutation({
     mutationFn: (input: UpdateEventInput) => updateCalendarEvent(tenantId, input),
-    onSuccess: () => {
-      // SMART INVALIDATION: Invalidate ALL calendar-event queries for this tenant
-      queryClient.invalidateQueries({
-        queryKey: ['calendar-events', tenantId],
-        refetchType: 'active'
-      })
+    onSuccess: (updatedEvent) => {
+      // OPTIMISTIC UPDATE: Replace event in ALL matching caches (with any filters)
+      queryClient.setQueriesData(
+        { queryKey: ['calendar-events', tenantId] },
+        (old: CalendarEvent[] | undefined) => {
+          if (!old) return [updatedEvent]
+          return old.map(e => e.id === updatedEvent.id ? updatedEvent : e)
+        }
+      )
+      // ✅ Updates ALL queries: ['calendar-events', tenantId, params] etc
 
       // Also invalidate dashboard
       queryClient.invalidateQueries({

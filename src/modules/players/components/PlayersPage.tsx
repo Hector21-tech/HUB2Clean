@@ -197,9 +197,15 @@ export function PlayersPage() {
       const result = await response.json()
 
       if (result.success) {
-        // Add new player to local state
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ['players', tenantId] })
+        // OPTIMISTIC UPDATE: Add new player to cache immediately
+        queryClient.setQueriesData(
+          { queryKey: ['players', tenantId] },
+          (old: Player[] | undefined) => {
+            if (!old) return [result.data]
+            return [result.data, ...old]
+          }
+        )
+        // ✅ Updates ALL queries instantly!
 
         // Invalidate avatar cache to ensure new avatars show immediately
         triggerAvatarCacheInvalidation()
@@ -240,8 +246,15 @@ export function PlayersPage() {
       const result = await response.json()
 
       if (result.success) {
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ['players', tenantId] })
+        // OPTIMISTIC UPDATE: Replace player in cache immediately
+        queryClient.setQueriesData(
+          { queryKey: ['players', tenantId] },
+          (old: Player[] | undefined) => {
+            if (!old) return [result.data]
+            return old.map(p => p.id === result.data.id ? result.data : p)
+          }
+        )
+        // ✅ Updates ALL queries instantly!
 
         // Invalidate avatar cache to ensure updated avatars show immediately
         triggerAvatarCacheInvalidation()
