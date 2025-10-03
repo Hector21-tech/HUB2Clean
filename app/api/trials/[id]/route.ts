@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
+import { trialService } from '@/modules/trials/services/trialService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -90,38 +91,16 @@ export async function PUT(
 
     const body = await request.json()
 
-    // Update trial
-    const trial = await prisma.trial.update({
-      where: {
-        id
-      },
-      data: {
-        ...body,
-        scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined,
-        updatedAt: new Date()
-      },
-      include: {
-        player: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            position: true,
-            club: true,
-            avatarPath: true,
-            avatarUrl: true
-          }
-        },
-        request: {
-          select: {
-            id: true,
-            title: true,
-            club: true,
-            position: true
-          }
-        }
-      }
-    })
+    // 🎯 USE TRIAL SERVICE: This handles calendar event sync/deletion automatically
+    const updateData = {
+      ...body,
+      scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined
+    }
+    const trial = await trialService.updateTrial(id, tenant, updateData)
+
+    // Invalidate trials cache
+    apiCache.invalidatePattern(`trials-${tenant}`)
+    dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({
       success: true,
@@ -152,33 +131,8 @@ export async function DELETE(
       )
     }
 
-    // Verify trial belongs to tenant before deleting
-    const trial = await prisma.trial.findFirst({
-      where: {
-        id,
-        tenantId: tenant
-      }
-    })
-
-    if (!trial) {
-      return NextResponse.json(
-        { success: false, error: 'Trial not found' },
-        { status: 404 }
-      )
-    }
-
-    // Delete trial and associated calendar event in a transaction
-    await prisma.$transaction(async (tx) => {
-      // Delete associated calendar event first (if exists)
-      await tx.calendarEvent.deleteMany({
-        where: { trialId: id }
-      })
-
-      // Then delete the trial
-      await tx.trial.delete({
-        where: { id }
-      })
-    })
+    // 🎯 USE TRIAL SERVICE: This handles calendar event deletion automatically
+    await trialService.deleteTrial(id, tenant)
 
     // Invalidate both trials cache AND dashboard cache
     apiCache.invalidatePattern(`trials-${tenant}`)

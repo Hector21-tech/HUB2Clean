@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { apiCache, dashboardCache, generateCacheKey } from '@/lib/api-cache'
+import { trialService } from '@/modules/trials/services/trialService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,67 +23,8 @@ export async function POST(
 
     const body = await request.json()
 
-    // Verify trial belongs to tenant before evaluating
-    const trial = await prisma.trial.findFirst({
-      where: {
-        id,
-        tenantId: tenant
-      }
-    })
-
-    if (!trial) {
-      return NextResponse.json(
-        { success: false, error: 'Trial not found' },
-        { status: 404 }
-      )
-    }
-
-    // Update trial with evaluation data
-    const evaluatedTrial = await prisma.trial.update({
-      where: { id },
-      data: {
-        ...body,
-        status: 'COMPLETED',
-        updatedAt: new Date()
-      },
-      include: {
-        calendarEvent: true, // Include linked calendar event for deletion
-        player: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            position: true,
-            club: true,
-            avatarPath: true,
-            avatarUrl: true
-          }
-        },
-        request: {
-          select: {
-            id: true,
-            title: true,
-            club: true,
-            position: true
-          }
-        }
-      }
-    })
-
-    // Auto-delete linked calendar event when trial is completed
-    if (evaluatedTrial.calendarEvent) {
-      console.log(`🗑️ Auto-deleting calendar event: ${evaluatedTrial.calendarEvent.id} (Trial completed)`)
-
-      try {
-        await prisma.calendarEvent.delete({
-          where: { id: evaluatedTrial.calendarEvent.id }
-        })
-        console.log('✅ Calendar event deleted successfully')
-      } catch (deleteError) {
-        console.error('⚠️ Failed to delete calendar event:', deleteError)
-        // Don't fail the entire evaluation if calendar deletion fails
-      }
-    }
+    // 🎯 USE TRIAL SERVICE: This handles calendar event deletion automatically
+    const evaluatedTrial = await trialService.evaluateTrial(id, tenant, body)
 
     // Invalidate both trials cache AND dashboard cache (evaluation changes stats)
     apiCache.invalidatePattern(`trials-${tenant}`)
