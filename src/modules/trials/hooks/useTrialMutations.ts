@@ -194,6 +194,13 @@ export function useDeleteTrial(tenantId: string | null) {
       queryClient.refetchQueries({ queryKey: ['calendar-events', tenantId], type: 'active' })
     },
     onSuccess: () => {
+      // 🔥 FORCE REFETCH: Ensure trials are refetched immediately from backend
+      // This prevents the trial from reappearing when user switches tabs
+      queryClient.refetchQueries({
+        queryKey: ['trials', tenantId],
+        type: 'active'
+      })
+
       // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
         queryKey: ['calendar-events', tenantId]
