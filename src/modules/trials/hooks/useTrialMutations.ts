@@ -38,10 +38,9 @@ export function useCreateTrial(tenantId: string) {
       )
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
 
-      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend created calendar event
+      // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
-        queryKey: ['calendar-events', tenantId],
-        refetchType: 'active'
+        queryKey: ['calendar-events', tenantId]
       })
     }
   })
@@ -79,10 +78,9 @@ export function useUpdateTrial(tenantId: string) {
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
 
-      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend may have updated calendar event
+      // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
-        queryKey: ['calendar-events', tenantId],
-        refetchType: 'active'
+        queryKey: ['calendar-events', tenantId]
       })
     }
   })
@@ -137,10 +135,9 @@ export function useDeleteTrial(tenantId: string | null) {
       queryClient.refetchQueries({ queryKey: ['trials', tenantId], type: 'active' })
     },
     onSuccess: () => {
-      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend deleted calendar event
+      // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
-        queryKey: ['calendar-events', tenantId],
-        refetchType: 'active'
+        queryKey: ['calendar-events', tenantId]
       })
     }
   })
@@ -178,10 +175,9 @@ export function useEvaluateTrial(tenantId: string) {
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
 
-      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend deleted calendar event
+      // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
-        queryKey: ['calendar-events', tenantId],
-        refetchType: 'active'
+        queryKey: ['calendar-events', tenantId]
       })
     }
   })
