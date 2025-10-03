@@ -26,8 +26,9 @@ export async function POST(
     // 🎯 USE TRIAL SERVICE: This handles calendar event deletion automatically
     const evaluatedTrial = await trialService.evaluateTrial(id, tenant, body)
 
-    // Invalidate both trials cache AND dashboard cache (evaluation changes stats)
+    // Invalidate trials, events, AND dashboard cache (evaluation deletes calendar event)
     apiCache.invalidatePattern(`trials-${tenant}`)
+    apiCache.invalidatePattern(`events-${tenant}`)
     dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({

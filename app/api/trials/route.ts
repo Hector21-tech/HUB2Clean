@@ -152,8 +152,9 @@ export async function POST(request: NextRequest) {
     }
     const trial = await trialService.createTrial(tenant, trialData)
 
-    // Invalidate both trials cache AND dashboard cache
+    // Invalidate trials, events, AND dashboard cache (trial created calendar event)
     apiCache.invalidatePattern(`trials-${tenant}`)
+    apiCache.invalidatePattern(`events-${tenant}`)
     dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({

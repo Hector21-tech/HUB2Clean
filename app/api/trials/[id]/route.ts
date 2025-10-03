@@ -98,8 +98,9 @@ export async function PUT(
     }
     const trial = await trialService.updateTrial(id, tenant, updateData)
 
-    // Invalidate trials cache
+    // Invalidate trials, events, AND dashboard cache (trial may have updated/deleted calendar event)
     apiCache.invalidatePattern(`trials-${tenant}`)
+    apiCache.invalidatePattern(`events-${tenant}`)
     dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({
@@ -134,8 +135,9 @@ export async function DELETE(
     // 🎯 USE TRIAL SERVICE: This handles calendar event deletion automatically
     await trialService.deleteTrial(id, tenant)
 
-    // Invalidate both trials cache AND dashboard cache
+    // Invalidate trials, events, AND dashboard cache (trial deleted calendar event)
     apiCache.invalidatePattern(`trials-${tenant}`)
+    apiCache.invalidatePattern(`events-${tenant}`)
     dashboardCache.invalidate(generateCacheKey('dashboard', tenant))
 
     return NextResponse.json({
