@@ -76,6 +76,11 @@ export function useCreateTrial(tenantId: string) {
       queryClient.invalidateQueries({
         queryKey: ['calendar-events', tenantId]
       })
+
+      // 📊 DASHBOARD SYNC: Invalidate dashboard stats (trial count increased)
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId]
+      })
     }
   })
 }
@@ -115,6 +120,11 @@ export function useUpdateTrial(tenantId: string) {
       // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
         queryKey: ['calendar-events', tenantId]
+      })
+
+      // 📊 DASHBOARD SYNC: Invalidate dashboard stats (trial updated)
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId]
       })
     }
   })
@@ -188,6 +198,11 @@ export function useDeleteTrial(tenantId: string | null) {
       queryClient.invalidateQueries({
         queryKey: ['calendar-events', tenantId]
       })
+
+      // 📊 DASHBOARD SYNC: Invalidate dashboard stats (trial count decreased)
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId]
+      })
     }
   })
 }
@@ -227,6 +242,11 @@ export function useEvaluateTrial(tenantId: string) {
       // 🗓️ SYNC CALENDAR: Force refetch ALL calendar queries immediately
       queryClient.invalidateQueries({
         queryKey: ['calendar-events', tenantId]
+      })
+
+      // 📊 DASHBOARD SYNC: Invalidate dashboard stats (trial evaluation affects stats)
+      queryClient.invalidateQueries({
+        queryKey: ['dashboard-stats', tenantId]
       })
     }
   })

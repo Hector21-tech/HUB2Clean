@@ -97,8 +97,8 @@ export async function GET(request: NextRequest) {
         success: true,
         data: cachedData
       })
-      // Extended cache headers: 5min browser cache, 5min edge cache
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
+      // ⚡ BALANCED CACHE: 60s for fresh dashboard with good performance
+      response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=30')
       response.headers.set('X-Cache', 'HIT')
       response.headers.set('X-Cache-Time', cachedData.lastUpdated)
       return response
@@ -248,8 +248,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: stats
     })
-    // Extended cache headers: 5min browser cache, 5min edge cache, 10min stale-while-revalidate
-    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600')
+    // ⚡ BALANCED CACHE: 60s for fresh dashboard with good performance
+    response.headers.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=30')
     response.headers.set('X-Cache', 'MISS')
     response.headers.set('X-Query-Duration', `${queryDuration}ms`)
     return response
