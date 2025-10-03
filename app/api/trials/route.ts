@@ -38,7 +38,8 @@ export async function GET(request: NextRequest) {
         success: true,
         data: cachedData
       })
-      response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+      // ⚡ ULTRA SHORT CACHE: 5s for instant trial sync (same as calendar)
+      response.headers.set('Cache-Control', 'public, max-age=5, s-maxage=5, stale-while-revalidate=2')
       response.headers.set('X-Cache', 'HIT')
       return response
     }
@@ -110,7 +111,8 @@ export async function GET(request: NextRequest) {
       success: true,
       data: trials
     })
-    response.headers.set('Cache-Control', 'public, max-age=30, s-maxage=30')
+    // ⚡ ULTRA SHORT CACHE: 5s for instant trial sync (same as calendar)
+    response.headers.set('Cache-Control', 'public, max-age=5, s-maxage=5, stale-while-revalidate=2')
     response.headers.set('X-Cache', 'MISS')
     return response
   } catch (error) {
