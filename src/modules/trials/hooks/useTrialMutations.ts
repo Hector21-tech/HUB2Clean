@@ -37,6 +37,12 @@ export function useCreateTrial(tenantId: string) {
         }
       )
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
+
+      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend created calendar event
+      queryClient.invalidateQueries({
+        queryKey: ['calendar-events', tenantId],
+        refetchType: 'active'
+      })
     }
   })
 }
@@ -72,6 +78,12 @@ export function useUpdateTrial(tenantId: string) {
       // Update single trial cache
       queryClient.setQueryData(['trial', updatedTrial.id, tenantId], updatedTrial)
       // ✅ Updates ALL queries: ['trials', tenantId, filters] etc
+
+      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend may have updated calendar event
+      queryClient.invalidateQueries({
+        queryKey: ['calendar-events', tenantId],
+        refetchType: 'active'
+      })
     }
   })
 }
@@ -123,6 +135,13 @@ export function useDeleteTrial(tenantId: string | null) {
       }
       // Force refetch to ensure fresh data
       queryClient.refetchQueries({ queryKey: ['trials', tenantId], type: 'active' })
+    },
+    onSuccess: () => {
+      // 🗓️ SYNC CALENDAR: Invalidate calendar-events since backend deleted calendar event
+      queryClient.invalidateQueries({
+        queryKey: ['calendar-events', tenantId],
+        refetchType: 'active'
+      })
     }
   })
 }
