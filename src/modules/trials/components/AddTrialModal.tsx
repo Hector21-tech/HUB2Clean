@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { X, Calendar, MapPin, User, FileText } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { usePlayersQuery } from '../../players/hooks/usePlayersQuery'
@@ -137,16 +138,18 @@ export function AddTrialModal({ isOpen, onClose, trial, preSelectedPlayerId }: A
           notes: trialData.notes
         }
         await updateTrial.mutateAsync({ trialId: trial.id, data: updateData })
+        toast.success('Trial updated!')
       } else {
         // Create new trial
         const createData: CreateTrialInput = trialData
         await createTrial.mutateAsync(createData)
+        toast.success('Trial scheduled!')
       }
 
       onClose()
     } catch (error) {
       console.error('Failed to save trial:', error)
-      // Error handling - could show toast notification here
+      toast.error(trial ? 'Failed to update trial' : 'Failed to create trial')
     } finally {
       setIsSubmitting(false)
     }

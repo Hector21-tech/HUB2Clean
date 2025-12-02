@@ -47,7 +47,7 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
     >
 
       {/* Hero Header */}
-      <div className="relative h-32 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
+      <div className="relative h-44 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 overflow-hidden">
         {/* Player Avatar/Background */}
         {avatarUrl && !imageError && !avatarLoading && (
           <img

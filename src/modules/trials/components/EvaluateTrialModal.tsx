@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { X, Star, FileText } from 'lucide-react'
 import { Trial, TrialEvaluationInput } from '../types/trial'
 import { useEvaluateTrial } from '../hooks/useTrialMutations'
@@ -76,12 +77,14 @@ export function EvaluateTrialModal({ trial, isOpen, onClose }: EvaluateTrialModa
         evaluation: evaluationData
       })
 
+      toast.success('Evaluation saved!')
       // Reset form and close modal
       setFormData({ rating: 5, feedback: '', notes: '' })
       setErrors({})
       onClose()
     } catch (error) {
       console.error('Failed to evaluate trial:', error)
+      toast.error('Failed to save evaluation')
       setErrors({ submit: 'Failed to submit evaluation. Please try again.' })
     } finally {
       setIsSubmitting(false)

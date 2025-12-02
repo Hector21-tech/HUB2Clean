@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { Calendar, ChevronLeft, ChevronRight, Plus, List, Grid, Clock, Search, X, Download, Share } from 'lucide-react'
 import { CalendarView, CalendarEvent, EventType } from '../types/calendar'
 import { dateUtils } from '../utils/calendar-utils'
@@ -188,22 +189,21 @@ export function CalendarPage() {
         await deleteEvent.mutateAsync(event.id)
         setSelectedEvent(null)
 
-        // Optional: Show success message
-        console.log(`Event "${event.title}" deleted successfully`)
+        toast.success('Event deleted!')
       } catch (error) {
         console.error('Failed to delete event:', error)
 
         // Show user-friendly error message
-        let errorMessage = 'Failed to delete event. Please try again.'
+        let errorMessage = 'Failed to delete event'
         if (error instanceof Error) {
           if (error.message.includes('not found')) {
-            errorMessage = 'Event not found. It may have already been deleted.'
+            errorMessage = 'Event not found'
           } else if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
-            errorMessage = 'Authentication error. Please refresh the page and try again.'
+            errorMessage = 'Authentication error - please try again'
           }
         }
 
-        alert(errorMessage)
+        toast.error(errorMessage)
       }
     }
   }

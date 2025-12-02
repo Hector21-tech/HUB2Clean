@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import { Upload, X, Loader2, Camera, User } from 'lucide-react'
+import Cropper, { Area } from 'react-easy-crop'
+import { Upload, X, Loader2, Camera, User, ZoomIn, ZoomOut, Check } from 'lucide-react'
 import { apiFetch } from '@/lib/api-config'
 import { invalidateAvatarCache, triggerAvatarCacheInvalidation } from '@/modules/players/hooks/useAvatarUrl'
 
@@ -13,6 +14,55 @@ interface AvatarUploadProps {
   playerId?: string
   playerName?: string
   disabled?: boolean
+}
+
+// Helper function to create cropped image
+async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<Blob> {
+  const image = new Image()
+  image.src = imageSrc
+
+  await new Promise((resolve) => {
+    image.onload = resolve
+  })
+
+  const canvas = document.createElement('canvas')
+  const ctx = canvas.getContext('2d')
+
+  if (!ctx) {
+    throw new Error('No 2d context')
+  }
+
+  // Set canvas size to the cropped area
+  canvas.width = pixelCrop.width
+  canvas.height = pixelCrop.height
+
+  // Draw the cropped image
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  )
+
+  // Return as blob
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error('Canvas is empty'))
+        }
+      },
+      'image/jpeg',
+      0.9
+    )
+  })
 }
 
 export function AvatarUpload({
@@ -30,74 +80,35 @@ export function AvatarUpload({
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Cropping state
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
+
   // Validate file type and size
   const validateFile = (file: File): string | null => {
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    const maxSize = 10 * 1024 * 1024 // 10MB (larger since we'll crop)
 
     if (!allowedTypes.includes(file.type)) {
       return 'Only JPEG, PNG, and WebP images are allowed'
     }
 
     if (file.size > maxSize) {
-      return 'File size must be less than 5MB'
+      return 'File size must be less than 10MB'
     }
 
     return null
   }
 
-  // Compress image if needed
-  const compressImage = useCallback((file: File): Promise<File> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      const img = new Image()
-
-      img.onload = () => {
-        // Calculate new dimensions (max 800px on any side)
-        const maxSize = 800
-        let { width, height } = img
-
-        if (width > height) {
-          if (width > maxSize) {
-            height = (height * maxSize) / width
-            width = maxSize
-          }
-        } else {
-          if (height > maxSize) {
-            width = (width * maxSize) / height
-            height = maxSize
-          }
-        }
-
-        canvas.width = width
-        canvas.height = height
-
-        // Draw and compress
-        ctx?.drawImage(img, 0, 0, width, height)
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: file.type,
-                lastModified: Date.now(),
-              })
-              resolve(compressedFile)
-            } else {
-              resolve(file)
-            }
-          },
-          file.type,
-          0.8 // 80% quality
-        )
-      }
-
-      img.src = URL.createObjectURL(file)
-    })
+  // Handle crop complete
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels)
   }, [])
 
-  // Handle file upload
-  const handleFileUpload = useCallback(async (file: File) => {
+  // Handle file selection - show cropper
+  const handleFileSelect = useCallback((file: File) => {
     if (disabled) return
 
     const validationError = validateFile(file)
@@ -106,27 +117,56 @@ export function AvatarUpload({
       return
     }
 
+    // Create URL for cropper
+    const fileUrl = URL.createObjectURL(file)
+    setImageToCrop(fileUrl)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+  }, [disabled, onUploadError])
+
+  // Cancel cropping
+  const handleCancelCrop = useCallback(() => {
+    if (imageToCrop) {
+      URL.revokeObjectURL(imageToCrop)
+    }
+    setImageToCrop(null)
+    setCroppedAreaPixels(null)
+  }, [imageToCrop])
+
+  // Confirm crop and upload
+  const handleConfirmCrop = useCallback(async () => {
+    if (!imageToCrop || !croppedAreaPixels) return
+
     setIsUploading(true)
-    setUploadProgress(0)
+    setUploadProgress(10)
 
     try {
-      // Show preview immediately
-      const fileUrl = URL.createObjectURL(file)
-      setPreviewUrl(fileUrl)
+      // Get cropped image
+      const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels)
+      setUploadProgress(30)
 
-      // Compress image
-      const compressedFile = await compressImage(file)
+      // Create file from blob
+      const croppedFile = new File([croppedBlob], 'avatar.jpg', {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      })
 
-      // NEW: Direct upload using apiFetch with CSRF protection
+      // Show preview
+      const previewBlobUrl = URL.createObjectURL(croppedBlob)
+      setPreviewUrl(previewBlobUrl)
+      setUploadProgress(50)
+
+      // Upload
       const formData = new FormData()
-      formData.append('file', compressedFile)
+      formData.append('file', croppedFile)
       formData.append('playerId', playerId || 'temp-' + Date.now())
 
-      // Use apiFetch for CSRF token handling (tenantId is actually tenant slug)
       const response = await apiFetch(`/api/media/avatar-upload?tenant=${encodeURIComponent(tenantId)}`, {
         method: 'POST',
         body: formData
       })
+
+      setUploadProgress(80)
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -136,20 +176,19 @@ export function AvatarUpload({
 
       const result = await response.json()
       if (result.success) {
-        // 🚀 CACHE INVALIDATION: Clear old avatar cache and trigger refresh
+        // Cache invalidation
         if (playerId) {
-          // Invalidate cache for the specific avatar path
           invalidateAvatarCache(result.data.avatarPath, tenantId)
-          console.log('🗑️ Avatar cache invalidated for:', result.data.avatarPath)
         }
-
-        // Trigger global cache invalidation to refresh all components
         triggerAvatarCacheInvalidation()
-        console.log('🔄 Global avatar cache invalidation triggered')
 
         onUploadComplete(result.data.avatarPath)
         setUploadProgress(100)
-        setIsUploading(false)
+
+        // Clean up
+        URL.revokeObjectURL(imageToCrop)
+        setImageToCrop(null)
+        setCroppedAreaPixels(null)
       } else {
         throw new Error(result.error || 'Upload failed')
       }
@@ -157,11 +196,12 @@ export function AvatarUpload({
     } catch (error) {
       console.error('Upload error:', error)
       onUploadError(error instanceof Error ? error.message : 'Upload failed')
+      setPreviewUrl(currentAvatarUrl || null)
+    } finally {
       setIsUploading(false)
       setUploadProgress(0)
-      setPreviewUrl(currentAvatarUrl || null)
     }
-  }, [disabled, tenantId, playerId, currentAvatarUrl, compressImage, onUploadComplete, onUploadError])
+  }, [imageToCrop, croppedAreaPixels, playerId, tenantId, currentAvatarUrl, onUploadComplete, onUploadError])
 
   // Handle drag and drop
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -170,9 +210,9 @@ export function AvatarUpload({
 
     const files = Array.from(e.dataTransfer.files)
     if (files.length > 0) {
-      handleFileUpload(files[0])
+      handleFileSelect(files[0])
     }
-  }, [handleFileUpload])
+  }, [handleFileSelect])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -190,9 +230,9 @@ export function AvatarUpload({
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files && files.length > 0) {
-      handleFileUpload(files[0])
+      handleFileSelect(files[0])
     }
-  }, [handleFileUpload])
+  }, [handleFileSelect])
 
   // Remove avatar
   const handleRemoveAvatar = useCallback(() => {
@@ -202,6 +242,86 @@ export function AvatarUpload({
       fileInputRef.current.value = ''
     }
   }, [onUploadComplete])
+
+  // Render cropper modal
+  if (imageToCrop) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center text-sm font-medium text-white mb-2">
+          Drag to position, scroll to zoom
+        </div>
+
+        {/* Cropper Container */}
+        <div className="relative w-full h-64 bg-black/50 rounded-lg overflow-hidden">
+          <Cropper
+            image={imageToCrop}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            cropShape="round"
+            showGrid={false}
+            onCropChange={setCrop}
+            onCropComplete={onCropComplete}
+            onZoomChange={setZoom}
+          />
+        </div>
+
+        {/* Zoom Slider */}
+        <div className="flex items-center gap-3 px-2">
+          <ZoomOut className="w-4 h-4 text-white/60" />
+          <input
+            type="range"
+            min={1}
+            max={3}
+            step={0.1}
+            value={zoom}
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="flex-1 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-blue-500"
+          />
+          <ZoomIn className="w-4 h-4 text-white/60" />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <button
+            onClick={handleCancelCrop}
+            disabled={isUploading}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirmCrop}
+            disabled={isUploading}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                Confirm
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Progress Bar */}
+        {isUploading && (
+          <div className="w-full bg-white/20 rounded-full h-2">
+            <div
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -240,8 +360,8 @@ export function AvatarUpload({
         className={`
           relative border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200
           ${isDragging
-            ? 'border-blue-400 bg-blue-50/50'
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-blue-400 bg-blue-500/20'
+            : 'border-white/30 hover:border-white/50'
           }
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
           ${isUploading ? 'pointer-events-none' : ''}
@@ -259,27 +379,27 @@ export function AvatarUpload({
 
         {isUploading ? (
           <div className="space-y-3">
-            <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto" />
+            <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
             <div className="space-y-2">
-              <p className="text-sm text-gray-600">Uploading avatar...</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <p className="text-sm text-white/80">Uploading avatar...</p>
+              <div className="w-full bg-white/20 rounded-full h-2">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500">{uploadProgress}%</p>
+              <p className="text-xs text-white/60">{uploadProgress}%</p>
             </div>
           </div>
         ) : (
           <div className="space-y-2">
-            <Camera className="w-8 h-8 text-gray-400 mx-auto" />
+            <Camera className="w-8 h-8 text-white/60 mx-auto" />
             <div className="space-y-1">
-              <p className="text-sm font-medium text-gray-700">
+              <p className="text-sm font-medium text-white/80">
                 Drop an image here, or click to select
               </p>
-              <p className="text-xs text-gray-500">
-                JPEG, PNG, WebP up to 5MB
+              <p className="text-xs text-white/50">
+                JPEG, PNG, WebP up to 10MB
               </p>
             </div>
           </div>

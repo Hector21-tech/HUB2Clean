@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { X, Calendar, MapPin, FileText, Clock, Type } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { useUpdateEvent } from '../hooks/useCalendarEvents'
@@ -145,10 +146,12 @@ export function EditEventModal({
 
       await updateEvent.mutateAsync(eventData)
 
+      toast.success('Event updated!')
       // Success! Close modal after brief delay to show any updates
       setTimeout(() => onClose(), 100)
     } catch (error) {
       console.error('Failed to update event:', error)
+      toast.error('Failed to update event')
 
       // Provide more specific error messages based on error type
       let errorMessage = 'Failed to update event. Please try again.'

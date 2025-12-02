@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import toast from 'react-hot-toast'
 import { useTrialsQuery } from '../hooks/useTrialsQuery'
 import { useDeleteTrial } from '../hooks/useTrialMutations'
 import { TrialsHeader } from './TrialsHeader'
@@ -100,9 +101,10 @@ export function TrialsPage() {
     try {
       await deleteTrial.mutateAsync(showDeleteConfirm)
       setShowDeleteConfirm(null)
+      toast.success('Trial deleted!')
     } catch (error) {
       console.error('Failed to delete trial:', error)
-      // Error is handled by React Query and displayed to user
+      toast.error('Failed to delete trial')
     }
   }
 

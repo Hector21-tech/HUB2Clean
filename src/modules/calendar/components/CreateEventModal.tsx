@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { X, Calendar, MapPin, FileText, Clock, Type } from 'lucide-react'
 import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import { useCreateEvent } from '../hooks/useCalendarEvents'
@@ -164,13 +165,15 @@ export function CreateEventModal({
 
       // Show success message if there are conflicts
       if (result.conflicts && result.conflicts.length > 0) {
-        console.log('Event created with conflicts:', result.conflicts)
-        // Could show a toast notification here
+        toast.success('Event created with overlapping events')
+      } else {
+        toast.success('Event created!')
       }
 
       onClose()
     } catch (error) {
       console.error('Failed to create event:', error)
+      toast.error('Failed to create event')
       setErrors({ submit: 'Failed to create event. Please try again.' })
     } finally {
       setIsSubmitting(false)

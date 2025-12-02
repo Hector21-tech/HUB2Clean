@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import toast from 'react-hot-toast'
 import { Player, PlayerFilters } from '../types/player'
 import { PlayersHeader } from './PlayersHeader'
 import { PlayerGrid, PlayerGridSkeleton } from './PlayerGrid'
@@ -210,13 +211,16 @@ export function PlayersPage() {
         // Invalidate avatar cache to ensure new avatars show immediately
         triggerAvatarCacheInvalidation()
 
+        toast.success('Player added!')
         console.log('✅ Player added successfully:', result.data)
       } else {
         console.error('❌ Error adding player:', result.error)
+        toast.error('Failed to add player')
         throw new Error(result.error)
       }
     } catch (error) {
       console.error('❌ Error saving player:', error)
+      toast.error('Failed to save player')
       throw error
     }
   }
@@ -259,15 +263,18 @@ export function PlayersPage() {
         // Invalidate avatar cache to ensure updated avatars show immediately
         triggerAvatarCacheInvalidation()
 
+        toast.success('Player updated!')
         console.log('✅ Player updated successfully:', result.data)
         setIsEditPlayerModalOpen(false)
         setEditingPlayer(null)
       } else {
         console.error('❌ Error updating player:', result.error)
+        toast.error('Failed to update player')
         throw new Error(result.error)
       }
     } catch (error) {
       console.error('❌ Error updating player:', error)
+      toast.error('Failed to update player')
       throw error
     }
   }
@@ -302,10 +309,12 @@ export function PlayersPage() {
         const result = await response.json()
 
         if (result.success) {
+          toast.success('Player deleted!')
           console.log('✅ Player deleted successfully')
           // No need to invalidate - optimistic update already handled cache update
         } else {
           console.error('❌ Error deleting player:', result.error)
+          toast.error('Failed to delete player')
           // Rollback optimistic update - restore previous data then force refetch
           queryClient.setQueryData(queryKey, previousData)
           await queryClient.refetchQueries({ queryKey, type: 'active' })
@@ -313,6 +322,7 @@ export function PlayersPage() {
         }
       } catch (networkError) {
         console.error('❌ Network error deleting player:', networkError)
+        toast.error('Network error - failed to delete player')
         // Rollback optimistic update - restore previous data then force refetch
         queryClient.setQueryData(queryKey, previousData)
         await queryClient.refetchQueries({ queryKey, type: 'active' })
