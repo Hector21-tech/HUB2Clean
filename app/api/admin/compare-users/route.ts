@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@supabase/supabase-js'
 
+// Force dynamic rendering - uses database at runtime
+export const dynamic = 'force-dynamic'
+
 // GET: Compare users between Prisma and Supabase Auth
 export async function GET(request: NextRequest) {
   try {
