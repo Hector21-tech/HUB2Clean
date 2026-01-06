@@ -18,9 +18,7 @@ interface PlayerDetailDrawerProps {
 }
 
 export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, onScheduleTrial }: PlayerDetailDrawerProps) {
-  // Early return MUST be before all hooks
-  if (!player || !isOpen) return null
-
+  // ALL HOOKS MUST BE DECLARED BEFORE ANY EARLY RETURNS (React Rules of Hooks)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
@@ -32,7 +30,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
   const [isEnhancingNotes, setIsEnhancingNotes] = useState(false)
   const [isSavingNotes, setIsSavingNotes] = useState(false)
 
-
   // Get the best avatar URL (new system with fallback to legacy)
   const { url: avatarUrl, isLoading: avatarLoading } = useAvatarUrl({
     avatarPath: player?.avatarPath,
@@ -40,6 +37,9 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
     tenantId: player?.tenantId || '',
     playerName: player ? `${player.firstName} ${player.lastName}` : undefined
   })
+
+  // Early return AFTER all hooks
+  if (!player || !isOpen) return null
 
   const calculateAge = (dateOfBirth?: Date) => {
     if (!dateOfBirth) return null
@@ -68,42 +68,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
       year: 'numeric'
     })
   }
-
-  const getSkillLevel = (rating?: number) => {
-    if (!rating) return { label: 'N/A', color: 'bg-white/20' }
-    if (rating >= 9) return { label: 'Elite', color: 'bg-gradient-to-r from-blue-400 to-blue-600' }
-    if (rating >= 8) return { label: 'Excellent', color: 'bg-gradient-to-r from-blue-400/80 to-blue-600/80' }
-    if (rating >= 7) return { label: 'Good', color: 'bg-gradient-to-r from-blue-400/60 to-blue-600/60' }
-    if (rating >= 6) return { label: 'Average', color: 'bg-white/20' }
-    return { label: 'Below Avg', color: 'bg-white/20' }
-  }
-
-  const technicalSkills = [
-    { name: 'Shooting', value: player.shooting },
-    { name: 'Passing', value: player.passing },
-    { name: 'Dribbling', value: player.dribbling },
-    { name: 'Crossing', value: player.crossing },
-    { name: 'Finishing', value: player.finishing },
-    { name: 'First Touch', value: player.firstTouch }
-  ]
-
-  const physicalAttributes = [
-    { name: 'Pace', value: player.pace },
-    { name: 'Acceleration', value: player.acceleration },
-    { name: 'Strength', value: player.strength },
-    { name: 'Stamina', value: player.stamina },
-    { name: 'Agility', value: player.agility },
-    { name: 'Jumping', value: player.jumping }
-  ]
-
-  const mentalAttributes = [
-    { name: 'Vision', value: player.vision },
-    { name: 'Decisions', value: player.decisions },
-    { name: 'Composure', value: player.composure },
-    { name: 'Leadership', value: player.leadership },
-    { name: 'Work Rate', value: player.workRate },
-    { name: 'Determination', value: player.determination }
-  ]
 
   const formatAIText = (text: string) => {
     if (!text) return text
@@ -489,7 +453,7 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
             <img
               src={avatarUrl}
               alt={`${player.firstName} ${player.lastName}`}
-              className="absolute inset-0 w-full h-full object-cover object-top filter sepia-[5%] contrast-105 brightness-98"
+              className="absolute inset-0 w-full h-full object-cover object-center filter sepia-[5%] contrast-105 brightness-98"
               loading="lazy"
               onError={(e) => {
                 // More robust fallback - try loading once more, then hide
@@ -785,82 +749,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
               ))}
             </div>
           </section>
-
-          {/* Technical Skills */}
-          <section>
-            <h3 className="text-lg font-semibold text-white mb-4">Technical Skills</h3>
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 sm:p-6 border border-white/20">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {technicalSkills.map((skill) => (
-                  <div key={skill.name} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">{skill.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-[#1e3a8a]/30 rounded-full overflow-hidden shadow-inner">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] transition-all duration-300 shadow-sm"
-                          style={{ width: `${((skill.value || 0) / 10) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-bold text-blue-400 w-8">
-                        {skill.value?.toFixed(1) || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Physical Attributes */}
-          <section>
-            <h3 className="text-lg font-semibold text-white mb-4">Physical Attributes</h3>
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 sm:p-6 border border-white/20">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {physicalAttributes.map((attr) => (
-                  <div key={attr.name} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">{attr.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-[#1e3a8a]/30 rounded-full overflow-hidden shadow-inner">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] transition-all duration-300 shadow-sm"
-                          style={{ width: `${((attr.value || 0) / 10) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-bold text-blue-400 w-8">
-                        {attr.value?.toFixed(1) || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Mental Attributes */}
-          <section>
-            <h3 className="text-lg font-semibold text-white mb-4">Mental Attributes</h3>
-            <div className="bg-white/10 backdrop-blur-md rounded-lg p-4 sm:p-6 border border-white/20">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                {mentalAttributes.map((attr) => (
-                  <div key={attr.name} className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-white">{attr.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-20 h-2 bg-[#1e3a8a]/30 rounded-full overflow-hidden shadow-inner">
-                        <div
-                          className="h-full bg-gradient-to-r from-[#3B82F6] to-[#8B5CF6] transition-all duration-300 shadow-sm"
-                          style={{ width: `${((attr.value || 0) / 10) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-bold text-blue-400 w-8">
-                        {attr.value?.toFixed(1) || 'N/A'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
 
           {/* Notes & Tags - Editable */}
           <section>
