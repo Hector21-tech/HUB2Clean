@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/prisma'
 
+// Create Supabase admin client
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+)
+
 // GET: Accept invitation and create user + membership
 export async function GET(
   request: NextRequest,
@@ -19,7 +31,62 @@ export async function GET(
 
     console.log('🎫 Processing invitation token:', token.substring(0, 8) + '...')
 
-    // Find invitation
+    // First try tenant_invitations table (mobile app format)
+    const { data: mobileInvitation, error: mobileError } = await supabaseAdmin
+      .from('tenant_invitations')
+      .select(`
+        *,
+        tenant:tenants(id, name, slug)
+      `)
+      .eq('token', token)
+      .single()
+
+    if (mobileInvitation) {
+      console.log('📱 Found invitation in tenant_invitations table')
+
+      // Check if expired
+      if (new Date(mobileInvitation.expiresAt) < new Date()) {
+        return NextResponse.json({
+          success: false,
+          error: 'This invitation has expired',
+          errorCode: 'EXPIRED',
+          expiresAt: mobileInvitation.expiresAt
+        }, { status: 410 })
+      }
+
+      // Check if already accepted
+      if (mobileInvitation.acceptedAt) {
+        return NextResponse.json({
+          success: false,
+          error: 'This invitation has already been used',
+          errorCode: 'ALREADY_ACCEPTED',
+          acceptedAt: mobileInvitation.acceptedAt
+        }, { status: 410 })
+      }
+
+      const tenant = Array.isArray(mobileInvitation.tenant)
+        ? mobileInvitation.tenant[0]
+        : mobileInvitation.tenant
+
+      return NextResponse.json({
+        success: true,
+        source: 'mobile',
+        invitation: {
+          id: mobileInvitation.id,
+          email: mobileInvitation.email,
+          role: mobileInvitation.role,
+          tenant: {
+            id: tenant.id,
+            name: tenant.name,
+            slug: tenant.slug
+          },
+          expiresAt: mobileInvitation.expiresAt,
+          createdAt: mobileInvitation.createdAt
+        }
+      })
+    }
+
+    // Fallback to Prisma invitations table (web app format)
     const invitation = await prisma.invitation.findUnique({
       where: { token },
       include: {
@@ -74,6 +141,7 @@ export async function GET(
     // Return invitation details for user acceptance page
     return NextResponse.json({
       success: true,
+      source: 'web',
       invitation: {
         id: invitation.id,
         email: invitation.email,
@@ -135,32 +203,103 @@ export async function POST(
 
     console.log('✅ Accepting invitation:', token.substring(0, 8) + '...')
 
-    // Find and validate invitation
-    const invitation = await prisma.invitation.findUnique({
-      where: { token },
-      include: { tenant: true }
-    })
+    // First try tenant_invitations table (mobile app format)
+    const { data: mobileInvitation } = await supabaseAdmin
+      .from('tenant_invitations')
+      .select(`
+        *,
+        tenant:tenants(id, name, slug)
+      `)
+      .eq('token', token)
+      .single()
 
-    if (!invitation) {
+    // Determine which invitation source we're using
+    let invitationData: {
+      id: string
+      email: string
+      role: string
+      tenantId: string
+      tenant: { id: string; name: string; slug: string }
+      source: 'mobile' | 'web'
+    } | null = null
+
+    if (mobileInvitation) {
+      console.log('📱 Found invitation in tenant_invitations table')
+
+      // Check if expired
+      if (new Date(mobileInvitation.expiresAt) < new Date()) {
+        return NextResponse.json({
+          success: false,
+          error: 'This invitation has expired'
+        }, { status: 410 })
+      }
+
+      // Check if already accepted
+      if (mobileInvitation.acceptedAt) {
+        return NextResponse.json({
+          success: false,
+          error: 'This invitation has already been used'
+        }, { status: 410 })
+      }
+
+      const tenant = Array.isArray(mobileInvitation.tenant)
+        ? mobileInvitation.tenant[0]
+        : mobileInvitation.tenant
+
+      invitationData = {
+        id: mobileInvitation.id,
+        email: mobileInvitation.email,
+        role: mobileInvitation.role,
+        tenantId: mobileInvitation.tenantId,
+        tenant,
+        source: 'mobile'
+      }
+    } else {
+      // Fallback to Prisma invitations table
+      const invitation = await prisma.invitation.findUnique({
+        where: { token },
+        include: { tenant: true }
+      })
+
+      if (!invitation) {
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid invitation token'
+        }, { status: 404 })
+      }
+
+      if (invitation.expiresAt < new Date()) {
+        return NextResponse.json({
+          success: false,
+          error: 'This invitation has expired'
+        }, { status: 410 })
+      }
+
+      if (invitation.status !== 'PENDING') {
+        return NextResponse.json({
+          success: false,
+          error: 'This invitation is no longer valid'
+        }, { status: 410 })
+      }
+
+      invitationData = {
+        id: invitation.id,
+        email: invitation.email,
+        role: invitation.role,
+        tenantId: invitation.tenantId,
+        tenant: invitation.tenant,
+        source: 'web'
+      }
+    }
+
+    if (!invitationData) {
       return NextResponse.json({
         success: false,
         error: 'Invalid invitation token'
       }, { status: 404 })
     }
 
-    if (invitation.expiresAt < new Date()) {
-      return NextResponse.json({
-        success: false,
-        error: 'This invitation has expired'
-      }, { status: 410 })
-    }
-
-    if (invitation.status !== 'PENDING') {
-      return NextResponse.json({
-        success: false,
-        error: 'This invitation is no longer valid'
-      }, { status: 410 })
-    }
+    const invitation = invitationData
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -273,14 +412,21 @@ export async function POST(
       }
     })
 
-    // Mark invitation as accepted
-    await prisma.invitation.update({
-      where: { id: invitation.id },
-      data: {
-        status: 'ACCEPTED',
-        acceptedAt: new Date()
-      }
-    })
+    // Mark invitation as accepted based on source
+    if (invitation.source === 'mobile') {
+      await supabaseAdmin
+        .from('tenant_invitations')
+        .update({ acceptedAt: new Date().toISOString() })
+        .eq('id', invitation.id)
+    } else {
+      await prisma.invitation.update({
+        where: { id: invitation.id },
+        data: {
+          status: 'ACCEPTED',
+          acceptedAt: new Date()
+        }
+      })
+    }
 
     console.log('✅ Invitation accepted successfully:', {
       userId,
