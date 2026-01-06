@@ -12,7 +12,10 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: 'Scout Hub',
-  description: 'Enterprise-grade multi-tenant scouting platform built with Next.js and Vercel Platforms'
+  description: 'Enterprise-grade multi-tenant scouting platform built with Next.js and Vercel Platforms',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
