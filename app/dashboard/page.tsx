@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Building2, Users, ArrowRight, Mail, Target, Shield } from 'lucide-react'
+import { Plus, Building2, Users, ArrowRight, Mail, Target, Shield, Key } from 'lucide-react'
 import { useAuth } from '@/lib/auth/AuthContext'
 import { UserNav } from '@/components/user-nav'
 
@@ -13,6 +13,7 @@ export default function RootDashboard() {
   const [orgName, setOrgName] = useState('')
   const [orgSlug, setOrgSlug] = useState('')
   const [showRetryOption, setShowRetryOption] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
 
   // Show retry option after 8 seconds of loading
   React.useEffect(() => {
@@ -238,13 +239,36 @@ export default function RootDashboard() {
         </div>
 
         {/* Join Organization */}
-        <div className="mt-6 text-center">
-          <div className="bg-white/50 border border-white/40 rounded-xl p-6">
-            <Mail className="w-6 h-6 text-slate-500 mx-auto mb-3" />
-            <h3 className="text-base font-medium text-slate-800 mb-2">Join Existing Organization</h3>
-            <p className="text-slate-600 text-sm">
-              Ask an admin from your organization to invite you via email
-            </p>
+        <div className="mt-6">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/40 rounded-2xl p-6 shadow-xl shadow-blue-100/50">
+            <div className="text-center mb-4">
+              <Key className="w-8 h-8 text-blue-600 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-slate-800 mb-1">Join Existing Organization</h3>
+              <p className="text-slate-600 text-sm">
+                Enter the invitation code from your email
+              </p>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                placeholder="Paste invitation code here"
+                className="w-full bg-white/90 border border-slate-200 rounded-lg px-4 py-3 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
+              />
+              <button
+                onClick={() => {
+                  if (inviteCode.trim()) {
+                    router.push(`/accept-invite?token=${inviteCode.trim()}`)
+                  }
+                }}
+                disabled={!inviteCode.trim()}
+                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-slate-300 disabled:to-slate-400 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <Mail className="w-5 h-5" />
+                Join Organization
+              </button>
+            </div>
           </div>
         </div>
 
