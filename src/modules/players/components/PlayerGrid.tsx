@@ -41,13 +41,12 @@ export function PlayerGrid({ players, loading, onPlayerSelect, viewMode }: Playe
     return (
       <div className="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 overflow-hidden">
         {/* Desktop List Header - Hidden on mobile */}
-        <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 bg-white/10 backdrop-blur-md border-b border-white/20 text-sm font-medium text-white/60">
+        <div className="hidden lg:grid lg:grid-cols-11 gap-4 p-4 bg-white/10 backdrop-blur-md border-b border-white/20 text-sm font-medium text-white/60">
           <div className="col-span-2">Player</div>
           <div className="col-span-2">Position</div>
           <div className="col-span-1">Club</div>
           <div className="col-span-2">Contract Status</div>
           <div className="col-span-1">Age</div>
-          <div className="col-span-1">Rating</div>
           <div className="col-span-1">Goals</div>
           <div className="col-span-1">Assists</div>
           <div className="col-span-1">Value</div>
@@ -114,15 +113,15 @@ function PlayerListItem({ player, onPlayerSelect }: PlayerListItemProps) {
       className="cursor-pointer transition-colors duration-200 hover:bg-white/5 min-h-[80px]"
     >
       {/* Desktop Layout */}
-      <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 items-center">
+      <div className="hidden lg:grid lg:grid-cols-11 gap-4 p-4 items-center">
         <div className="col-span-2 flex items-center gap-3">
-          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center overflow-hidden">
+          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-full flex items-center justify-center overflow-hidden">
             {/* Avatar Image */}
             {avatarUrl && !imageError && !avatarLoading && (
               <img
                 src={avatarUrl}
                 alt={`${player.firstName} ${player.lastName}`}
-                className="w-full h-full object-cover object-top"
+                className="w-full h-full object-cover object-center"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
@@ -206,15 +205,6 @@ function PlayerListItem({ player, onPlayerSelect }: PlayerListItemProps) {
           </span>
         </div>
         <div className="col-span-1 flex items-center">
-          {player.rating ? (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/10 text-blue-400">
-              {player.rating.toFixed(1)}
-            </span>
-          ) : (
-            <span className="text-sm text-white/60">-</span>
-          )}
-        </div>
-        <div className="col-span-1 flex items-center">
           <span className="text-sm text-white/90">{player.goalsThisSeason || 0}</span>
         </div>
         <div className="col-span-1 flex items-center">
@@ -237,13 +227,13 @@ function PlayerListItem({ player, onPlayerSelect }: PlayerListItemProps) {
       {/* Mobile Layout */}
       <div className="lg:hidden p-4">
         <div className="flex items-center gap-3">
-          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-lg flex items-center justify-center overflow-hidden">
+          <div className="relative w-12 h-12 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 rounded-full flex items-center justify-center overflow-hidden">
             {/* Avatar Image */}
             {avatarUrl && !imageError && !avatarLoading && (
               <img
                 src={avatarUrl}
                 alt={`${player.firstName} ${player.lastName}`}
-                className="w-full h-full object-cover object-top"
+                className="w-full h-full object-cover object-center"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.style.display = 'none'
@@ -279,11 +269,6 @@ function PlayerListItem({ player, onPlayerSelect }: PlayerListItemProps) {
                     : 'N/A'
                   }
                 </span>
-                {player.rating && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-400/10 text-blue-400">
-                    {player.rating.toFixed(1)}
-                  </span>
-                )}
               </div>
               <div className="text-sm font-medium text-blue-400">
                 {player.marketValue ?

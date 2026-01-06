@@ -499,14 +499,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                   <span className="font-medium">{player.club || 'Free Agent'}</span>
                   <span>•</span>
                   <span className="font-medium">{formatPositionsDisplay(player.positions || []) || 'Player'}</span>
-                  {player.rating && (
-                    <>
-                      <span>•</span>
-                      <span className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full text-sm font-semibold">
-                        {player.rating.toFixed(1)}
-                      </span>
-                    </>
-                  )}
                 </div>
               </div>
 
@@ -713,12 +705,6 @@ export function PlayerDetailDrawer({ player, isOpen, onClose, onEdit, onDelete, 
                     <label className="text-sm font-medium text-white/60">Market Value</label>
                     <p className="text-lg font-semibold text-blue-400 drop-shadow-sm">
                       {formatCurrency(player.marketValue)}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-white/60">Jersey Number</label>
-                    <p className="text-lg font-semibold text-white">
-                      {player.jerseyNumber || 'N/A'}
                     </p>
                   </div>
                 </div>

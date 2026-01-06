@@ -31,13 +31,21 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
     contractExpiry: '',
     agencyContractExpiry: '',
     height: '',
+    preferredFoot: '' as '' | 'LEFT' | 'RIGHT' | 'BOTH',
+    marketValue: '',
+    salary: '',
+    agent: '',
     notes: '',
-    rating: '',
     avatarPath: '',
     hasMandate: false,
     mandateExpiry: '',
     mandateClubs: '',
-    mandateNotes: ''
+    mandateNotes: '',
+    // Performance Stats
+    goalsThisSeason: '',
+    assistsThisSeason: '',
+    appearances: '',
+    minutesPlayed: ''
   })
   const [showCustomClubInput, setShowCustomClubInput] = useState(false)
 
@@ -106,14 +114,22 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         agencyContractExpiry: editingPlayer.agencyContractExpiry ?
           new Date(editingPlayer.agencyContractExpiry).toISOString().split('T')[0] : '',
         height: editingPlayer.height ? String(editingPlayer.height) : '',
+        preferredFoot: editingPlayer.preferredFoot || '',
+        marketValue: editingPlayer.marketValue ? String(editingPlayer.marketValue) : '',
+        salary: editingPlayer.salary ? String(editingPlayer.salary) : '',
+        agent: editingPlayer.agent || '',
         notes: editingPlayer.notes || '',
-        rating: editingPlayer.rating ? String(editingPlayer.rating) : '',
         avatarPath: editingPlayer.avatarPath || '',
         hasMandate: editingPlayer.hasMandate || false,
         mandateExpiry: editingPlayer.mandateExpiry ?
           new Date(editingPlayer.mandateExpiry).toISOString().split('T')[0] : '',
         mandateClubs: editingPlayer.mandateClubs || '',
-        mandateNotes: editingPlayer.mandateNotes || ''
+        mandateNotes: editingPlayer.mandateNotes || '',
+        // Performance Stats
+        goalsThisSeason: editingPlayer.goalsThisSeason ? String(editingPlayer.goalsThisSeason) : '',
+        assistsThisSeason: editingPlayer.assistsThisSeason ? String(editingPlayer.assistsThisSeason) : '',
+        appearances: editingPlayer.appearances ? String(editingPlayer.appearances) : '',
+        minutesPlayed: editingPlayer.minutesPlayed ? String(editingPlayer.minutesPlayed) : ''
       })
     } else {
       // Reset form for new player
@@ -127,13 +143,20 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         contractExpiry: '',
         agencyContractExpiry: '',
         height: '',
+        preferredFoot: '',
+        marketValue: '',
+        salary: '',
+        agent: '',
         notes: '',
-        rating: '',
         avatarPath: '',
         hasMandate: false,
         mandateExpiry: '',
         mandateClubs: '',
-        mandateNotes: ''
+        mandateNotes: '',
+        goalsThisSeason: '',
+        assistsThisSeason: '',
+        appearances: '',
+        minutesPlayed: ''
       })
     }
     setErrors({})
@@ -214,10 +237,6 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
     } else if (isNaN(Number(formData.height)) || Number(formData.height) < 150 || Number(formData.height) > 220) {
       newErrors.height = 'Height must be between 150-220 cm'
     }
-    if (formData.rating && (isNaN(Number(formData.rating)) || Number(formData.rating) < 1 || Number(formData.rating) > 10)) {
-      newErrors.rating = 'Rating must be between 1-10'
-    }
-
     // Validate club contract expiry date (no FIFA limit, but max 10 years is reasonable)
     if (formData.club && formData.club !== 'Free Agent' && formData.contractExpiry) {
       const contractDate = new Date(formData.contractExpiry)
@@ -278,7 +297,10 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         contractExpiry: formData.contractExpiry ? new Date(formData.contractExpiry) : undefined,
         agencyContractExpiry: formData.agencyContractExpiry ? new Date(formData.agencyContractExpiry) : undefined,
         height: Number(formData.height),
-        rating: formData.rating ? Number(formData.rating) : undefined,
+        preferredFoot: formData.preferredFoot || undefined,
+        marketValue: formData.marketValue ? Number(formData.marketValue) : undefined,
+        salary: formData.salary ? Number(formData.salary) : undefined,
+        agent: formData.agent.trim() || undefined,
         tags: [], // Default empty tags
         notes: formData.notes.trim() || undefined,
         // Clear club if Free Agent is selected (use null for consistency)
@@ -290,7 +312,12 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         hasMandate: formData.hasMandate, // Keep this so filter works!
         mandateExpiry: formData.mandateExpiry ? new Date(formData.mandateExpiry) : undefined,
         mandateClubs: formData.mandateClubs || undefined,
-        mandateNotes: formData.mandateNotes || undefined
+        mandateNotes: formData.mandateNotes || undefined,
+        // Performance Stats
+        goalsThisSeason: formData.goalsThisSeason ? Number(formData.goalsThisSeason) : undefined,
+        assistsThisSeason: formData.assistsThisSeason ? Number(formData.assistsThisSeason) : undefined,
+        appearances: formData.appearances ? Number(formData.appearances) : undefined,
+        minutesPlayed: formData.minutesPlayed ? Number(formData.minutesPlayed) : undefined
       }
 
       await onSave(playerData)
@@ -306,13 +333,20 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
         contractExpiry: '',
         agencyContractExpiry: '',
         height: '',
+        preferredFoot: '',
+        marketValue: '',
+        salary: '',
+        agent: '',
         notes: '',
-        rating: '',
         avatarPath: '',
         hasMandate: false,
         mandateExpiry: '',
         mandateClubs: '',
-        mandateNotes: ''
+        mandateNotes: '',
+        goalsThisSeason: '',
+        assistsThisSeason: '',
+        appearances: '',
+        minutesPlayed: ''
       })
       setShowCustomClubInput(false)
 
@@ -720,15 +754,207 @@ export function AddPlayerModal({ isOpen, onClose, onSave, tenantId, editingPlaye
               </div>
             </div>
 
-            {/* Club & Physical */}
-            <div className="space-y-4">
-
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div></div>
+            {/* Preferred Foot */}
+            <div>
+              <label className="block text-sm font-medium text-white/60 mb-3">
+                Preferred Foot
+              </label>
+              <div className="flex gap-2 sm:gap-3">
+                {(['LEFT', 'RIGHT', 'BOTH'] as const).map((foot) => (
+                  <button
+                    key={foot}
+                    type="button"
+                    onClick={() => handleInputChange('preferredFoot', foot)}
+                    className={`
+                      flex-1 py-3 px-4 rounded-lg border text-sm font-medium transition-all duration-200
+                      ${formData.preferredFoot === foot
+                        ? 'bg-blue-600 border-blue-400 text-white'
+                        : 'bg-white/5 border-white/20 text-white/90 hover:bg-white/10 hover:border-white/30'
+                      }
+                    `}
+                  >
+                    {foot === 'LEFT' ? '🦶 Left' : foot === 'RIGHT' ? '🦶 Right' : '🦶🦶 Both'}
+                  </button>
+                ))}
               </div>
             </div>
 
+            {/* Physical & Market */}
+            <div className="space-y-4 border-t border-white/20 pt-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Physical & Market</h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/60 mb-2">
+                    Market Value (EUR)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.marketValue}
+                    onChange={(e) => handleInputChange('marketValue', e.target.value)}
+                    min="0"
+                    className="
+                      w-full px-3 sm:px-4 py-3
+                      bg-white/5 backdrop-blur-sm
+                      border border-white/20 rounded-lg text-base
+                      text-white placeholder-white/50
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                      hover:border-white/30
+                      transition-all duration-200
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                    "
+                    placeholder="e.g., 500000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/60 mb-2">
+                    Salary (EUR/year)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.salary}
+                    onChange={(e) => handleInputChange('salary', e.target.value)}
+                    min="0"
+                    className="
+                      w-full px-3 sm:px-4 py-3
+                      bg-white/5 backdrop-blur-sm
+                      border border-white/20 rounded-lg text-base
+                      text-white placeholder-white/50
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                      hover:border-white/30
+                      transition-all duration-200
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                    "
+                    placeholder="e.g., 100000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-white/60 mb-2">
+                  Agent
+                </label>
+                <input
+                  type="text"
+                  value={formData.agent}
+                  onChange={(e) => handleInputChange('agent', e.target.value)}
+                  className="
+                    w-full px-3 sm:px-4 py-3
+                    bg-white/5 backdrop-blur-sm
+                    border border-white/20 rounded-lg text-base
+                    text-white placeholder-white/50
+                    focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                    hover:border-white/30
+                    transition-all duration-200
+                  "
+                  placeholder="Agent name"
+                />
+              </div>
+            </div>
+
+            {/* Performance Stats */}
+            <div className="space-y-4 border-t border-white/20 pt-6">
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Performance Stats</h3>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white/60 mb-2">
+                    Goals
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.goalsThisSeason}
+                    onChange={(e) => handleInputChange('goalsThisSeason', e.target.value)}
+                    min="0"
+                    max="100"
+                    className="
+                      w-full px-3 sm:px-4 py-3
+                      bg-white/5 backdrop-blur-sm
+                      border border-white/20 rounded-lg text-base
+                      text-white placeholder-white/50
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                      hover:border-white/30
+                      transition-all duration-200
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                    "
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/60 mb-2">
+                    Assists
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.assistsThisSeason}
+                    onChange={(e) => handleInputChange('assistsThisSeason', e.target.value)}
+                    min="0"
+                    max="100"
+                    className="
+                      w-full px-3 sm:px-4 py-3
+                      bg-white/5 backdrop-blur-sm
+                      border border-white/20 rounded-lg text-base
+                      text-white placeholder-white/50
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                      hover:border-white/30
+                      transition-all duration-200
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                    "
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/60 mb-2">
+                    Appearances
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.appearances}
+                    onChange={(e) => handleInputChange('appearances', e.target.value)}
+                    min="0"
+                    max="100"
+                    className="
+                      w-full px-3 sm:px-4 py-3
+                      bg-white/5 backdrop-blur-sm
+                      border border-white/20 rounded-lg text-base
+                      text-white placeholder-white/50
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                      hover:border-white/30
+                      transition-all duration-200
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                    "
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white/60 mb-2">
+                    Minutes
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.minutesPlayed}
+                    onChange={(e) => handleInputChange('minutesPlayed', e.target.value)}
+                    min="0"
+                    max="10000"
+                    className="
+                      w-full px-3 sm:px-4 py-3
+                      bg-white/5 backdrop-blur-sm
+                      border border-white/20 rounded-lg text-base
+                      text-white placeholder-white/50
+                      focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400
+                      hover:border-white/30
+                      transition-all duration-200
+                      [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none
+                    "
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Notes */}
             <div>

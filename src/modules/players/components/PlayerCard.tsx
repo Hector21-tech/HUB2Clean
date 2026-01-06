@@ -126,16 +126,6 @@ export function PlayerCard({ player, onCardClick }: PlayerCardProps) {
           </div>
         </div>
 
-
-        {/* Rating Badge */}
-        {player.rating && (
-          <div className="absolute top-4 right-4">
-            <div className="bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-              {player.rating.toFixed(1)}
-            </div>
-          </div>
-        )}
-
       </div>
 
       {/* Content */}
