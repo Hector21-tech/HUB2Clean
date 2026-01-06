@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth/AuthContext'
 import { UserNav } from '@/components/user-nav'
 
 export default function RootDashboard() {
-  const { user, userTenants, loading, initializing } = useAuth()
+  const { user, userTenants, loading, initializing, isEmailVerified } = useAuth()
   const router = useRouter()
   const [creatingOrg, setCreatingOrg] = useState(false)
   const [orgName, setOrgName] = useState('')
@@ -83,6 +83,12 @@ export default function RootDashboard() {
   // Redirect to login if no user after initialization is complete
   if (!initializing && !user) {
     router.push('/login')
+    return null
+  }
+
+  // Redirect to verify-email if email not verified
+  if (!initializing && user && !isEmailVerified) {
+    router.push('/verify-email')
     return null
   }
 

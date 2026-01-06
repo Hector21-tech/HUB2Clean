@@ -49,9 +49,14 @@ function LoginContent() {
       }
 
       if (data.user) {
-        // Simple redirect to dashboard - let AuthContext handle the rest
-        console.log('✅ Login successful, redirecting to dashboard')
-        router.push('/dashboard')
+        // Check if email is verified
+        if (!data.user.email_confirmed_at) {
+          console.log('⚠️ Email not verified, redirecting to verify-email')
+          router.push('/verify-email')
+        } else {
+          console.log('✅ Login successful, redirecting to dashboard')
+          router.push('/dashboard')
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred')

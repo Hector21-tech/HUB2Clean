@@ -9,7 +9,9 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   initializing: boolean
+  isEmailVerified: boolean
   signOut: () => Promise<void>
+  resendVerificationEmail: () => Promise<{ error: Error | null }>
   userTenants: TenantMembership[]
   currentTenant: string | null
   setCurrentTenant: (tenantId: string) => void
@@ -323,12 +325,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setCurrentTenant(null)
   }
 
+  // Resend verification email
+  const resendVerificationEmail = async (): Promise<{ error: Error | null }> => {
+    try {
+      if (!user?.email) {
+        throw new Error('No email address found')
+      }
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+      })
+      if (error) throw error
+      return { error: null }
+    } catch (error) {
+      return { error: error as Error }
+    }
+  }
+
+  // Check if email is verified
+  const isEmailVerified = Boolean(user?.email_confirmed_at)
+
   const value: AuthContextType = {
     user,
     session,
     loading,
     initializing,
+    isEmailVerified,
     signOut,
+    resendVerificationEmail,
     userTenants,
     currentTenant,
     setCurrentTenant
