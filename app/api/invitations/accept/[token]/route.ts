@@ -38,10 +38,7 @@ export async function GET(
     // First try tenant_invitations table (mobile app format)
     const { data: mobileInvitation, error: mobileError } = await supabaseAdmin
       .from('tenant_invitations')
-      .select(`
-        *,
-        tenant:tenants(id, name, slug)
-      `)
+      .select('*')
       .eq('token', token)
       .single()
 
@@ -74,9 +71,20 @@ export async function GET(
         }, { status: 410 })
       }
 
-      const tenant = Array.isArray(mobileInvitation.tenant)
-        ? mobileInvitation.tenant[0]
-        : mobileInvitation.tenant
+      // Fetch tenant separately
+      const { data: tenant } = await supabaseAdmin
+        .from('tenants')
+        .select('id, name, slug')
+        .eq('id', mobileInvitation.tenantId)
+        .single()
+
+      if (!tenant) {
+        return NextResponse.json({
+          success: false,
+          error: 'Organization not found',
+          errorCode: 'TENANT_NOT_FOUND'
+        }, { status: 404 })
+      }
 
       return NextResponse.json({
         success: true,
@@ -218,10 +226,7 @@ export async function POST(
     // First try tenant_invitations table (mobile app format)
     const { data: mobileInvitation } = await supabaseAdmin
       .from('tenant_invitations')
-      .select(`
-        *,
-        tenant:tenants(id, name, slug)
-      `)
+      .select('*')
       .eq('token', token)
       .single()
 
@@ -254,9 +259,19 @@ export async function POST(
         }, { status: 410 })
       }
 
-      const tenant = Array.isArray(mobileInvitation.tenant)
-        ? mobileInvitation.tenant[0]
-        : mobileInvitation.tenant
+      // Fetch tenant separately (no foreign key relationship in Supabase)
+      const { data: tenant } = await supabaseAdmin
+        .from('tenants')
+        .select('id, name, slug')
+        .eq('id', mobileInvitation.tenantId)
+        .single()
+
+      if (!tenant) {
+        return NextResponse.json({
+          success: false,
+          error: 'Organization not found'
+        }, { status: 404 })
+      }
 
       invitationData = {
         id: mobileInvitation.id,
